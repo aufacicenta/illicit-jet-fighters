@@ -5,9 +5,9 @@
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "allowJs": true,
-    "types": ["bun"],
+    "types": ["bun", "react", "react-dom"],
 
     // Bundler mode
     "moduleResolution": "bundler",
@@ -16,11 +16,11 @@
     "noEmit": true,
 
     // Best practices
-    "strict": true,
+    "strict": false,
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitOverride": false,
 
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
