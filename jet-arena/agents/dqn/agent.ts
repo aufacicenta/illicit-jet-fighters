@@ -63,6 +63,13 @@ globalThis.__agentExport = (() => {
   };
 
   const vectorize = (observation) => {
+    const nearestWallBand = observation.nearestWallAltitudeBand ?? {
+      altitudeMin: 0,
+      altitudeMax: 1,
+      deltaToMin: observation.self.altitude,
+      deltaToMax: 1 - observation.self.altitude,
+    };
+    const clampSignedUnit = (value) => Math.max(-1, Math.min(1, value));
     const nearestEnemy =
       observation.enemies
         .filter((enemy) => enemy.alive)
@@ -97,13 +104,17 @@ globalThis.__agentExport = (() => {
       nearestBullet ? nearestBullet.relAltitude : 0,
       nearestBullet ? nearestBullet.relVx / 14 : 0,
       nearestBullet ? nearestBullet.relVy / 14 : 0,
+      nearestWallBand.altitudeMin,
+      nearestWallBand.altitudeMax,
+      clampSignedUnit(nearestWallBand.deltaToMin),
+      clampSignedUnit(nearestWallBand.deltaToMax),
     ];
   };
 
   const createModel = () => {
     model = tf.sequential({
       layers: [
-        tf.layers.dense({ inputShape: [18], units: 24, activation: "relu" }),
+        tf.layers.dense({ inputShape: [22], units: 24, activation: "relu" }),
         tf.layers.dense({ units: 24, activation: "relu" }),
         tf.layers.dense({ units: ACTIONS.length, activation: "linear" }),
       ],

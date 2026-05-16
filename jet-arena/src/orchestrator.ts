@@ -318,7 +318,11 @@ export class GameOrchestrator {
         contactX: self.x,
         contactY: self.y,
         wallType: "boundary" as const,
+        altitudeMin: 0,
+        altitudeMax: 1,
       };
+    const nearestWallAltitudeMin = nearestWall.altitudeMin ?? 0;
+    const nearestWallAltitudeMax = nearestWall.altitudeMax ?? 1;
 
     const result = this.lastResults.get(jetId);
     return {
@@ -342,6 +346,16 @@ export class GameOrchestrator {
       nearestWall,
       nearbyWalls,
       distanceToWall: nearestWall.distance,
+      nearestWallAltitudeBand: {
+        altitudeMin: nearestWallAltitudeMin,
+        altitudeMax: nearestWallAltitudeMax,
+        deltaToMin: self.altitude - nearestWallAltitudeMin,
+        deltaToMax: nearestWallAltitudeMax - self.altitude,
+        belowBand: self.altitude < nearestWallAltitudeMin,
+        withinBand:
+          self.altitude >= nearestWallAltitudeMin && self.altitude <= nearestWallAltitudeMax,
+        aboveBand: self.altitude > nearestWallAltitudeMax,
+      },
       lastCollision: self.lastCollision,
       tick: state.tick,
       lastAction: result?.action ?? null,

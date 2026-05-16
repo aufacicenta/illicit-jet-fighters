@@ -1,5 +1,5 @@
 ---
-name: agent-battlefield-sheet
+name: battlefield-sheet-generator
 description: Generate an image-generation prompt for a full battlefield reference sheet from a battlefield or arena description. Use when the user asks to create a battlefield sheet, arena sheet, combat zone sheet, map concept sheet, or environment design sheet for a jet-arena battlefield.
 disable-model-invocation: true
 ---

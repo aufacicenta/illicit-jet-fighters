@@ -25,4 +25,6 @@ export interface WallContact {
   contactX: number;
   contactY: number;
   wallType: "boundary" | "interior";
+  altitudeMin?: number;
+  altitudeMax?: number;
 }

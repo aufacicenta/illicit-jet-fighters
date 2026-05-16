@@ -51,6 +51,15 @@ export interface Observation {
   nearestWall: WallContact;
   nearbyWalls: WallContact[];
   distanceToWall: number;
+  nearestWallAltitudeBand: {
+    altitudeMin: number;
+    altitudeMax: number;
+    deltaToMin: number;
+    deltaToMax: number;
+    belowBand: boolean;
+    withinBand: boolean;
+    aboveBand: boolean;
+  };
   lastCollision: CollisionEvent | null;
   tick: number;
   lastAction: AgentAction | null;

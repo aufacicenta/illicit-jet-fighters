@@ -107,6 +107,8 @@ export class ArenaShape {
         contactX,
         contactY,
         wallType: "boundary",
+        altitudeMin: 0,
+        altitudeMax: 1,
       };
     }
 
@@ -147,6 +149,8 @@ export class ArenaShape {
       contactX: nearestPoint.x,
       contactY: nearestPoint.y,
       wallType: "boundary",
+      altitudeMin: 0,
+      altitudeMax: 1,
     };
   }
 
@@ -179,6 +183,8 @@ export class ArenaShape {
         contactX: closest.x,
         contactY: closest.y,
         wallType: "interior",
+        altitudeMin: segment.altitudeMin,
+        altitudeMax: segment.altitudeMax,
       });
     }
 
@@ -240,6 +246,8 @@ export class ArenaShape {
         contactX: closest.x,
         contactY: closest.y,
         wallType: "interior",
+        altitudeMin: segment.altitudeMin,
+        altitudeMax: segment.altitudeMax,
       });
     }
 
