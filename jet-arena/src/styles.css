@@ -1,0 +1,170 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #020617;
+  color: #e2e8f0;
+}
+
+#app {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+}
+
+#controls {
+  border-right: 1px solid #1e293b;
+  padding: 16px;
+}
+
+#controls h1 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+#controls p {
+  margin: 0 0 12px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.row {
+  margin-bottom: 10px;
+}
+
+label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #93c5fd;
+}
+
+input,
+select,
+button {
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 8px;
+}
+
+button {
+  cursor: pointer;
+}
+
+button.primary {
+  background: #0369a1;
+  border-color: #0ea5e9;
+}
+
+#stage {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 16px;
+}
+
+#arena {
+  border: 1px solid #334155;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 1200px;
+  align-self: center;
+}
+
+#status {
+  width: min(1200px, 100%);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  color: #cbd5e1;
+  background: #0b1220;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 8px 10px;
+  min-height: 34px;
+  align-self: center;
+}
+
+#jet-stats {
+  width: min(1200px, 100%);
+  align-self: center;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.jet-card {
+  background: #0b1220;
+  border: 1px solid #1e293b;
+  border-left: 4px solid var(--accent);
+  border-radius: 10px;
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.jet-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.jet-id {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.jet-state {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.jet-card.alive .jet-state {
+  color: #86efac;
+}
+
+.jet-card.down .jet-state {
+  color: #fca5a5;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 42px 1fr 36px;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.bar {
+  height: 8px;
+  background: #1e293b;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #e2e8f0);
+}
+
+.jet-card footer {
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 11px;
+}

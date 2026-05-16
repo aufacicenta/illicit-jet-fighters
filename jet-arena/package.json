@@ -1,0 +1,21 @@
+{
+  "name": "illicit-jet-fighters",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "vite": "^8.0.13"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

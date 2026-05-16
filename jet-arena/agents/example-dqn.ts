@@ -1,0 +1,143 @@
+globalThis.__agentExport = (() => {
+  let model;
+  let optimizer;
+  const replayBuffer = [];
+
+  const ACTIONS = [
+    { thrust: -1, turn: -1, shoot: false },
+    { thrust: -1, turn: 1, shoot: false },
+    { thrust: 0, turn: -1, shoot: false },
+    { thrust: 0, turn: 1, shoot: false },
+    { thrust: 1, turn: 0, shoot: false },
+    { thrust: 1, turn: -0.5, shoot: true },
+    { thrust: 1, turn: 0.5, shoot: true },
+    { thrust: 0.2, turn: 0, shoot: true },
+  ];
+
+  const MAX_REPLAY = 400;
+  const BATCH_SIZE = 12;
+  const GAMMA = 0.95;
+  const LEARNING_RATE = 0.001;
+  let epsilon = 0.35;
+  let previousState = null;
+  let previousAction = 0;
+  let step = 0;
+
+  const vectorize = (observation) => {
+    const nearestEnemy =
+      observation.enemies
+        .filter((enemy) => enemy.alive)
+        .sort((left, right) => left.distance - right.distance)[0] ?? null;
+
+    const nearestBullet =
+      observation.nearbyBullets
+        .filter((bullet) => !bullet.isMine)
+        .sort(
+          (left, right) =>
+            left.relX * left.relX +
+            left.relY * left.relY -
+            (right.relX * right.relX + right.relY * right.relY),
+        )[0] ?? null;
+
+    return [
+      observation.self.speed / 8,
+      observation.self.health / 100,
+      observation.self.ammo / 50,
+      observation.self.fuel / 1000,
+      observation.self.weight / 2.5,
+      observation.distanceToWall / 420,
+      nearestEnemy ? nearestEnemy.relX / 420 : 0,
+      nearestEnemy ? nearestEnemy.relY / 420 : 0,
+      nearestEnemy ? nearestEnemy.bearingAngle / Math.PI : 0,
+      nearestEnemy ? nearestEnemy.distance / 420 : 1,
+      nearestBullet ? nearestBullet.relX / 240 : 0,
+      nearestBullet ? nearestBullet.relY / 240 : 0,
+      nearestBullet ? nearestBullet.relVx / 14 : 0,
+      nearestBullet ? nearestBullet.relVy / 14 : 0,
+    ];
+  };
+
+  const createModel = () => {
+    model = tf.sequential({
+      layers: [
+        tf.layers.dense({ inputShape: [14], units: 24, activation: "relu" }),
+        tf.layers.dense({ units: 24, activation: "relu" }),
+        tf.layers.dense({ units: ACTIONS.length, activation: "linear" }),
+      ],
+    });
+    optimizer = tf.train.adam(LEARNING_RATE);
+  };
+
+  const train = () => {
+    if (replayBuffer.length < BATCH_SIZE * 4 || step % 20 !== 0) {
+      return;
+    }
+    const batch = [];
+    for (let index = 0; index < BATCH_SIZE; index += 1) {
+      const pick = Math.floor(Math.random() * replayBuffer.length);
+      batch.push(replayBuffer[pick]);
+    }
+
+    tf.tidy(() => {
+      const states = tf.tensor2d(batch.map((item) => item.state));
+      const nextStates = tf.tensor2d(batch.map((item) => item.nextState));
+      const currentQ = model.predict(states);
+      const nextQ = model.predict(nextStates);
+      const nextBest = nextQ.max(1);
+      const targetData = currentQ.arraySync();
+      const nextBestData = nextBest.arraySync();
+
+      for (let index = 0; index < batch.length; index += 1) {
+        const sample = batch[index];
+        targetData[index][sample.action] = sample.reward + GAMMA * nextBestData[index];
+      }
+
+      const targets = tf.tensor2d(targetData);
+      optimizer.minimize(() => {
+        const predicted = model.predict(states);
+        return predicted.sub(targets).square().mean();
+      });
+    });
+  };
+
+  return {
+    init() {
+      createModel();
+    },
+    act(observation) {
+      const state = vectorize(observation);
+      step += 1;
+
+      let actionIndex = 0;
+      if (Math.random() < epsilon) {
+        actionIndex = Math.floor(Math.random() * ACTIONS.length);
+      } else {
+        const qValues = tf.tidy(() => {
+          const input = tf.tensor2d([state]);
+          return model.predict(input);
+        });
+        actionIndex = Number(qValues.argMax(1).dataSync()[0]);
+        qValues.dispose();
+      }
+
+      epsilon = Math.max(0.07, epsilon * 0.9995);
+      previousState = state;
+      previousAction = actionIndex;
+      return ACTIONS[actionIndex];
+    },
+    learn(observation, reward) {
+      if (!previousState) return;
+      const nextState = vectorize(observation);
+      replayBuffer.push({
+        state: previousState,
+        action: previousAction,
+        reward,
+        nextState,
+      });
+      if (replayBuffer.length > MAX_REPLAY) {
+        replayBuffer.shift();
+      }
+      train();
+    },
+  };
+})();

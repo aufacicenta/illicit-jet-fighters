@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; worker-src 'self' blob:;"
+    />
+    <title>Jet Arena</title>
+  </head>
+  <body>
+    <div id="app">
+      <aside id="controls"></aside>
+      <main id="stage">
+        <canvas id="arena" width="1200" height="900"></canvas>
+        <div id="status"></div>
+        <section id="jet-stats" aria-label="Jet stats panel"></section>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
