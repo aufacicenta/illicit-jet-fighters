@@ -62,6 +62,12 @@ export class GameWorld {
         collisionCount: 0,
         collisionDamageTaken: 0,
         lastCollision: null,
+        enemyHitsLanded: 0,
+        enemyHitsTaken: 0,
+        lastHitDealtToId: null,
+        lastHitTakenFromId: null,
+        lastHitDealtTick: null,
+        lastHitTakenTick: null,
         alive: true,
       });
     });
@@ -70,6 +76,7 @@ export class GameWorld {
       tick: 0,
       jets,
       bullets: [],
+      recentHitEvents: [],
       arenaBounds: {
         width,
         height,
@@ -78,6 +85,7 @@ export class GameWorld {
   }
 
   step(actions: Map<string, AgentAction>): GameState {
+    this.state.recentHitEvents = [];
     const safeActions = new Map<string, AgentAction>();
     for (const [id, jet] of this.state.jets.entries()) {
       if (!jet.alive) continue;
@@ -103,25 +111,42 @@ export class GameWorld {
 
   getWinnerId(): string | null {
     const alive = [...this.state.jets.values()].filter((jet) => jet.alive);
+    let candidateWinner: string | null = null;
     if (alive.length === 1) {
-      return alive[0].id;
-    }
-    if (alive.length === 0) {
-      return null;
-    }
-    if (this.state.tick >= CONFIG.MAX_TICKS) {
-      return this.pickResourceTieBreaker(alive);
+      candidateWinner = alive[0]?.id ?? null;
+    } else if (alive.length === 0) {
+      candidateWinner = null;
+    } else if (this.state.tick >= CONFIG.MAX_TICKS) {
+      candidateWinner = this.pickResourceTieBreaker(alive);
+    } else {
+      // Resolve hard stalemates when no one can meaningfully act anymore.
+      // This prevents "frozen survivors" late-game once fuel/ammo are exhausted.
+      const noBulletsInFlight = this.state.bullets.length === 0;
+      const allOutOfFuel = alive.every((jet) => jet.fuel <= 0);
+      const allOutOfAmmo = alive.every((jet) => jet.ammo <= 0);
+      if (noBulletsInFlight && (allOutOfFuel || allOutOfAmmo)) {
+        candidateWinner = this.pickResourceTieBreaker(alive);
+      }
     }
 
-    // Resolve hard stalemates when no one can meaningfully act anymore.
-    // This prevents "frozen survivors" late-game once fuel/ammo are exhausted.
+    if (!candidateWinner) return null;
+    const winner = this.state.jets.get(candidateWinner);
+    if (!winner) return null;
+    return winner.enemyHitsLanded > 0 ? candidateWinner : null;
+  }
+
+  isTerminalState(): boolean {
+    const alive = [...this.state.jets.values()].filter((jet) => jet.alive);
+    if (alive.length <= 1) {
+      return true;
+    }
+    if (this.state.tick >= CONFIG.MAX_TICKS) {
+      return true;
+    }
     const noBulletsInFlight = this.state.bullets.length === 0;
     const allOutOfFuel = alive.every((jet) => jet.fuel <= 0);
     const allOutOfAmmo = alive.every((jet) => jet.ammo <= 0);
-    if (noBulletsInFlight && (allOutOfFuel || allOutOfAmmo)) {
-      return this.pickResourceTieBreaker(alive);
-    }
-    return null;
+    return noBulletsInFlight && (allOutOfFuel || allOutOfAmmo);
   }
 
   getNearbyWalls(x: number, y: number, altitude: number, maxDistance: number): WallContact[] {
@@ -272,6 +297,7 @@ export class GameWorld {
   private updateBullets(): void {
     for (let index = this.state.bullets.length - 1; index >= 0; index -= 1) {
       const bullet = this.state.bullets[index];
+      if (!bullet) continue;
       bullet.x += bullet.vx;
       bullet.y += bullet.vy;
       bullet.ttl -= 1;
@@ -298,6 +324,21 @@ export class GameWorld {
         const dy = bullet.y - jet.y;
         if (dx * dx + dy * dy <= CONFIG.JET_HIT_RADIUS ** 2) {
           jet.health -= CONFIG.BULLET_DAMAGE;
+          jet.enemyHitsTaken += 1;
+          jet.lastHitTakenFromId = bullet.ownerId;
+          jet.lastHitTakenTick = this.state.tick;
+          const attacker = this.state.jets.get(bullet.ownerId);
+          if (attacker) {
+            attacker.enemyHitsLanded += 1;
+            attacker.lastHitDealtToId = id;
+            attacker.lastHitDealtTick = this.state.tick;
+          }
+          this.state.recentHitEvents.push({
+            tick: this.state.tick,
+            attackerId: bullet.ownerId,
+            targetId: id,
+            damage: CONFIG.BULLET_DAMAGE,
+          });
           if (jet.health <= 0) {
             jet.alive = false;
           }
@@ -327,6 +368,12 @@ export class GameWorld {
         collisionCount: jet.collisionCount,
         collisionDamageTaken: jet.collisionDamageTaken,
         lastCollision: jet.lastCollision ? { ...jet.lastCollision } : null,
+        enemyHitsLanded: jet.enemyHitsLanded,
+        enemyHitsTaken: jet.enemyHitsTaken,
+        lastHitDealtToId: jet.lastHitDealtToId,
+        lastHitTakenFromId: jet.lastHitTakenFromId,
+        lastHitDealtTick: jet.lastHitDealtTick,
+        lastHitTakenTick: jet.lastHitTakenTick,
         alive: jet.alive,
       }))
       .sort((a, b) => a.id.localeCompare(b.id));
@@ -345,6 +392,7 @@ export class GameWorld {
       tick: this.state.tick,
       jets,
       bullets,
+      hitEvents: this.state.recentHitEvents.map((event) => ({ ...event })),
     };
   }
 

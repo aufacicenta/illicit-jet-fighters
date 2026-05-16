@@ -215,6 +215,22 @@ button.primary {
   background: linear-gradient(90deg, var(--accent), #e2e8f0);
 }
 
+.combat-row {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  color: #bfdbfe;
+  font-size: 11px;
+}
+
+.combat-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .jet-card footer {
   margin-top: 6px;
   color: #94a3b8;

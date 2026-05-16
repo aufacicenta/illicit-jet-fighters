@@ -157,7 +157,7 @@ const buildAgentOptions = (): string =>
 const buildBattlefieldOptions = (): string =>
   BATTLEFIELD_ENTRIES.map(([key, config]) => `<option value="${key}">${config.name}</option>`).join("");
 
-const DEFAULT_AGENT_KEYS = ["heuristic", "aggressive", "evader", "dqn"] as const;
+const DEFAULT_AGENT_KEY = "solomon";
 const POSE_PRIORITY: Record<PoseKey, number> = {
   idle: 0,
   planning: 1,
@@ -262,20 +262,23 @@ const selectDefaultAgent = (select: HTMLSelectElement, preferredKey: string): vo
   select.value = nextValue;
 };
 
-selectDefaultAgent(agentA, DEFAULT_AGENT_KEYS[0]);
-selectDefaultAgent(agentB, DEFAULT_AGENT_KEYS[1]);
-selectDefaultAgent(agentC, DEFAULT_AGENT_KEYS[2]);
-selectDefaultAgent(agentD, DEFAULT_AGENT_KEYS[3]);
+selectDefaultAgent(agentA, DEFAULT_AGENT_KEY);
+selectDefaultAgent(agentB, DEFAULT_AGENT_KEY);
+selectDefaultAgent(agentC, DEFAULT_AGENT_KEY);
+selectDefaultAgent(agentD, DEFAULT_AGENT_KEY);
 
 const initialBattlefieldKey = BATTLEFIELD_REGISTRY["the-prism"] ? "the-prism" : BATTLEFIELD_KEYS[0];
 battlefieldSelect.value = initialBattlefieldKey ?? "classic-arena";
 
 const getSelectedBattlefield = (): BattlefieldConfig => {
-  return (
+  const selected =
     BATTLEFIELD_REGISTRY[battlefieldSelect.value] ??
     BATTLEFIELD_REGISTRY["classic-arena"] ??
-    BATTLEFIELD_ENTRIES[0]?.[1]
-  );
+    BATTLEFIELD_ENTRIES[0]?.[1];
+  if (!selected) {
+    throw new Error("No battlefield configurations available.");
+  }
+  return selected;
 };
 
 const applyCanvasAspect = (battlefield: BattlefieldConfig): void => {
@@ -390,35 +393,16 @@ const updateJetPoseState = (state: GameState): void => {
   }
 
   const previousJets = previousStateSnapshot.jets;
-  const attackedThisTick = new Set<string>();
-  const damagedThisTick = new Set<string>();
+  const attackedThisTick = new Set<string>(state.recentHitEvents.map((event) => event.attackerId));
+  const damagedThisTick = new Set<string>(state.recentHitEvents.map((event) => event.targetId));
   const fuelLossThisTick = new Set<string>();
-  const successfulAttack = new Set<string>();
+  const ammoSpentThisTick = new Set<string>();
 
   for (const jet of state.jets.values()) {
     const prev = previousJets.get(jet.id);
     if (!prev) continue;
-    if (jet.health < prev.health) damagedThisTick.add(jet.id);
-    if (jet.ammo < prev.ammo || jet.cooldown > prev.cooldown) attackedThisTick.add(jet.id);
     if (prev.fuel - jet.fuel > 8) fuelLossThisTick.add(jet.id);
-  }
-
-  for (const targetId of damagedThisTick) {
-    const target = state.jets.get(targetId);
-    if (!target) continue;
-    let candidateId: string | null = null;
-    let bestDistance = Number.POSITIVE_INFINITY;
-    for (const shooterId of attackedThisTick) {
-      if (shooterId === targetId) continue;
-      const shooter = state.jets.get(shooterId);
-      if (!shooter) continue;
-      const distance = Math.hypot(target.x - shooter.x, target.y - shooter.y);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        candidateId = shooterId;
-      }
-    }
-    if (candidateId) successfulAttack.add(candidateId);
+    if (jet.ammo < prev.ammo) ammoSpentThisTick.add(jet.id);
   }
 
   for (const jet of state.jets.values()) {
@@ -429,9 +413,9 @@ const updateJetPoseState = (state: GameState): void => {
     if (damagedThisTick.has(jet.id)) {
       setJetPose(jet.id, "got-hit", state.tick, 20);
     }
-    if (successfulAttack.has(jet.id)) {
+    if (attackedThisTick.has(jet.id)) {
       setJetPose(jet.id, "hit-target", state.tick, 16);
-    } else if (attackedThisTick.has(jet.id)) {
+    } else if (ammoSpentThisTick.has(jet.id) || jet.cooldown > 0) {
       setJetPose(jet.id, "attacking", state.tick, 12);
     } else if (fuelLossThisTick.has(jet.id) || jet.fuel < 220) {
       setJetPose(jet.id, "low-fuel", state.tick, 16);
@@ -470,6 +454,8 @@ const orchestrator = new GameOrchestrator(canvas, {
         const lastHitLabel = jet.lastCollision
           ? `HIT ${jet.lastCollision.wallType.toUpperCase()} @ ${jet.lastCollision.x.toFixed(0)},${jet.lastCollision.y.toFixed(0)}`
           : "HIT NONE";
+        const lastOut = formatJetIdForStat(jet.lastHitDealtToId);
+        const lastIn = formatJetIdForStat(jet.lastHitTakenFromId);
 
         return `
           <article class="jet-card ${jet.alive ? "alive" : "down"}" style="--accent:${accent}">
@@ -485,6 +471,8 @@ const orchestrator = new GameOrchestrator(canvas, {
                 <div class="bar-row"><span>FUEL</span><div class="bar"><i style="width:${fuelPct}%"></i></div><b>${Math.max(0, jet.fuel).toFixed(0)}</b></div>
                 <div class="bar-row"><span>AMMO</span><div class="bar"><i style="width:${ammoPct}%"></i></div><b>${Math.max(0, jet.ammo)}</b></div>
                 <footer>SPD ${speed.toFixed(2)} | ALT ${(jet.altitude * 100).toFixed(0)}% | CD ${jet.cooldown}</footer>
+                <div class="combat-row"><span>HITS ${jet.enemyHitsLanded}</span><span>TAKEN ${jet.enemyHitsTaken}</span></div>
+                <div class="combat-row"><span title="${jet.lastHitDealtToId ?? "NONE"}">LAST_OUT ${lastOut}</span><span title="${jet.lastHitTakenFromId ?? "NONE"}">LAST_IN ${lastIn}</span></div>
                 <footer>COLL ${collisionCount} | DMG ${collisionDamage.toFixed(1)} | ${lastHitLabel}</footer>
               </div>
             </div>
@@ -513,6 +501,13 @@ const colorForJet = (id: string): string => {
     hash = (hash + id.charCodeAt(index) * (index + 1)) % palette.length;
   }
   return palette[hash] ?? "#22d3ee";
+};
+
+const formatJetIdForStat = (value: string | null): string => {
+  if (!value) return "NONE";
+  const maxLength = 24;
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength - 1)}...`;
 };
 
 const buildPlayers = (): Array<{ id: string; code: string; agentKey: string }> => {

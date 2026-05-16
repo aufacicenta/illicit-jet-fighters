@@ -45,6 +45,12 @@ export interface Observation {
     cooldown: number;
     collisionCount: number;
     collisionDamageTaken: number;
+    enemyHitsLanded: number;
+    enemyHitsTaken: number;
+    lastHitDealtToId: string | null;
+    lastHitTakenFromId: string | null;
+    lastHitDealtTick: number | null;
+    lastHitTakenTick: number | null;
   };
   enemies: EnemyObservation[];
   nearbyBullets: BulletObservation[];

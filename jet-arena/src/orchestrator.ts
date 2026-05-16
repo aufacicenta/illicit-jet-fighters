@@ -39,6 +39,7 @@ const cloneState = (state: GameState): GameState => ({
     ]),
   ),
   bullets: state.bullets.map((bullet) => ({ ...bullet })),
+  recentHitEvents: state.recentHitEvents.map((event) => ({ ...event })),
 });
 
 export class GameOrchestrator {
@@ -151,7 +152,7 @@ export class GameOrchestrator {
     this.ui.onTick(currentState);
 
     const winnerId = this.world.getWinnerId();
-    if (winnerId !== null || this.world.getAliveCount() <= 1) {
+    if (this.world.isTerminalState()) {
       await this.finishMatch(winnerId);
       this.inFlight = false;
       return;
@@ -340,6 +341,12 @@ export class GameOrchestrator {
         cooldown: self.cooldown,
         collisionCount: self.collisionCount,
         collisionDamageTaken: self.collisionDamageTaken,
+        enemyHitsLanded: self.enemyHitsLanded,
+        enemyHitsTaken: self.enemyHitsTaken,
+        lastHitDealtToId: self.lastHitDealtToId,
+        lastHitTakenFromId: self.lastHitTakenFromId,
+        lastHitDealtTick: self.lastHitDealtTick,
+        lastHitTakenTick: self.lastHitTakenTick,
       },
       enemies,
       nearbyBullets,

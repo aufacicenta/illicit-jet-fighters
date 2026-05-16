@@ -10,6 +10,13 @@ export interface CollisionEvent {
   damage: number;
 }
 
+export interface HitEvent {
+  tick: number;
+  attackerId: string;
+  targetId: string;
+  damage: number;
+}
+
 export interface JetState {
   id: string;
   x: number;
@@ -27,6 +34,12 @@ export interface JetState {
   collisionCount: number;
   collisionDamageTaken: number;
   lastCollision: CollisionEvent | null;
+  enemyHitsLanded: number;
+  enemyHitsTaken: number;
+  lastHitDealtToId: string | null;
+  lastHitTakenFromId: string | null;
+  lastHitDealtTick: number | null;
+  lastHitTakenTick: number | null;
   alive: boolean;
 }
 
@@ -44,5 +57,6 @@ export interface GameState {
   tick: number;
   jets: Map<string, JetState>;
   bullets: BulletState[];
+  recentHitEvents: HitEvent[];
   arenaBounds: { width: number; height: number };
 }
