@@ -1,5 +1,6 @@
+import { ArenaShape } from "./arena-shape";
 import { CONFIG, IDLE_ACTION } from "./types";
-import type { AgentAction, GameState, ReplayFrame, JetState } from "./types";
+import type { AgentAction, BattlefieldConfig, GameState, ReplayFrame, JetState, WallContact } from "./types";
 
 class SeededRandom {
   private seed: number;
@@ -24,19 +25,29 @@ export class GameWorld {
   public state: GameState;
   public replayLog: ReplayFrame[] = [];
   private rng: SeededRandom;
+  private arenaShape: ArenaShape;
+  private spawnPoints: Array<{ x: number; y: number }>;
 
-  constructor(playerIds: string[], seed: number) {
+  constructor(playerIds: string[], seed: number, battlefield: BattlefieldConfig) {
     this.rng = new SeededRandom(seed);
+    this.arenaShape = new ArenaShape(battlefield);
+    this.spawnPoints = battlefield.spawnPoints.map(([x, y]) => ({ x, y }));
     const jets = new Map<string, JetState>();
+    const bounds = this.arenaShape.getBoundingBox();
+    const width = bounds.maxX - bounds.minX;
+    const height = bounds.maxY - bounds.minY;
 
     playerIds.forEach((id, index) => {
-      const angle = (2 * Math.PI * index) / playerIds.length;
-      const jitter = (this.rng.next() - 0.5) * 0.08;
-      const spawnRadius = CONFIG.ARENA_RADIUS * 0.7;
+      const spawn = this.pickSpawn(index, playerIds.length);
+      const spawnX = spawn.x + (this.rng.next() - 0.5) * 6;
+      const spawnY = spawn.y + (this.rng.next() - 0.5) * 6;
+      const centerX = (bounds.minX + bounds.maxX) / 2;
+      const centerY = (bounds.minY + bounds.maxY) / 2;
+      const angle = Math.atan2(centerY - spawnY, centerX - spawnX);
       jets.set(id, {
         id,
-        x: Math.cos(angle + jitter) * spawnRadius,
-        y: Math.sin(angle + jitter) * spawnRadius,
+        x: spawnX,
+        y: spawnY,
         altitude: CONFIG.SPAWN_ALTITUDE,
         vx: 0,
         vy: 0,
@@ -55,7 +66,10 @@ export class GameWorld {
       tick: 0,
       jets,
       bullets: [],
-      arenaRadius: CONFIG.ARENA_RADIUS,
+      arenaBounds: {
+        width,
+        height,
+      },
     };
   }
 
@@ -104,6 +118,26 @@ export class GameWorld {
       return this.pickResourceTieBreaker(alive);
     }
     return null;
+  }
+
+  getNearbyWalls(x: number, y: number, altitude: number, maxDistance: number): WallContact[] {
+    return this.arenaShape.getNearbyWalls(x, y, altitude, maxDistance);
+  }
+
+  getJetNearestWallDistance(jetId: string): number {
+    const jet = this.state.jets.get(jetId);
+    if (!jet) return Number.POSITIVE_INFINITY;
+    const nearest = this.arenaShape.getNearbyWalls(
+      jet.x,
+      jet.y,
+      jet.altitude,
+      Number.POSITIVE_INFINITY,
+    )[0];
+    return nearest?.distance ?? Number.POSITIVE_INFINITY;
+  }
+
+  getArenaShape(): ArenaShape {
+    return this.arenaShape;
   }
 
   private pickResourceTieBreaker(alive: JetState[]): string | null {
@@ -198,19 +232,19 @@ export class GameWorld {
   }
 
   private applyArenaBoundary(jet: JetState): void {
-    const distance = Math.hypot(jet.x, jet.y);
-    if (distance <= CONFIG.ARENA_RADIUS) {
-      return;
-    }
-
-    const normalX = jet.x / distance;
-    const normalY = jet.y / distance;
-    jet.x = normalX * CONFIG.ARENA_RADIUS;
-    jet.y = normalY * CONFIG.ARENA_RADIUS;
-
-    const dot = jet.vx * normalX + jet.vy * normalY;
-    jet.vx -= 2 * dot * normalX;
-    jet.vy -= 2 * dot * normalY;
+    const collision = this.arenaShape.resolveCollision(
+      jet.x,
+      jet.y,
+      jet.vx,
+      jet.vy,
+      jet.altitude,
+      CONFIG.JET_HIT_RADIUS,
+    );
+    if (!collision.collided) return;
+    jet.x = collision.x;
+    jet.y = collision.y;
+    jet.vx = collision.vx;
+    jet.vy = collision.vy;
     jet.health -= 1.25;
   }
 
@@ -221,8 +255,16 @@ export class GameWorld {
       bullet.y += bullet.vy;
       bullet.ttl -= 1;
 
-      const outsideArena = Math.hypot(bullet.x, bullet.y) > CONFIG.ARENA_RADIUS * 1.1;
-      if (bullet.ttl <= 0 || outsideArena) {
+      const outsideArena = this.arenaShape.isOutOfBounds(bullet.x, bullet.y, 45);
+      const wallCollision = this.arenaShape.resolveCollision(
+        bullet.x,
+        bullet.y,
+        bullet.vx,
+        bullet.vy,
+        bullet.altitude,
+        0.5,
+      ).collided;
+      if (bullet.ttl <= 0 || outsideArena || wallCollision) {
         this.state.bullets.splice(index, 1);
         continue;
       }
@@ -279,6 +321,22 @@ export class GameWorld {
       tick: this.state.tick,
       jets,
       bullets,
+    };
+  }
+
+  private pickSpawn(index: number, totalPlayers: number): { x: number; y: number } {
+    if (this.spawnPoints.length >= totalPlayers) {
+      return this.spawnPoints[index]!;
+    }
+
+    const bounds = this.arenaShape.getBoundingBox();
+    const centerX = (bounds.minX + bounds.maxX) / 2;
+    const centerY = (bounds.minY + bounds.maxY) / 2;
+    const radius = Math.min(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) * 0.32;
+    const angle = (2 * Math.PI * index) / totalPlayers;
+    return {
+      x: centerX + Math.cos(angle) * radius,
+      y: centerY + Math.sin(angle) * radius,
     };
   }
 }

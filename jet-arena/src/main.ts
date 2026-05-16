@@ -1,6 +1,7 @@
+import { loadBattlefieldRegistry } from "./battlefield-config";
 import { registerServiceWorker } from "./network-lockdown";
 import { GameOrchestrator } from "./orchestrator";
-import type { GameState } from "./types";
+import type { BattlefieldConfig, GameState } from "./types";
 import "./styles.css";
 
 type PoseKey = "idle" | "planning" | "attacking" | "hit-target" | "got-hit" | "low-fuel" | "down";
@@ -128,9 +129,14 @@ const loadAgentRegistry = (): Record<string, AgentMeta> => {
 
 const AGENT_REGISTRY = loadAgentRegistry();
 const AGENT_KEYS = Object.keys(AGENT_REGISTRY);
+const BATTLEFIELD_REGISTRY = loadBattlefieldRegistry();
+const BATTLEFIELD_KEYS = Object.keys(BATTLEFIELD_REGISTRY);
 
 if (AGENT_KEYS.length === 0) {
   throw new Error("No agent directories found in agents/*/agent.ts.");
+}
+if (BATTLEFIELD_KEYS.length === 0) {
+  throw new Error("No battlefield configurations available.");
 }
 
 const FALLBACK_AGENT_KEY = AGENT_KEYS[0];
@@ -143,9 +149,13 @@ if (!FALLBACK_AGENT) {
 }
 
 const AGENT_ENTRIES = Object.entries(AGENT_REGISTRY);
+const BATTLEFIELD_ENTRIES = Object.entries(BATTLEFIELD_REGISTRY);
 
 const buildAgentOptions = (): string =>
   AGENT_ENTRIES.map(([key, meta]) => `<option value="${key}">${meta.label}</option>`).join("");
+
+const buildBattlefieldOptions = (): string =>
+  BATTLEFIELD_ENTRIES.map(([key, config]) => `<option value="${key}">${config.name}</option>`).join("");
 
 const DEFAULT_AGENT_KEYS = ["heuristic", "aggressive", "evader", "dqn"] as const;
 const POSE_PRIORITY: Record<PoseKey, number> = {
@@ -187,6 +197,11 @@ controls.innerHTML = `
   <p>Offline-in-match AI arena. Choose agents and press start.</p>
 
   <div class="row">
+    <label for="battlefield">Battlefield</label>
+    <select id="battlefield">${buildBattlefieldOptions()}</select>
+  </div>
+
+  <div class="row">
     <label for="seed">Seed</label>
     <input id="seed" type="number" value="1337" />
   </div>
@@ -220,6 +235,7 @@ controls.innerHTML = `
 `;
 
 const seedInput = controls.querySelector("#seed");
+const battlefieldSelect = controls.querySelector("#battlefield");
 const agentA = controls.querySelector("#agent-a");
 const agentB = controls.querySelector("#agent-b");
 const agentC = controls.querySelector("#agent-c");
@@ -230,6 +246,7 @@ let lastEvent = "booting";
 
 if (
   !(seedInput instanceof HTMLInputElement) ||
+  !(battlefieldSelect instanceof HTMLSelectElement) ||
   !(agentA instanceof HTMLSelectElement) ||
   !(agentB instanceof HTMLSelectElement) ||
   !(agentC instanceof HTMLSelectElement) ||
@@ -249,6 +266,31 @@ selectDefaultAgent(agentA, DEFAULT_AGENT_KEYS[0]);
 selectDefaultAgent(agentB, DEFAULT_AGENT_KEYS[1]);
 selectDefaultAgent(agentC, DEFAULT_AGENT_KEYS[2]);
 selectDefaultAgent(agentD, DEFAULT_AGENT_KEYS[3]);
+
+const initialBattlefieldKey = BATTLEFIELD_REGISTRY["the-prism"] ? "the-prism" : BATTLEFIELD_KEYS[0];
+battlefieldSelect.value = initialBattlefieldKey ?? "classic-arena";
+
+const getSelectedBattlefield = (): BattlefieldConfig => {
+  return (
+    BATTLEFIELD_REGISTRY[battlefieldSelect.value] ??
+    BATTLEFIELD_REGISTRY["classic-arena"] ??
+    BATTLEFIELD_ENTRIES[0]?.[1]
+  );
+};
+
+const applyCanvasAspect = (battlefield: BattlefieldConfig): void => {
+  const [aspectW, aspectH] = battlefield.canvasAspect ?? [4, 3];
+  const maxWidth = 1200;
+  const width = maxWidth;
+  const height = Math.max(480, Math.round((maxWidth * aspectH) / Math.max(1, aspectW)));
+  canvas.width = width;
+  canvas.height = height;
+};
+
+applyCanvasAspect(getSelectedBattlefield());
+battlefieldSelect.addEventListener("change", () => {
+  applyCanvasAspect(getSelectedBattlefield());
+});
 
 const jetAgentKeyById = new Map<string, string>();
 const jetPoseById = new Map<string, PoseState>();
@@ -479,6 +521,8 @@ const buildPlayers = (): Array<{ id: string; code: string; agentKey: string }> =
 const startMatch = async (): Promise<void> => {
   const seed = Number(seedInput.value);
   const normalizedSeed = Number.isFinite(seed) ? seed : 1337;
+  const battlefield = getSelectedBattlefield();
+  applyCanvasAspect(battlefield);
   const players = buildPlayers();
   jetAgentKeyById.clear();
   jetPoseById.clear();
@@ -489,6 +533,7 @@ const startMatch = async (): Promise<void> => {
   await orchestrator.start(
     players.map((player) => ({ id: player.id, code: player.code })),
     normalizedSeed,
+    battlefield,
   );
 };
 

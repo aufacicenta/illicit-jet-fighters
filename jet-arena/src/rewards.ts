@@ -6,6 +6,7 @@ export const computeReward = (
   previousState: GameState,
   currentState: GameState,
   action: AgentAction,
+  nearestWallDistance: number,
 ): number => {
   const previousJet = previousState.jets.get(jetId);
   const currentJet = currentState.jets.get(jetId);
@@ -40,8 +41,7 @@ export const computeReward = (
     reward -= 0.35;
   }
 
-  const distanceToWall =
-    CONFIG.ARENA_RADIUS - Math.hypot(currentJet.x, currentJet.y);
+  const distanceToWall = nearestWallDistance;
   if (distanceToWall < 60) {
     reward -= (60 - distanceToWall) * 0.02;
   }

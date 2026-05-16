@@ -3,7 +3,7 @@ import { GameRenderer } from "./renderer";
 import { computeReward } from "./rewards";
 import { submitResult } from "./settlement";
 import { CONFIG, IDLE_ACTION } from "./types";
-import type { AgentAction, GameState, Observation, ReplayFrame } from "./types";
+import type { AgentAction, BattlefieldConfig, GameState, Observation, ReplayFrame } from "./types";
 import { GameWorld } from "./world";
 
 interface PlayerConfig {
@@ -29,7 +29,7 @@ interface UiCallbacks {
 
 const cloneState = (state: GameState): GameState => ({
   tick: state.tick,
-  arenaRadius: state.arenaRadius,
+  arenaBounds: { ...state.arenaBounds },
   jets: new Map(
     [...state.jets.entries()].map(([id, jet]) => [
       id,
@@ -47,25 +47,25 @@ export class GameOrchestrator {
   private workerReady: Map<string, boolean> = new Map();
   private expectedWorkers = 0;
   private networkLockActive = false;
-  private renderer: GameRenderer;
+  private renderer: GameRenderer | null = null;
   private intervalHandle: number | null = null;
   private requestId = 0;
   private previousState: GameState | null = null;
   private lastResults = new Map<string, PendingResult>();
   private inFlight = false;
 
-  constructor(canvas: HTMLCanvasElement, private ui: UiCallbacks) {
-    this.renderer = new GameRenderer(canvas);
-  }
+  constructor(private canvas: HTMLCanvasElement, private ui: UiCallbacks) {}
 
-  async start(players: PlayerConfig[], seed: number): Promise<void> {
+  async start(players: PlayerConfig[], seed: number, battlefield: BattlefieldConfig): Promise<void> {
     this.stop();
     // Ensure we never inherit a stale "game active" lock from a prior interrupted run.
     disableNetworkLockdown();
     this.world = new GameWorld(
       players.map((player) => player.id),
       seed,
+      battlefield,
     );
+    this.renderer = new GameRenderer(this.canvas, this.world.getArenaShape());
     this.previousState = cloneState(this.world.state);
     this.lastResults.clear();
     this.expectedWorkers = players.length;
@@ -77,7 +77,7 @@ export class GameOrchestrator {
     }
 
     this.ui.onStatus("Match running (agents initializing in background)");
-    this.renderer.draw(this.world.state);
+    this.renderer?.draw(this.world.state);
     this.intervalHandle = window.setInterval(() => {
       void this.tick();
     }, 1000 / CONFIG.TICK_RATE);
@@ -96,6 +96,7 @@ export class GameOrchestrator {
     this.expectedWorkers = 0;
     this.networkLockActive = false;
     this.inFlight = false;
+    this.renderer = null;
     disableNetworkLockdown();
   }
 
@@ -134,12 +135,19 @@ export class GameOrchestrator {
     const currentState = this.world.step(actions);
 
     for (const [id, result] of this.lastResults.entries()) {
-      const reward = computeReward(id, previousForReward, currentState, result.action);
+      const nearestWallDistance = this.world.getJetNearestWallDistance(id);
+      const reward = computeReward(
+        id,
+        previousForReward,
+        currentState,
+        result.action,
+        nearestWallDistance,
+      );
       this.lastResults.set(id, { action: result.action, reward });
     }
 
     this.previousState = cloneState(currentState);
-    this.renderer.draw(currentState);
+    this.renderer?.draw(currentState);
     this.ui.onTick(currentState);
 
     const winnerId = this.world.getWinnerId();
@@ -292,6 +300,26 @@ export class GameOrchestrator {
         isMine: bullet.ownerId === jetId,
       }));
 
+    if (!this.world) {
+      throw new Error("Game world unavailable while building observation.");
+    }
+    const nearbyWalls = this.world.getNearbyWalls(
+      self.x,
+      self.y,
+      self.altitude,
+      CONFIG.SENSOR_RANGE,
+    );
+    const nearestWall =
+      nearbyWalls[0] ??
+      this.world.getNearbyWalls(self.x, self.y, self.altitude, Number.POSITIVE_INFINITY)[0] ?? {
+        distance: Number.POSITIVE_INFINITY,
+        normalX: 0,
+        normalY: 0,
+        contactX: self.x,
+        contactY: self.y,
+        wallType: "boundary" as const,
+      };
+
     const result = this.lastResults.get(jetId);
     return {
       self: {
@@ -309,7 +337,9 @@ export class GameOrchestrator {
       },
       enemies,
       nearbyBullets,
-      distanceToWall: CONFIG.ARENA_RADIUS - Math.hypot(self.x, self.y),
+      nearestWall,
+      nearbyWalls,
+      distanceToWall: nearestWall.distance,
       tick: state.tick,
       lastAction: result?.action ?? null,
       lastReward: result?.reward ?? 0,

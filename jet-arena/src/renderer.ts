@@ -1,4 +1,5 @@
-import { CONFIG } from "./types";
+import { ArenaShape } from "./arena-shape";
+import type { DrawableArena } from "./arena-shape";
 import type { BulletState, GameState, JetState } from "./types";
 
 export class GameRenderer {
@@ -6,8 +7,11 @@ export class GameRenderer {
   private width: number;
   private height: number;
   private scale = 1;
+  private offsetX = 0;
+  private offsetY = 0;
+  private arenaDrawable: DrawableArena;
 
-  constructor(private canvas: HTMLCanvasElement) {
+  constructor(private canvas: HTMLCanvasElement, arenaShape: ArenaShape) {
     const context = canvas.getContext("2d");
     if (!context) {
       throw new Error("2D context unavailable.");
@@ -15,7 +19,15 @@ export class GameRenderer {
     this.context = context;
     this.width = canvas.width;
     this.height = canvas.height;
-    this.scale = Math.min(this.width, this.height) / (CONFIG.ARENA_RADIUS * 2.3);
+    this.arenaDrawable = arenaShape.getDrawableArena();
+    const bounds = arenaShape.getBoundingBox();
+    const worldWidth = Math.max(1, bounds.maxX - bounds.minX);
+    const worldHeight = Math.max(1, bounds.maxY - bounds.minY);
+    this.scale = Math.min((this.width * 0.88) / worldWidth, (this.height * 0.88) / worldHeight);
+    const centerX = (bounds.minX + bounds.maxX) / 2;
+    const centerY = (bounds.minY + bounds.maxY) / 2;
+    this.offsetX = this.width / 2 - centerX * this.scale;
+    this.offsetY = this.height / 2 - centerY * this.scale;
   }
 
   draw(state: GameState): void {
@@ -36,19 +48,52 @@ export class GameRenderer {
 
   private toScreen(x: number, y: number): { x: number; y: number } {
     return {
-      x: this.width / 2 + x * this.scale,
-      y: this.height / 2 + y * this.scale,
+      x: this.offsetX + x * this.scale,
+      y: this.offsetY + y * this.scale,
     };
   }
 
   private drawArena(): void {
-    const center = this.toScreen(0, 0);
-    const radius = CONFIG.ARENA_RADIUS * this.scale;
     this.context.beginPath();
-    this.context.arc(center.x, center.y, radius, 0, Math.PI * 2);
+    if (this.arenaDrawable.boundary.type === "circle") {
+      const center = this.toScreen(
+        this.arenaDrawable.boundary.center.x,
+        this.arenaDrawable.boundary.center.y,
+      );
+      const radius = this.arenaDrawable.boundary.radius * this.scale;
+      this.context.arc(center.x, center.y, radius, 0, Math.PI * 2);
+    } else {
+      this.arenaDrawable.boundary.vertices.forEach((vertex, index) => {
+        const screen = this.toScreen(vertex.x, vertex.y);
+        if (index === 0) {
+          this.context.moveTo(screen.x, screen.y);
+        } else {
+          this.context.lineTo(screen.x, screen.y);
+        }
+      });
+      this.context.closePath();
+    }
     this.context.strokeStyle = "#3e5f8a";
     this.context.lineWidth = 2;
     this.context.stroke();
+
+    for (const wall of this.arenaDrawable.walls) {
+      const from = this.toScreen(wall.from.x, wall.from.y);
+      const to = this.toScreen(wall.to.x, wall.to.y);
+      this.context.beginPath();
+      this.context.moveTo(from.x, from.y);
+      this.context.lineTo(to.x, to.y);
+      if (wall.altitudeMin > 0 || wall.altitudeMax < 1) {
+        this.context.setLineDash([6, 6]);
+        this.context.strokeStyle = "#60a5fa";
+      } else {
+        this.context.setLineDash([]);
+        this.context.strokeStyle = "#94a3b8";
+      }
+      this.context.lineWidth = 1.25;
+      this.context.stroke();
+    }
+    this.context.setLineDash([]);
   }
 
   private drawJet(jet: JetState): void {

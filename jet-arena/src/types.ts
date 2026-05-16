@@ -29,7 +29,36 @@ export interface GameState {
   tick: number;
   jets: Map<string, JetState>;
   bullets: BulletState[];
-  arenaRadius: number;
+  arenaBounds: { width: number; height: number };
+}
+
+export interface ArenaShapeConfig {
+  type: "polygon" | "circle";
+  vertices?: [number, number][];
+  radius?: number;
+}
+
+export interface WallConfig {
+  segments: [number, number][];
+  altitudeMin?: number;
+  altitudeMax?: number;
+}
+
+export interface BattlefieldConfig {
+  name: string;
+  shape: ArenaShapeConfig;
+  walls: WallConfig[];
+  spawnPoints: [number, number][];
+  canvasAspect?: [number, number];
+}
+
+export interface WallContact {
+  distance: number;
+  normalX: number;
+  normalY: number;
+  contactX: number;
+  contactY: number;
+  wallType: "boundary" | "interior";
 }
 
 export interface AgentAction {
@@ -76,6 +105,8 @@ export interface Observation {
   };
   enemies: EnemyObservation[];
   nearbyBullets: BulletObservation[];
+  nearestWall: WallContact;
+  nearbyWalls: WallContact[];
   distanceToWall: number;
   tick: number;
   lastAction: AgentAction | null;
