@@ -1,3 +1,4 @@
+import { resolveDefaultAgentKey, resolveDefaultBattlefieldKey, APP_DEFAULTS } from "./app-defaults";
 import { loadBattlefieldRegistry } from "./battlefield-config";
 import { registerServiceWorker } from "./network-lockdown";
 import { GameOrchestrator } from "./orchestrator";
@@ -157,7 +158,6 @@ const buildAgentOptions = (): string =>
 const buildBattlefieldOptions = (): string =>
   BATTLEFIELD_ENTRIES.map(([key, config]) => `<option value="${key}">${config.name}</option>`).join("");
 
-const DEFAULT_AGENT_KEY = "solomon";
 const POSE_PRIORITY: Record<PoseKey, number> = {
   idle: 0,
   planning: 1,
@@ -203,7 +203,7 @@ controls.innerHTML = `
 
   <div class="row">
     <label for="seed">Seed</label>
-    <input id="seed" type="number" value="1337" />
+    <input id="seed" type="number" value="${APP_DEFAULTS.seed}" />
   </div>
 
   <div class="row">
@@ -309,18 +309,22 @@ const selectDefaultAgent = (select: HTMLSelectElement, preferredKey: string): vo
   select.value = nextValue;
 };
 
-selectDefaultAgent(agentA, DEFAULT_AGENT_KEY);
-selectDefaultAgent(agentB, DEFAULT_AGENT_KEY);
-selectDefaultAgent(agentC, DEFAULT_AGENT_KEY);
-selectDefaultAgent(agentD, DEFAULT_AGENT_KEY);
+const defaultAgentKey = resolveDefaultAgentKey(AGENT_REGISTRY, FALLBACK_AGENT_KEY);
+selectDefaultAgent(agentA, defaultAgentKey);
+selectDefaultAgent(agentB, defaultAgentKey);
+selectDefaultAgent(agentC, defaultAgentKey);
+selectDefaultAgent(agentD, defaultAgentKey);
 
-const initialBattlefieldKey = BATTLEFIELD_REGISTRY["the-prism"] ? "the-prism" : BATTLEFIELD_KEYS[0];
-battlefieldSelect.value = initialBattlefieldKey ?? "classic-arena";
+const initialBattlefieldKey = resolveDefaultBattlefieldKey(
+  BATTLEFIELD_REGISTRY,
+  APP_DEFAULTS.fallbackBattlefieldKey,
+);
+battlefieldSelect.value = initialBattlefieldKey ?? APP_DEFAULTS.fallbackBattlefieldKey;
 
 const getSelectedBattlefield = (): BattlefieldConfig => {
   const selected =
     BATTLEFIELD_REGISTRY[battlefieldSelect.value] ??
-    BATTLEFIELD_REGISTRY["classic-arena"] ??
+    BATTLEFIELD_REGISTRY[APP_DEFAULTS.fallbackBattlefieldKey] ??
     BATTLEFIELD_ENTRIES[0]?.[1];
   if (!selected) {
     throw new Error("No battlefield configurations available.");
@@ -633,7 +637,7 @@ const setControlsDisabled = (disabled: boolean): void => {
 
 const startMatch = async (): Promise<void> => {
   const seed = Number(seedInput.value);
-  const normalizedSeed = Number.isFinite(seed) ? seed : 1337;
+  const normalizedSeed = Number.isFinite(seed) ? seed : APP_DEFAULTS.seed;
   const battlefield = getSelectedBattlefield();
   const pickupConfig = buildPickupConfigFromControls();
   setControlsDisabled(true);
