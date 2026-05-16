@@ -122,6 +122,14 @@ button.primary {
   align-items: start;
 }
 
+.jet-card-media {
+  width: 112px;
+  height: 112px;
+  margin: 0;
+  padding: 0;
+  line-height: 0;
+}
+
 .jet-card-stats {
   min-width: 0;
 }
@@ -136,13 +144,15 @@ button.primary {
 }
 
 .jet-pose-sheet-wrap {
-  display: grid;
-  place-items: center;
+  display: block;
   width: 112px;
   height: 112px;
+  margin: 0;
+  padding: 0;
   border-radius: 8px;
   border: 1px solid #243044;
   background: #0a0f1b;
+  overflow: hidden;
 }
 
 .jet-pose-sheet {

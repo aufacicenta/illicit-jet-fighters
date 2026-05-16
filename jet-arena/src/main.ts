@@ -288,9 +288,8 @@ const renderPoseVisual = (agentKey: string, pose: PoseKey, roleLabel: string): s
   const frame = choosePoseFrame(agentKey, pose);
   const sheet = AGENT_REGISTRY[agentKey]?.spriteSheet;
   if (frame && sheet) {
-    const scale = Math.min(1, 88 / frame.h, 240 / frame.w);
-    const viewW = Math.round(frame.w * scale);
-    const viewH = Math.round(frame.h * scale);
+    const viewSize = 112;
+    const scale = Math.max(viewSize / frame.w, viewSize / frame.h);
     const bgW = Math.round(sheet.sheetWidth * scale);
     const bgH = Math.round(sheet.sheetHeight * scale);
     const bgX = Math.round(frame.x * scale);
@@ -299,7 +298,7 @@ const renderPoseVisual = (agentKey: string, pose: PoseKey, roleLabel: string): s
       <div class="jet-pose-sheet-wrap">
         <div
           class="jet-pose-sheet"
-          style="width:${viewW}px;height:${viewH}px;background-image:url('${sheet.imageUrl}');background-size:${bgW}px ${bgH}px;background-position:-${bgX}px -${bgY}px;"
+          style="width:${viewSize}px;height:${viewSize}px;background-image:url('${sheet.imageUrl}');background-size:${bgW}px ${bgH}px;background-position:-${bgX}px -${bgY}px;"
           role="img"
           aria-label="${roleLabel} ${pose}"
         ></div>
