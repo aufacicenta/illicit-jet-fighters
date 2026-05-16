@@ -299,19 +299,20 @@ export class GameWorld {
     for (let index = this.state.bullets.length - 1; index >= 0; index -= 1) {
       const bullet = this.state.bullets[index];
       if (!bullet) continue;
+      const prevX = bullet.x;
+      const prevY = bullet.y;
       bullet.x += bullet.vx;
       bullet.y += bullet.vy;
       bullet.ttl -= 1;
 
       const outsideArena = this.arenaShape.isOutOfBounds(bullet.x, bullet.y, 45);
-      const wallCollision = this.arenaShape.resolveCollision(
+      const wallCollision = this.arenaShape.rayIntersectsWall(
+        prevX,
+        prevY,
         bullet.x,
         bullet.y,
-        bullet.vx,
-        bullet.vy,
         bullet.altitude,
-        0.5,
-      ).collided;
+      );
       if (bullet.ttl <= 0 || outsideArena || wallCollision) {
         this.state.bullets.splice(index, 1);
         continue;

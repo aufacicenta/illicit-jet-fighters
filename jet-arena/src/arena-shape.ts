@@ -50,6 +50,67 @@ const normalize = (x: number, y: number): Point => {
   return { x: x / len, y: y / len };
 };
 
+const cross = (ax: number, ay: number, bx: number, by: number): number => ax * by - ay * bx;
+
+const pointOnSegment = (point: Point, start: Point, end: Point): boolean => {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const area = cross(point.x - start.x, point.y - start.y, dx, dy);
+  if (Math.abs(area) > EPSILON) return false;
+  const dot = (point.x - start.x) * dx + (point.y - start.y) * dy;
+  if (dot < -EPSILON) return false;
+  const lengthSq = dx * dx + dy * dy;
+  return dot <= lengthSq + EPSILON;
+};
+
+const segmentsIntersect = (aStart: Point, aEnd: Point, bStart: Point, bEnd: Point): boolean => {
+  const aDx = aEnd.x - aStart.x;
+  const aDy = aEnd.y - aStart.y;
+  const bDx = bEnd.x - bStart.x;
+  const bDy = bEnd.y - bStart.y;
+  const denominator = cross(aDx, aDy, bDx, bDy);
+  const cx = bStart.x - aStart.x;
+  const cy = bStart.y - aStart.y;
+
+  if (Math.abs(denominator) <= EPSILON) {
+    if (Math.abs(cross(cx, cy, aDx, aDy)) > EPSILON) return false;
+    return (
+      pointOnSegment(aStart, bStart, bEnd) ||
+      pointOnSegment(aEnd, bStart, bEnd) ||
+      pointOnSegment(bStart, aStart, aEnd) ||
+      pointOnSegment(bEnd, aStart, aEnd)
+    );
+  }
+
+  const t = cross(cx, cy, bDx, bDy) / denominator;
+  const u = cross(cx, cy, aDx, aDy) / denominator;
+  return t >= -EPSILON && t <= 1 + EPSILON && u >= -EPSILON && u <= 1 + EPSILON;
+};
+
+const segmentIntersectsCircleBoundary = (start: Point, end: Point, radius: number): boolean => {
+  const startDist = Math.hypot(start.x, start.y);
+  const endDist = Math.hypot(end.x, end.y);
+  if (Math.abs(startDist - radius) <= EPSILON || Math.abs(endDist - radius) <= EPSILON) {
+    return true;
+  }
+
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const a = dx * dx + dy * dy;
+  if (a <= EPSILON) return false;
+
+  const b = 2 * (start.x * dx + start.y * dy);
+  const c = start.x * start.x + start.y * start.y - radius * radius;
+  const discriminant = b * b - 4 * a * c;
+  if (discriminant < -EPSILON) return false;
+
+  const safeDiscriminant = Math.max(0, discriminant);
+  const sqrtDiscriminant = Math.sqrt(safeDiscriminant);
+  const t1 = (-b - sqrtDiscriminant) / (2 * a);
+  const t2 = (-b + sqrtDiscriminant) / (2 * a);
+  return (t1 >= -EPSILON && t1 <= 1 + EPSILON) || (t2 >= -EPSILON && t2 <= 1 + EPSILON);
+};
+
 export class ArenaShape {
   private wallSegments: WallSegment[] = [];
   private polygonVertices: Point[] = [];
@@ -83,8 +144,8 @@ export class ArenaShape {
     let inside = false;
     const vertices = this.polygonVertices;
     for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i, i += 1) {
-      const vi = vertices[i];
-      const vj = vertices[j];
+      const vi = vertices[i]!;
+      const vj = vertices[j]!;
       const intersects =
         vi.y > y !== vj.y > y &&
         x < ((vj.x - vi.x) * (y - vi.y)) / (vj.y - vi.y + EPSILON) + vi.x;
@@ -118,7 +179,7 @@ export class ArenaShape {
     const vertices = this.polygonVertices;
 
     for (let i = 0; i < vertices.length; i += 1) {
-      const start = vertices[i];
+      const start = vertices[i]!;
       const end = vertices[(i + 1) % vertices.length]!;
       const closest = closestPointOnSegment(point, start, end);
       const dist = distance(point, closest);
@@ -190,6 +251,35 @@ export class ArenaShape {
 
     contacts.sort((left, right) => left.distance - right.distance);
     return contacts;
+  }
+
+  rayIntersectsWall(fromX: number, fromY: number, toX: number, toY: number, altitude: number): boolean {
+    const from = { x: fromX, y: fromY };
+    const to = { x: toX, y: toY };
+
+    if (this.shapeType === "circle") {
+      if (segmentIntersectsCircleBoundary(from, to, this.circleRadius)) {
+        return true;
+      }
+    } else {
+      const vertices = this.polygonVertices;
+      for (let i = 0; i < vertices.length; i += 1) {
+        const boundaryStart = vertices[i]!;
+        const boundaryEnd = vertices[(i + 1) % vertices.length]!;
+        if (segmentsIntersect(from, to, boundaryStart, boundaryEnd)) {
+          return true;
+        }
+      }
+    }
+
+    for (const segment of this.wallSegments) {
+      if (!this.isWallActiveAtAltitude(segment, altitude)) continue;
+      if (segmentsIntersect(from, to, segment.from, segment.to)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   resolveCollision(
