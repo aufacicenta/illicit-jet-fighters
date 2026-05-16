@@ -8,6 +8,14 @@ disable-model-invocation: true
 
 Convert a character description into a single polished prompt for Seedance 2.0 image-to-video generation.
 
+## Setting Context (Jet Arena Canon)
+
+Setting: 2187 — After the "Shattered Sky" event fractured Earth's atmosphere into layered combat zones, traditional law enforcement collapsed. The Bounty Exchange emerged — a semi-legal network where licensed hunters take contracts across aerial and ground theaters. Each hunter flies a personalized Strikecraft — part fighter jet, part expression of identity.
+
+Visual DNA: Blend Metal Gear tactical grit and portrait-style realism with Star Fox colorful cockpit personality and F-Zero exaggerated silhouettes and speed-culture energy. Favor sharp angular linework, muted military tones with neon accents, and frames that feel like animated wanted posters.
+
+When source character details are missing or ambiguous, default environment, tone, and motion choices to this world context.
+
 ## Intent
 
 Preserve the source character's identity while forcing a high-momentum action sequence:
