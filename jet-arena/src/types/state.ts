@@ -6,7 +6,7 @@ export interface CollisionEvent {
   x: number;
   y: number;
   altitude: number;
-  wallType: WallContact["wallType"];
+  wallType: WallContact["wallType"] | "jet";
   damage: number;
 }
 

@@ -93,6 +93,7 @@ export class GameWorld {
     }
 
     this.applyJetActions(safeActions);
+    this.resolveJetCollisions();
     this.updateBullets();
     this.state.tick += 1;
     this.replayLog.push(this.snapshotFrame());
@@ -347,6 +348,71 @@ export class GameWorld {
         }
       }
     }
+  }
+
+  private resolveJetCollisions(): void {
+    const aliveJets = [...this.state.jets.values()].filter((jet) => jet.alive);
+    if (aliveJets.length < 2) return;
+
+    const deathRadius =
+      CONFIG.JET_HIT_RADIUS * CONFIG.JET_COLLISION_DEATH_RADIUS_MULTIPLIER;
+    const deathRadiusSq = deathRadius * deathRadius;
+    const fatalCollisions: Array<{
+      left: JetState;
+      right: JetState;
+      x: number;
+      y: number;
+      altitude: number;
+    }> = [];
+
+    for (let i = 0; i < aliveJets.length - 1; i += 1) {
+      const left = aliveJets[i]!;
+      if (!left.alive) continue;
+
+      for (let j = i + 1; j < aliveJets.length; j += 1) {
+        const right = aliveJets[j]!;
+        if (!right.alive) continue;
+
+        const altitudeDelta = Math.abs(left.altitude - right.altitude);
+        if (altitudeDelta > CONFIG.JET_COLLISION_ALTITUDE_TOLERANCE) continue;
+
+        const dx = left.x - right.x;
+        const dy = left.y - right.y;
+        const distanceSq = dx * dx + dy * dy;
+        if (distanceSq > deathRadiusSq) continue;
+
+        fatalCollisions.push({
+          left,
+          right,
+          x: (left.x + right.x) / 2,
+          y: (left.y + right.y) / 2,
+          altitude: (left.altitude + right.altitude) / 2,
+        });
+      }
+    }
+
+    for (const collision of fatalCollisions) {
+      this.applyJetImpactDeath(collision.left, collision.x, collision.y, collision.altitude);
+      this.applyJetImpactDeath(collision.right, collision.x, collision.y, collision.altitude);
+    }
+  }
+
+  private applyJetImpactDeath(jet: JetState, x: number, y: number, altitude: number): void {
+    if (!jet.alive) return;
+    const impactDamage = Math.max(0, jet.health);
+    jet.alive = false;
+    jet.health = 0;
+    jet.collisionCount += 1;
+    jet.collisionDamageTaken += impactDamage;
+    jet.lastCollision = {
+      tick: this.state.tick,
+      jetId: jet.id,
+      x,
+      y,
+      altitude,
+      wallType: "jet",
+      damage: impactDamage,
+    };
   }
 
   private snapshotFrame(): ReplayFrame {
