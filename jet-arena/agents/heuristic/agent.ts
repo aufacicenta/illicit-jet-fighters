@@ -20,9 +20,7 @@ globalThis.__agentExport = (() => {
       }
 
       const turn = normalize(target.bearingAngle / Math.PI);
-      const climb = Math.abs(target.relAltitude) > 0.1
-        ? normalize(-target.relAltitude * 2)
-        : 0;
+      const climb = normalize(-target.relAltitude * 2.5);
       const aligned = Math.abs(target.bearingAngle) < 0.14;
       const altitudeAligned = Math.abs(target.relAltitude) < 0.2;
       const shoot = aligned && altitudeAligned && target.distance < 210 && observation.self.cooldown <= 0;

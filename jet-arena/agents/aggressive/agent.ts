@@ -18,9 +18,7 @@ globalThis.__agentExport = (() => {
       }
 
       const turn = clamp((target.bearingAngle / Math.PI) * 1.25);
-      const climb = Math.abs(target.relAltitude) > 0.1
-        ? clamp(-target.relAltitude * 2)
-        : 0;
+      const climb = clamp(-target.relAltitude * 3);
       const shootWindow = Math.abs(target.bearingAngle) < 0.22;
       const altitudeAligned = Math.abs(target.relAltitude) < 0.2;
       const shoot = shootWindow && altitudeAligned && target.distance < 260 && observation.self.ammo > 0;

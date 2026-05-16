@@ -115,6 +115,42 @@ button.primary {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+.jet-card-layout {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.jet-card-stats {
+  min-width: 0;
+}
+
+.jet-pose {
+  display: block;
+  width: 112px;
+  height: 112px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #243044;
+}
+
+.jet-pose-sheet-wrap {
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 112px;
+  border-radius: 8px;
+  border: 1px solid #243044;
+  background: #0a0f1b;
+}
+
+.jet-pose-sheet {
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
 .jet-card header {
   display: flex;
   justify-content: space-between;
@@ -131,6 +167,12 @@ button.primary {
 .jet-state {
   color: #94a3b8;
   font-size: 11px;
+}
+
+.agent-role {
+  color: #93c5fd;
+  font-size: 11px;
+  margin-bottom: 8px;
 }
 
 .jet-card.alive .jet-state {

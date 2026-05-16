@@ -70,7 +70,7 @@ globalThis.__agentExport = (() => {
         if (enemyHistory[i].length > MEMORY_DEPTH) enemyHistory[i].shift();
       });
 
-      // BROKEN — the mask shatters. Desperate evasion, no composure left.
+      // BROKEN - the mask shatters. Desperate evasion, no composure left.
       if (mask === "broken") {
         if (nearestThreat) {
           const d = dodgeBullet(self, nearestThreat);
@@ -80,30 +80,30 @@ globalThis.__agentExport = (() => {
         return { thrust: 1, turn: 0.6, climb: fleeClimb, shoot: false };
       }
 
-      // THE CRACK — evasion-weighted but still tracking targets
+      // THE CRACK - evasion-weighted but still tracking targets
       if (mask === "crack" && nearestThreat) {
         const d = dodgeBullet(self, nearestThreat);
         return { thrust: 0.8, turn: d.turn, climb: d.climb, shoot: false };
       }
 
-      // Wall avoidance — even the Archivist respects the arena boundary
+      // Wall avoidance - even the Archivist respects the arena boundary
       if (distanceToWall < 55) {
         const wallTurn = clamp(self.angle > 0 ? -0.7 : 0.7);
         return { thrust: 0.6, turn: wallTurn, climb: 0, shoot: false };
       }
 
-      // QUESTION — no enemies remain. Hover motionless, conserve everything.
+      // QUESTION - no enemies remain. Hover motionless, conserve everything.
       if (liveEnemies.length === 0) {
         return { thrust: 0, turn: 0, climb: 0, shoot: false };
       }
 
-      // REVEAL — evaluate ALL enemies, pick the most exploitable
+      // REVEAL - evaluate ALL enemies, pick the most exploitable
       const best = liveEnemies
         .map((e) => ({ enemy: e, score: scoreTarget(e) }))
         .sort((a, b) => b.score - a.score)[0];
       const target = best.enemy;
 
-      // PREDICT — lead the target using velocity extrapolation
+      // PREDICT - lead the target using velocity extrapolation
       const predicted = predictPosition(target, LEAD_TICKS);
       const predictedDist = Math.hypot(predicted.x, predicted.y);
       const predictedBearing = normAngle(
@@ -113,7 +113,7 @@ globalThis.__agentExport = (() => {
       const turn = clamp(predictedBearing / Math.PI);
       const climb = clamp(-target.relAltitude * 2);
 
-      // THE QUESTION — only fire when confidence is overwhelming
+      // THE QUESTION - only fire when confidence is overwhelming
       const aligned = Math.abs(predictedBearing) < 0.1;
       const altAligned = Math.abs(target.relAltitude) < 0.15;
       const inRange = predictedDist < 200;
@@ -138,7 +138,7 @@ globalThis.__agentExport = (() => {
         thrust = 0.15;
       }
 
-      // Bullet dodge layered on top of pursuit — composure, not panic
+      // Bullet dodge layered on top of pursuit - composure, not panic
       if (nearestThreat) {
         const threatDist =
           nearestThreat.relX * nearestThreat.relX +

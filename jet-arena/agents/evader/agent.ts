@@ -23,12 +23,10 @@ globalThis.__agentExport = (() => {
         .sort((left, right) => left.distance - right.distance)[0];
 
       if (nearestBullet) {
-        const bulletDist = Math.sqrt(nearestBullet.relX * nearestBullet.relX + nearestBullet.relY * nearestBullet.relY);
         const dodgeAngle = Math.atan2(nearestBullet.relY, nearestBullet.relX) + Math.PI / 2;
         const turn = clamp((dodgeAngle - observation.self.angle) / Math.PI);
-        const climb = bulletDist < 120 && Math.abs(nearestBullet.relAltitude) < 0.2
-          ? (nearestBullet.relAltitude <= 0 ? 0.8 : -0.8)
-          : 0;
+        // Vertical dodge: climb away from bullet altitude
+        const climb = nearestBullet.relAltitude < 0 ? 1 : -1;
         return { thrust: 1, turn, climb, shoot: false };
       }
 
@@ -37,9 +35,10 @@ globalThis.__agentExport = (() => {
       }
 
       const turn = clamp((nearestEnemy.bearingAngle / Math.PI) * 0.8);
+      // Stay at a different altitude from the nearest enemy to be harder to hit
       const altDiff = nearestEnemy.relAltitude;
-      const climb = nearestEnemy.distance < 180 && Math.abs(altDiff) < 0.15
-        ? clamp((observation.self.altitude < 0.5 ? 0.6 : -0.6))
+      const climb = Math.abs(altDiff) < 0.15
+        ? clamp((observation.self.altitude < 0.5 ? 1 : -1) * 0.7)
         : 0;
       const altitudeAligned = Math.abs(altDiff) < 0.2;
       const shouldShoot =

@@ -19,6 +19,14 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.clientId && activeClientIds.has(event.clientId)) {
+    const url = new URL(event.request.url);
+    const sameOrigin = url.origin === self.location.origin;
+    // Keep local app/runtime assets available during lockdown (UI, sprites, modules),
+    // while still blocking external network access for active match clients.
+    if (sameOrigin) {
+      event.respondWith(fetch(event.request));
+      return;
+    }
     event.respondWith(
       new Response("Network blocked during active match", { status: 403 }),
     );
