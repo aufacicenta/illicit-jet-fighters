@@ -38,6 +38,16 @@ globalThis.__agentExport = (() => {
     return { turn, climb };
   };
 
+  const scorePickup = (pickup, observation, nearestThreat) => {
+    const self = observation.self;
+    let need = 0;
+    if (pickup.kind === "health") need = (100 - self.health) / 100;
+    if (pickup.kind === "fuel") need = (1000 - self.fuel) / 1000;
+    if (pickup.kind === "ammo") need = (50 - self.ammo) / 50;
+    const threatPenalty = nearestThreat ? Math.min(1, pickup.distance / 140) * 0.3 : 0;
+    return need * 1.6 - pickup.distance / 300 - threatPenalty;
+  };
+
   return {
     init() {
       enemyHistory.length = 0;
@@ -95,6 +105,21 @@ globalThis.__agentExport = (() => {
 
       // QUESTION - no enemies remain. Hover motionless, conserve everything.
       if (liveEnemies.length === 0) {
+        const pickup = observation.nearbyPickups
+          .map((candidate) => ({
+            candidate,
+            score: scorePickup(candidate, observation, nearestThreat),
+          }))
+          .sort((left, right) => right.score - left.score)[0]?.candidate;
+        if (pickup) {
+          const pickupBearing = normAngle(Math.atan2(pickup.relY, pickup.relX) - self.angle);
+          return {
+            thrust: 0.4,
+            turn: clamp(pickupBearing / Math.PI),
+            climb: clamp(-pickup.relAltitude * 2.1),
+            shoot: false,
+          };
+        }
         return { thrust: 0, turn: 0, climb: 0, shoot: false };
       }
 
@@ -114,6 +139,23 @@ globalThis.__agentExport = (() => {
 
       const turn = clamp(predictedBearing / Math.PI);
       const climb = clamp(-target.relAltitude * 2);
+
+      const pickup = observation.nearbyPickups
+        .map((candidate) => ({
+          candidate,
+          score: scorePickup(candidate, observation, nearestThreat),
+        }))
+        .sort((left, right) => right.score - left.score)[0];
+      const shouldCollectPickup = pickup && pickup.score > 0.16 && (!nearestThreat || nearestThreat.relX * nearestThreat.relX + nearestThreat.relY * nearestThreat.relY > 120 * 120);
+      if (shouldCollectPickup) {
+        const pickupBearing = normAngle(Math.atan2(pickup.candidate.relY, pickup.candidate.relX) - self.angle);
+        return {
+          thrust: 0.55,
+          turn: clamp(pickupBearing / Math.PI),
+          climb: clamp(-pickup.candidate.relAltitude * 2.2),
+          shoot: false,
+        };
+      }
 
       if (collisionImminent) {
         const separationTurn = clamp(target.bearingAngle >= 0 ? -1 : 1);

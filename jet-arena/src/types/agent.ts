@@ -1,6 +1,6 @@
 import type { RuntimeConfig } from "./config";
 import type { WallContact } from "./arena";
-import type { CollisionEvent } from "./state";
+import type { CollisionEvent, PickupKind } from "./state";
 
 export interface AgentAction {
   thrust: number;
@@ -30,6 +30,14 @@ export interface BulletObservation {
   isMine: boolean;
 }
 
+export interface PickupObservation {
+  relX: number;
+  relY: number;
+  relAltitude: number;
+  kind: PickupKind;
+  distance: number;
+}
+
 export interface Observation {
   self: {
     vx: number;
@@ -54,6 +62,7 @@ export interface Observation {
   };
   enemies: EnemyObservation[];
   nearbyBullets: BulletObservation[];
+  nearbyPickups: PickupObservation[];
   nearestWall: WallContact;
   nearbyWalls: WallContact[];
   distanceToWall: number;

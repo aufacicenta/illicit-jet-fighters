@@ -1,6 +1,6 @@
 import { ArenaShape } from "./arena-shape";
 import type { DrawableArena } from "./arena-shape";
-import type { BulletState, GameState, JetState } from "./types";
+import type { BulletState, GameState, JetState, PickupState } from "./types";
 
 export class GameRenderer {
   private context: CanvasRenderingContext2D;
@@ -39,6 +39,7 @@ export class GameRenderer {
     context.fillRect(0, 0, this.width, this.height);
 
     this.drawArena();
+    this.drawPickups(state.pickups, state.tick);
     for (const bullet of state.bullets) {
       this.drawBullet(bullet);
     }
@@ -156,6 +157,40 @@ export class GameRenderer {
     this.context.fill();
   }
 
+  private drawPickups(pickups: PickupState[], tick: number): void {
+    const pulse = 0.35 + ((Math.sin(tick / 10) + 1) / 2) * 0.4;
+    for (const pickup of pickups) {
+      const point = this.toScreen(pickup.x, pickup.y);
+      const size = (3.8 + pickup.altitude * 2.4) * this.scale;
+      this.context.save();
+      this.context.translate(point.x, point.y);
+
+      if (pickup.kind === "health") {
+        this.context.fillStyle = `rgba(52,211,153,${pulse.toFixed(2)})`;
+        this.context.fillRect(-size * 0.25, -size, size * 0.5, size * 2);
+        this.context.fillRect(-size, -size * 0.25, size * 2, size * 0.5);
+      } else if (pickup.kind === "ammo") {
+        this.context.rotate(Math.PI / 4);
+        this.context.fillStyle = `rgba(251,146,60,${pulse.toFixed(2)})`;
+        this.context.fillRect(-size * 0.75, -size * 0.75, size * 1.5, size * 1.5);
+      } else {
+        this.context.beginPath();
+        this.context.arc(0, 0, size * 0.85, 0, Math.PI * 2);
+        this.context.fillStyle = `rgba(56,189,248,${pulse.toFixed(2)})`;
+        this.context.fill();
+      }
+      this.context.restore();
+
+      const altitudePct = Math.round(pickup.altitude * 100);
+      const posLabel = `x:${pickup.x.toFixed(0)} y:${pickup.y.toFixed(0)}`;
+      const altLabel = `alt:${altitudePct}%`;
+      this.context.font = "9px ui-monospace, SFMono-Regular, Menlo, monospace";
+      this.context.fillStyle = "#cbd5e1";
+      this.context.fillText(posLabel, point.x + size + 2, point.y - 3);
+      this.context.fillText(altLabel, point.x + size + 2, point.y + 8);
+    }
+  }
+
   private drawHud(state: GameState): void {
     const alive = [...state.jets.values()].filter((jet) => jet.alive).length;
     this.context.fillStyle = "#cbd5e1";
@@ -163,7 +198,8 @@ export class GameRenderer {
     this.context.fillText(`TICK ${state.tick}`, 16, 24);
     this.context.fillText(`ALIVE ${alive}/${state.jets.size}`, 16, 42);
     this.context.fillText(`BULLETS ${state.bullets.length}`, 16, 60);
-    this.context.fillText(`BATTLEFIELD ${this.battlefieldName.toUpperCase()}`, 16, 78);
+    this.context.fillText(`PICKUPS ${state.pickups.length}`, 16, 78);
+    this.context.fillText(`BATTLEFIELD ${this.battlefieldName.toUpperCase()}`, 16, 96);
   }
 
   private colorForJet(id: string): string {

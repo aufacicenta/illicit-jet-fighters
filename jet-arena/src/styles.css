@@ -39,6 +39,17 @@ body {
   margin-bottom: 10px;
 }
 
+.pickup-config-title {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #1e293b;
+  color: #bfdbfe;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 label {
   display: block;
   margin-bottom: 4px;
@@ -229,6 +240,23 @@ button.primary {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.pickup-tally {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  color: #c4b5fd;
+  font-size: 10px;
+}
+
+.pickup-tally span {
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 999px;
+  padding: 2px 6px;
+  text-align: center;
 }
 
 .jet-card footer {

@@ -1,4 +1,5 @@
 import type { AgentAction } from "./agent";
+import type { PickupConfig } from "./state";
 
 export const CONFIG = {
   TICK_RATE: 30,
@@ -32,6 +33,17 @@ export const CONFIG = {
   ALTITUDE_HIT_TOLERANCE: 0.18,
   JET_COLLISION_DEATH_RADIUS_MULTIPLIER: 0.35,
   JET_COLLISION_ALTITUDE_TOLERANCE: 0.08,
+  PICKUP_COLLECT_RADIUS: 20,
+  PICKUP_HEALTH_AMOUNT: 25,
+  PICKUP_AMMO_AMOUNT: 12,
+  PICKUP_FUEL_AMOUNT: 200,
+  PICKUP_CONFIG: {
+    enabled: true,
+    mode: "random",
+    fixedCounts: { ammo: 2, fuel: 2, health: 1 },
+    randomCeiling: "auto",
+    respawnIntervalTicks: 90,
+  } as PickupConfig,
 } as const;
 
 export type RuntimeConfig = typeof CONFIG;

@@ -3,7 +3,14 @@ import { GameRenderer } from "./renderer";
 import { computeReward } from "./rewards";
 import { submitResult } from "./settlement";
 import { CONFIG, IDLE_ACTION } from "./types";
-import type { AgentAction, BattlefieldConfig, GameState, Observation, ReplayFrame } from "./types";
+import type {
+  AgentAction,
+  BattlefieldConfig,
+  GameState,
+  Observation,
+  PickupConfig,
+  ReplayFrame,
+} from "./types";
 import { GameWorld } from "./world";
 
 interface PlayerConfig {
@@ -35,11 +42,17 @@ const cloneState = (state: GameState): GameState => ({
       id,
       {
         ...jet,
+        pickupsCollected: { ...jet.pickupsCollected },
       },
     ]),
   ),
   bullets: state.bullets.map((bullet) => ({ ...bullet })),
   recentHitEvents: state.recentHitEvents.map((event) => ({ ...event })),
+  pickups: state.pickups.map((pickup) => ({ ...pickup })),
+  pickupStats: {
+    totalSpawned: { ...state.pickupStats.totalSpawned },
+    totalCollected: { ...state.pickupStats.totalCollected },
+  },
 });
 
 export class GameOrchestrator {
@@ -57,7 +70,12 @@ export class GameOrchestrator {
 
   constructor(private canvas: HTMLCanvasElement, private ui: UiCallbacks) {}
 
-  async start(players: PlayerConfig[], seed: number, battlefield: BattlefieldConfig): Promise<void> {
+  async start(
+    players: PlayerConfig[],
+    seed: number,
+    battlefield: BattlefieldConfig,
+    pickupConfigOverride?: PickupConfig,
+  ): Promise<void> {
     this.stop();
     // Ensure we never inherit a stale "game active" lock from a prior interrupted run.
     disableNetworkLockdown();
@@ -65,6 +83,7 @@ export class GameOrchestrator {
       players.map((player) => player.id),
       seed,
       battlefield,
+      pickupConfigOverride,
     );
     this.renderer = new GameRenderer(this.canvas, this.world.getArenaShape(), battlefield.name);
     this.previousState = cloneState(this.world.state);
@@ -301,6 +320,20 @@ export class GameOrchestrator {
         isMine: bullet.ownerId === jetId,
       }));
 
+    const nearbyPickups = state.pickups
+      .filter((pickup) => {
+        const dx = pickup.x - self.x;
+        const dy = pickup.y - self.y;
+        return dx * dx + dy * dy <= CONFIG.SENSOR_RANGE ** 2;
+      })
+      .map((pickup) => ({
+        relX: pickup.x - self.x,
+        relY: pickup.y - self.y,
+        relAltitude: pickup.altitude - self.altitude,
+        kind: pickup.kind,
+        distance: Math.hypot(pickup.x - self.x, pickup.y - self.y),
+      }));
+
     if (!this.world) {
       throw new Error("Game world unavailable while building observation.");
     }
@@ -350,6 +383,7 @@ export class GameOrchestrator {
       },
       enemies,
       nearbyBullets,
+      nearbyPickups,
       nearestWall,
       nearbyWalls,
       distanceToWall: nearestWall.distance,

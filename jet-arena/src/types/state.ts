@@ -17,6 +17,26 @@ export interface HitEvent {
   damage: number;
 }
 
+export type PickupKind = "ammo" | "fuel" | "health";
+
+export type PickupTally = Record<PickupKind, number>;
+
+export interface PickupState {
+  id: number;
+  kind: PickupKind;
+  x: number;
+  y: number;
+  altitude: number;
+}
+
+export interface PickupConfig {
+  enabled: boolean;
+  mode: "fixed" | "random";
+  fixedCounts: PickupTally;
+  randomCeiling: number | "auto";
+  respawnIntervalTicks: number;
+}
+
 export interface JetState {
   id: string;
   x: number;
@@ -40,6 +60,7 @@ export interface JetState {
   lastHitTakenFromId: string | null;
   lastHitDealtTick: number | null;
   lastHitTakenTick: number | null;
+  pickupsCollected: PickupTally;
   alive: boolean;
 }
 
@@ -58,5 +79,10 @@ export interface GameState {
   jets: Map<string, JetState>;
   bullets: BulletState[];
   recentHitEvents: HitEvent[];
+  pickups: PickupState[];
+  pickupStats: {
+    totalSpawned: PickupTally;
+    totalCollected: PickupTally;
+  };
   arenaBounds: { width: number; height: number };
 }

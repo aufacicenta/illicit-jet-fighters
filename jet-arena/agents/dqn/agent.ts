@@ -16,6 +16,7 @@ globalThis.__agentExport = (() => {
     { thrust: 1, turn: 0, climb: -1, shoot: false },
     { thrust: 0.5, turn: 0.3, climb: 0.7, shoot: false },
     { thrust: 0.5, turn: -0.3, climb: -0.7, shoot: false },
+    { thrust: 0.8, turn: 0, climb: 0, shoot: false, followPickup: true },
   ];
 
   const MAX_REPLAY = 400;
@@ -84,6 +85,12 @@ globalThis.__agentExport = (() => {
             left.relY * left.relY -
             (right.relX * right.relX + right.relY * right.relY),
         )[0] ?? null;
+    const nearestPickup =
+      observation.nearbyPickups
+        .sort((left, right) => left.distance - right.distance)[0] ?? null;
+    const pickupAmmo = nearestPickup?.kind === "ammo" ? 1 : 0;
+    const pickupFuel = nearestPickup?.kind === "fuel" ? 1 : 0;
+    const pickupHealth = nearestPickup?.kind === "health" ? 1 : 0;
 
     return [
       observation.self.speed / 8,
@@ -108,13 +115,20 @@ globalThis.__agentExport = (() => {
       nearestWallBand.altitudeMax,
       clampSignedUnit(nearestWallBand.deltaToMin),
       clampSignedUnit(nearestWallBand.deltaToMax),
+      nearestPickup ? nearestPickup.relX / 420 : 0,
+      nearestPickup ? nearestPickup.relY / 420 : 0,
+      nearestPickup ? nearestPickup.relAltitude : 0,
+      nearestPickup ? nearestPickup.distance / 420 : 1,
+      pickupAmmo,
+      pickupFuel,
+      pickupHealth,
     ];
   };
 
   const createModel = () => {
     model = tf.sequential({
       layers: [
-        tf.layers.dense({ inputShape: [22], units: 24, activation: "relu" }),
+        tf.layers.dense({ inputShape: [29], units: 24, activation: "relu" }),
         tf.layers.dense({ units: 24, activation: "relu" }),
         tf.layers.dense({ units: ACTIONS.length, activation: "linear" }),
       ],
@@ -183,7 +197,22 @@ globalThis.__agentExport = (() => {
       epsilon = Math.max(0.07, epsilon * 0.9995);
       previousState = state;
       previousAction = actionIndex;
-      return ACTIONS[actionIndex];
+      const action = ACTIONS[actionIndex];
+      if (!action.followPickup) {
+        return action;
+      }
+      const pickup = observation.nearbyPickups.sort((left, right) => left.distance - right.distance)[0];
+      if (!pickup) {
+        return action;
+      }
+      const pickupBearing = Math.atan2(pickup.relY, pickup.relX) - observation.self.angle;
+      const normalizedBearing = Math.atan2(Math.sin(pickupBearing), Math.cos(pickupBearing));
+      return {
+        thrust: 0.8,
+        turn: Math.max(-1, Math.min(1, normalizedBearing / Math.PI)),
+        climb: Math.max(-1, Math.min(1, -pickup.relAltitude * 2.8)),
+        shoot: false,
+      };
     },
     learn(observation, reward) {
       if (!previousState || previousAction < 0) return;

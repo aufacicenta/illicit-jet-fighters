@@ -6,6 +6,19 @@ globalThis.__agentExport = (() => {
     return value;
   };
 
+  const pickNeededPickup = (observation, maxDistance) => {
+    const { self, nearbyPickups } = observation;
+    return nearbyPickups
+      .filter((pickup) => {
+        if (pickup.distance > maxDistance) return false;
+        if (pickup.kind === "health" && self.health > 75) return false;
+        if (pickup.kind === "ammo" && self.ammo > 35) return false;
+        if (pickup.kind === "fuel" && self.fuel > 700) return false;
+        return true;
+      })
+      .sort((left, right) => left.distance - right.distance)[0];
+  };
+
   return {
     init() {},
     learn() {},
@@ -31,6 +44,17 @@ globalThis.__agentExport = (() => {
           thrust: 0.8,
           turn: separationTurn,
           climb: separationClimb,
+          shoot: false,
+        };
+      }
+
+      const pickup = pickNeededPickup(observation, 120);
+      if (pickup) {
+        const pickupBearing = Math.atan2(pickup.relY, pickup.relX) - observation.self.angle;
+        return {
+          thrust: 0.72,
+          turn: normalize(Math.atan2(Math.sin(pickupBearing), Math.cos(pickupBearing)) / Math.PI),
+          climb: normalize(-pickup.relAltitude * 2.8),
           shoot: false,
         };
       }

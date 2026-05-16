@@ -5,6 +5,20 @@ globalThis.__agentExport = (() => {
     return value;
   };
 
+  const nearestUsefulPickup = (observation) =>
+    observation.nearbyPickups
+      .filter((pickup) => {
+        if (pickup.kind === "fuel") return observation.self.fuel < 700;
+        if (pickup.kind === "health") return observation.self.health < 80;
+        if (pickup.kind === "ammo") return observation.self.ammo < 30;
+        return true;
+      })
+      .sort((left, right) => {
+        const leftBias = left.kind === "fuel" ? -25 : 0;
+        const rightBias = right.kind === "fuel" ? -25 : 0;
+        return left.distance + leftBias - (right.distance + rightBias);
+      })[0];
+
   return {
     init() {},
     learn() {},
@@ -28,6 +42,18 @@ globalThis.__agentExport = (() => {
         // Vertical dodge: climb away from bullet altitude
         const climb = nearestBullet.relAltitude < 0 ? 1 : -1;
         return { thrust: 1, turn, climb, shoot: false };
+      }
+
+      const pickup = nearestUsefulPickup(observation);
+      if (pickup) {
+        const pickupBearing = Math.atan2(pickup.relY, pickup.relX) - observation.self.angle;
+        const normalizedPickupBearing = Math.atan2(Math.sin(pickupBearing), Math.cos(pickupBearing));
+        return {
+          thrust: 0.9,
+          turn: clamp((normalizedPickupBearing / Math.PI) * 0.95),
+          climb: clamp(-pickup.relAltitude * 2.8),
+          shoot: false,
+        };
       }
 
       if (!nearestEnemy) {

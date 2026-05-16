@@ -5,6 +5,22 @@ globalThis.__agentExport = (() => {
     return value;
   };
 
+  const pickupOnAttackPath = (observation) => {
+    const { self, nearbyPickups } = observation;
+    return nearbyPickups
+      .filter((pickup) => {
+        if (pickup.distance > 80) return false;
+        const bearing = Math.atan2(pickup.relY, pickup.relX) - self.angle;
+        const normalizedBearing = Math.atan2(Math.sin(bearing), Math.cos(bearing));
+        if (Math.abs(normalizedBearing) > 0.3) return false;
+        if (pickup.kind === "health" && self.health > 85) return false;
+        if (pickup.kind === "ammo" && self.ammo > 42) return false;
+        if (pickup.kind === "fuel" && self.fuel > 820) return false;
+        return true;
+      })
+      .sort((left, right) => left.distance - right.distance)[0];
+  };
+
   return {
     init() {},
     learn() {},
@@ -27,6 +43,17 @@ globalThis.__agentExport = (() => {
         const breakTurn = clamp(target.bearingAngle >= 0 ? -1 : 1);
         const separationClimb = target.relAltitude >= 0 ? -0.9 : 0.9;
         return { thrust: 0.85, turn: breakTurn, climb: separationClimb, shoot: false };
+      }
+
+      const pickup = pickupOnAttackPath(observation);
+      if (pickup) {
+        const pickupBearing = Math.atan2(pickup.relY, pickup.relX) - observation.self.angle;
+        return {
+          thrust: 1,
+          turn: clamp(Math.atan2(Math.sin(pickupBearing), Math.cos(pickupBearing)) / Math.PI),
+          climb: clamp(-pickup.relAltitude * 2.4),
+          shoot: false,
+        };
       }
 
       const turn = clamp((target.bearingAngle / Math.PI) * 1.25);

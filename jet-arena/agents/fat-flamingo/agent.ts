@@ -118,6 +118,26 @@ globalThis.__agentExport = (() => {
     return { thrust: 0.36, turn, climb, shoot: false };
   };
 
+  const pickupAlongPath = (observation) => {
+    const { self, nearbyPickups } = observation;
+    return nearbyPickups
+      .filter((pickup) => {
+        if (pickup.distance > 100) return false;
+        const bearing = Math.atan2(pickup.relY, pickup.relX) - self.angle;
+        const normalizedBearing = Math.atan2(Math.sin(bearing), Math.cos(bearing));
+        if (Math.abs(normalizedBearing) > 0.4) return false;
+        if (pickup.kind === "fuel") return self.fuel < 820;
+        if (pickup.kind === "health") return self.health < 75;
+        if (pickup.kind === "ammo") return self.ammo < 30;
+        return true;
+      })
+      .sort((left, right) => {
+        const leftBias = left.kind === "fuel" ? -16 : 0;
+        const rightBias = right.kind === "fuel" ? -16 : 0;
+        return left.distance + leftBias - (right.distance + rightBias);
+      })[0];
+  };
+
   return {
     init() {
       memory.tapCycle = 0;
@@ -148,6 +168,7 @@ globalThis.__agentExport = (() => {
 
       const state = chooseState(observation, liveEnemies, pressure);
       const target = pickTarget(liveEnemies, state) ?? liveEnemies[0];
+      const pickup = pickupAlongPath(observation);
 
       const leadTicks = state === "advantage" ? 7 : state === "pressured" ? 10 : 8;
       const leadX = target.relX + target.relVx * leadTicks;
@@ -212,6 +233,12 @@ globalThis.__agentExport = (() => {
       if (underRecentThreat && state !== "advantage") shoot = false;
       if (collisionImminent || wallRisk) shoot = false;
       if (pressure >= 3 && state !== "advantage") shoot = false;
+      if (pickup && !collisionImminent && !wallRisk) {
+        const pickupBearing = normAngle(Math.atan2(pickup.relY, pickup.relX) - self.angle);
+        turn = clamp(turn * 0.35 + (pickupBearing / Math.PI) * 0.65);
+        climb = clamp(climb * 0.35 + (-pickup.relAltitude * 2.3) * 0.65);
+        shoot = false;
+      }
 
       return sanitizeAction({ thrust, turn, climb, shoot });
     },

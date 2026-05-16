@@ -85,6 +85,20 @@ globalThis.__agentExport = (() => {
     return { thrust: 0.42, turn: 0.22 * patrolSign, climb, shoot: false };
   };
 
+  const choosePickup = (observation, state) => {
+    if (state === "advantage" || state === "critical" || state === "pressured") return null;
+    const { self, nearbyPickups } = observation;
+    return nearbyPickups
+      .filter((pickup) => {
+        if (pickup.distance > 150) return false;
+        if (pickup.kind === "health" && self.health > 80) return false;
+        if (pickup.kind === "ammo" && self.ammo > 36) return false;
+        if (pickup.kind === "fuel" && self.fuel > 760) return false;
+        return true;
+      })
+      .sort((left, right) => left.distance - right.distance)[0];
+  };
+
   return {
     init() {
       patrolSign = 1;
@@ -98,9 +112,27 @@ globalThis.__agentExport = (() => {
       const liveEnemies = enemies.filter((enemy) => enemy.alive);
       const { pressure, nearest, nearestSq } = getThreatProfile(nearbyBullets);
       const state = chooseState(self, liveEnemies, pressure, distanceToWall);
+      const pickup = choosePickup(observation, state);
 
       if (liveEnemies.length === 0) {
-        return sanitizeAction(patrol(self));
+        if (!pickup) return sanitizeAction(patrol(self));
+        const pickupBearing = normAngle(Math.atan2(pickup.relY, pickup.relX) - self.angle);
+        return sanitizeAction({
+          thrust: 0.68,
+          turn: clamp(pickupBearing / Math.PI),
+          climb: clamp(-pickup.relAltitude * 2.3),
+          shoot: false,
+        });
+      }
+
+      if (pickup) {
+        const pickupBearing = normAngle(Math.atan2(pickup.relY, pickup.relX) - self.angle);
+        return sanitizeAction({
+          thrust: 0.74,
+          turn: clamp((pickupBearing / Math.PI) * 1.1),
+          climb: clamp(-pickup.relAltitude * 2.4 - self.vAlt * 0.2),
+          shoot: false,
+        });
       }
 
       const target = liveEnemies

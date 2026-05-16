@@ -56,5 +56,15 @@ export const computeReward = (
     reward += 0.05;
   }
 
+  if (currentJet.pickupsCollected.health > previousJet.pickupsCollected.health) {
+    reward += 3;
+  }
+  if (currentJet.pickupsCollected.fuel > previousJet.pickupsCollected.fuel) {
+    reward += 2;
+  }
+  if (currentJet.pickupsCollected.ammo > previousJet.pickupsCollected.ammo) {
+    reward += 2;
+  }
+
   return reward;
 };

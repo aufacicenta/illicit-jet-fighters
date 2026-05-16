@@ -1,7 +1,7 @@
 import { loadBattlefieldRegistry } from "./battlefield-config";
 import { registerServiceWorker } from "./network-lockdown";
 import { GameOrchestrator } from "./orchestrator";
-import type { BattlefieldConfig, GameState } from "./types";
+import type { BattlefieldConfig, GameState, PickupConfig } from "./types";
 import "./styles.css";
 
 type PoseKey = "idle" | "planning" | "attacking" | "hit-target" | "got-hit" | "low-fuel" | "down";
@@ -226,6 +226,39 @@ controls.innerHTML = `
     <select id="agent-d">${buildAgentOptions()}</select>
   </div>
 
+  <div class="row pickup-config-title">Pickups</div>
+  <div class="row">
+    <label for="pickup-enabled">Enabled</label>
+    <input id="pickup-enabled" type="checkbox" checked />
+  </div>
+  <div class="row">
+    <label for="pickup-mode">Mode</label>
+    <select id="pickup-mode">
+      <option value="random">Random</option>
+      <option value="fixed">Fixed</option>
+    </select>
+  </div>
+  <div class="row">
+    <label for="pickup-random-ceiling">Random Ceiling</label>
+    <input id="pickup-random-ceiling" type="number" min="0" value="6" />
+  </div>
+  <div class="row pickup-fixed-row">
+    <label for="pickup-fixed-health">Fixed Health Count</label>
+    <input id="pickup-fixed-health" type="number" min="0" value="1" />
+  </div>
+  <div class="row pickup-fixed-row">
+    <label for="pickup-fixed-ammo">Fixed Ammo Count</label>
+    <input id="pickup-fixed-ammo" type="number" min="0" value="2" />
+  </div>
+  <div class="row pickup-fixed-row">
+    <label for="pickup-fixed-fuel">Fixed Fuel Count</label>
+    <input id="pickup-fixed-fuel" type="number" min="0" value="2" />
+  </div>
+  <div class="row">
+    <label for="pickup-respawn">Respawn Interval (ticks)</label>
+    <input id="pickup-respawn" type="number" min="1" value="90" />
+  </div>
+
   <div class="row">
     <button id="start" class="primary">Start Match</button>
   </div>
@@ -240,6 +273,13 @@ const agentA = controls.querySelector("#agent-a");
 const agentB = controls.querySelector("#agent-b");
 const agentC = controls.querySelector("#agent-c");
 const agentD = controls.querySelector("#agent-d");
+const pickupEnabled = controls.querySelector("#pickup-enabled");
+const pickupMode = controls.querySelector("#pickup-mode");
+const pickupRandomCeiling = controls.querySelector("#pickup-random-ceiling");
+const pickupFixedHealth = controls.querySelector("#pickup-fixed-health");
+const pickupFixedAmmo = controls.querySelector("#pickup-fixed-ammo");
+const pickupFixedFuel = controls.querySelector("#pickup-fixed-fuel");
+const pickupRespawn = controls.querySelector("#pickup-respawn");
 const startButton = controls.querySelector("#start");
 const resetButton = controls.querySelector("#reset");
 let lastEvent = "booting";
@@ -251,6 +291,13 @@ if (
   !(agentB instanceof HTMLSelectElement) ||
   !(agentC instanceof HTMLSelectElement) ||
   !(agentD instanceof HTMLSelectElement) ||
+  !(pickupEnabled instanceof HTMLInputElement) ||
+  !(pickupMode instanceof HTMLSelectElement) ||
+  !(pickupRandomCeiling instanceof HTMLInputElement) ||
+  !(pickupFixedHealth instanceof HTMLInputElement) ||
+  !(pickupFixedAmmo instanceof HTMLInputElement) ||
+  !(pickupFixedFuel instanceof HTMLInputElement) ||
+  !(pickupRespawn instanceof HTMLInputElement) ||
   !(startButton instanceof HTMLButtonElement) ||
   !(resetButton instanceof HTMLButtonElement)
 ) {
@@ -294,6 +341,23 @@ applyCanvasAspect(getSelectedBattlefield());
 battlefieldSelect.addEventListener("change", () => {
   applyCanvasAspect(getSelectedBattlefield());
 });
+
+const syncPickupModeUi = (): void => {
+  const isFixed = pickupMode.value === "fixed";
+  controls.querySelectorAll<HTMLElement>(".pickup-fixed-row").forEach((element) => {
+    element.style.display = isFixed ? "block" : "none";
+  });
+  pickupRandomCeiling.disabled = isFixed || !pickupEnabled.checked;
+  pickupMode.disabled = !pickupEnabled.checked;
+  pickupFixedHealth.disabled = !isFixed || !pickupEnabled.checked;
+  pickupFixedAmmo.disabled = !isFixed || !pickupEnabled.checked;
+  pickupFixedFuel.disabled = !isFixed || !pickupEnabled.checked;
+  pickupRespawn.disabled = !pickupEnabled.checked;
+};
+
+pickupEnabled.addEventListener("change", syncPickupModeUi);
+pickupMode.addEventListener("change", syncPickupModeUi);
+syncPickupModeUi();
 
 const jetAgentKeyById = new Map<string, string>();
 const jetPoseById = new Map<string, PoseState>();
@@ -435,7 +499,11 @@ const orchestrator = new GameOrchestrator(canvas, {
     const jets = [...state.jets.values()];
     const alive = jets.filter((jet) => jet.alive).length;
     const moving = jets.filter((jet) => jet.alive && Math.hypot(jet.vx, jet.vy) > 0.2).length;
-    status.textContent = `tick=${state.tick} alive=${alive} moving=${moving} bullets=${state.bullets.length} | ${lastEvent}`;
+    const totalCollected =
+      state.pickupStats.totalCollected.health +
+      state.pickupStats.totalCollected.ammo +
+      state.pickupStats.totalCollected.fuel;
+    status.textContent = `tick=${state.tick} alive=${alive} moving=${moving} bullets=${state.bullets.length} pickups=${state.pickups.length} collected=${totalCollected} | ${lastEvent}`;
 
     const statCards = jets
       .sort((left, right) => left.id.localeCompare(right.id))
@@ -456,6 +524,12 @@ const orchestrator = new GameOrchestrator(canvas, {
           : "HIT NONE";
         const lastOut = formatJetIdForStat(jet.lastHitDealtToId);
         const lastIn = formatJetIdForStat(jet.lastHitTakenFromId);
+        const collectedTotal =
+          jet.pickupsCollected.health + jet.pickupsCollected.ammo + jet.pickupsCollected.fuel;
+        const pickupTally =
+          collectedTotal > 0
+            ? `<div class="pickup-tally"><span title="Health pickups">+HP x${jet.pickupsCollected.health}</span><span title="Ammo pickups">+AMMO x${jet.pickupsCollected.ammo}</span><span title="Fuel pickups">+FUEL x${jet.pickupsCollected.fuel}</span></div>`
+            : "";
 
         return `
           <article class="jet-card ${jet.alive ? "alive" : "down"}" style="--accent:${accent}">
@@ -473,6 +547,7 @@ const orchestrator = new GameOrchestrator(canvas, {
                 <footer>SPD ${speed.toFixed(2)} | ALT ${(jet.altitude * 100).toFixed(0)}% | CD ${jet.cooldown}</footer>
                 <div class="combat-row"><span>HITS ${jet.enemyHitsLanded}</span><span>TAKEN ${jet.enemyHitsTaken}</span></div>
                 <div class="combat-row"><span title="${jet.lastHitDealtToId ?? "NONE"}">LAST_OUT ${lastOut}</span><span title="${jet.lastHitTakenFromId ?? "NONE"}">LAST_IN ${lastIn}</span></div>
+                ${pickupTally}
                 <footer>COLL ${collisionCount} | DMG ${collisionDamage.toFixed(1)} | ${lastHitLabel}</footer>
               </div>
             </div>
@@ -488,6 +563,7 @@ const orchestrator = new GameOrchestrator(canvas, {
     status.textContent = message;
   },
   onGameEnd: (winnerId, replayHashHex) => {
+    setControlsDisabled(false);
     const winnerText = winnerId ?? "draw";
     lastEvent = `winner=${winnerText}`;
     status.textContent = `winner=${winnerText} replay=${replayHashHex.slice(0, 16)}...`;
@@ -519,23 +595,67 @@ const buildPlayers = (): Array<{ id: string; code: string; agentKey: string }> =
   }));
 };
 
+const toNonNegativeInteger = (value: string, fallback: number): number => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(0, Math.floor(parsed));
+};
+
+const buildPickupConfigFromControls = (): PickupConfig => ({
+  enabled: pickupEnabled.checked,
+  mode: pickupMode.value === "fixed" ? "fixed" : "random",
+  fixedCounts: {
+    health: toNonNegativeInteger(pickupFixedHealth.value, 1),
+    ammo: toNonNegativeInteger(pickupFixedAmmo.value, 2),
+    fuel: toNonNegativeInteger(pickupFixedFuel.value, 2),
+  },
+  randomCeiling: toNonNegativeInteger(pickupRandomCeiling.value, 6),
+  respawnIntervalTicks: Math.max(1, toNonNegativeInteger(pickupRespawn.value, 90)),
+});
+
+const setControlsDisabled = (disabled: boolean): void => {
+  seedInput.disabled = disabled;
+  battlefieldSelect.disabled = disabled;
+  agentA.disabled = disabled;
+  agentB.disabled = disabled;
+  agentC.disabled = disabled;
+  agentD.disabled = disabled;
+  pickupEnabled.disabled = disabled;
+  pickupMode.disabled = disabled;
+  pickupRandomCeiling.disabled = disabled || pickupMode.value === "fixed" || !pickupEnabled.checked;
+  pickupFixedHealth.disabled = disabled || pickupMode.value !== "fixed" || !pickupEnabled.checked;
+  pickupFixedAmmo.disabled = disabled || pickupMode.value !== "fixed" || !pickupEnabled.checked;
+  pickupFixedFuel.disabled = disabled || pickupMode.value !== "fixed" || !pickupEnabled.checked;
+  pickupRespawn.disabled = disabled || !pickupEnabled.checked;
+  startButton.disabled = disabled;
+  resetButton.disabled = !disabled;
+};
+
 const startMatch = async (): Promise<void> => {
   const seed = Number(seedInput.value);
   const normalizedSeed = Number.isFinite(seed) ? seed : 1337;
   const battlefield = getSelectedBattlefield();
-  applyCanvasAspect(battlefield);
-  const players = buildPlayers();
-  jetAgentKeyById.clear();
-  jetPoseById.clear();
-  previousStateSnapshot = null;
-  for (const player of players) {
-    jetAgentKeyById.set(player.id, player.agentKey);
+  const pickupConfig = buildPickupConfigFromControls();
+  setControlsDisabled(true);
+  try {
+    applyCanvasAspect(battlefield);
+    const players = buildPlayers();
+    jetAgentKeyById.clear();
+    jetPoseById.clear();
+    previousStateSnapshot = null;
+    for (const player of players) {
+      jetAgentKeyById.set(player.id, player.agentKey);
+    }
+    await orchestrator.start(
+      players.map((player) => ({ id: player.id, code: player.code })),
+      normalizedSeed,
+      battlefield,
+      pickupConfig,
+    );
+  } catch (error) {
+    setControlsDisabled(false);
+    throw error;
   }
-  await orchestrator.start(
-    players.map((player) => ({ id: player.id, code: player.code })),
-    normalizedSeed,
-    battlefield,
-  );
 };
 
 startButton.addEventListener("click", () => {
@@ -544,6 +664,7 @@ startButton.addEventListener("click", () => {
 
 resetButton.addEventListener("click", () => {
   orchestrator.stop();
+  setControlsDisabled(false);
   jetPoseById.clear();
   previousStateSnapshot = null;
   lastEvent = "stopped";
@@ -551,4 +672,5 @@ resetButton.addEventListener("click", () => {
 });
 
 void registerServiceWorker();
+setControlsDisabled(false);
 void startMatch();

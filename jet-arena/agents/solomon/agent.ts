@@ -112,6 +112,20 @@ globalThis.__agentExport = (() => {
     return clamp(rel / Math.PI);
   };
 
+  const choosePickup = (observation, state, threatPressure) => {
+    if (state === "pressured" || state === "critical" || threatPressure >= 2) return null;
+    const { self, nearbyPickups } = observation;
+    return nearbyPickups
+      .filter((pickup) => {
+        if (pickup.distance > 155) return false;
+        if (pickup.kind === "health") return self.health < 60;
+        if (pickup.kind === "fuel") return self.fuel < 620;
+        if (pickup.kind === "ammo") return self.ammo < 24;
+        return false;
+      })
+      .sort((left, right) => left.distance - right.distance)[0];
+  };
+
   return {
     init() {
       memory.lastCollisionCount = 0;
@@ -164,6 +178,7 @@ globalThis.__agentExport = (() => {
       }
 
       const state = chooseState(observation, liveEnemies, threatPressure);
+      const pickup = choosePickup(observation, state, threatPressure);
       const target = pickTarget(liveEnemies, state) ?? liveEnemies[0];
 
       const leadTicks = state === "advantage" ? 6 : state === "pressured" ? 9 : 8;
@@ -224,6 +239,13 @@ globalThis.__agentExport = (() => {
       if (underFireRecently && state !== "advantage") shoot = false;
       if (collisionImminent || distanceToWall < 58) shoot = false;
       if (self.ammo <= 6) shoot = shoot && aligned && inRange;
+      if (pickup) {
+        const pickupBearing = normAngle(Math.atan2(pickup.relY, pickup.relX) - self.angle);
+        turn = clamp(turn * 0.35 + (pickupBearing / Math.PI) * 0.65);
+        climb = clamp(climb * 0.3 + (-pickup.relAltitude * 2.5) * 0.7);
+        thrust = Math.max(0.72, thrust);
+        shoot = false;
+      }
 
       if (shoot) memory.disciplineCycle += 1;
 

@@ -1,6 +1,17 @@
 import { ArenaShape } from "./arena-shape";
 import { CONFIG, IDLE_ACTION } from "./types";
-import type { AgentAction, BattlefieldConfig, GameState, ReplayFrame, JetState, WallContact } from "./types";
+import type {
+  AgentAction,
+  BattlefieldConfig,
+  GameState,
+  PickupConfig,
+  PickupKind,
+  PickupState,
+  PickupTally,
+  ReplayFrame,
+  JetState,
+  WallContact,
+} from "./types";
 
 class SeededRandom {
   private seed: number;
@@ -21,6 +32,14 @@ class SeededRandom {
 const clamp = (value: number, min: number, max: number): number =>
   Math.max(min, Math.min(max, value));
 const COLLISION_DAMAGE = 1.25;
+const PICKUP_ALTITUDE_MIN = 0.1;
+const PICKUP_ALTITUDE_MAX = 0.6;
+
+const createEmptyPickupTally = (): PickupTally => ({
+  ammo: 0,
+  fuel: 0,
+  health: 0,
+});
 
 export class GameWorld {
   public state: GameState;
@@ -28,11 +47,19 @@ export class GameWorld {
   private rng: SeededRandom;
   private arenaShape: ArenaShape;
   private spawnPoints: Array<{ x: number; y: number }>;
+  private pickupIdCounter = 0;
+  private pickupConfig: PickupConfig;
 
-  constructor(playerIds: string[], seed: number, battlefield: BattlefieldConfig) {
+  constructor(
+    playerIds: string[],
+    seed: number,
+    battlefield: BattlefieldConfig,
+    pickupConfigOverride?: PickupConfig,
+  ) {
     this.rng = new SeededRandom(seed);
     this.arenaShape = new ArenaShape(battlefield);
     this.spawnPoints = battlefield.spawnPoints.map(([x, y]) => ({ x, y }));
+    this.pickupConfig = pickupConfigOverride ?? CONFIG.PICKUP_CONFIG;
     const jets = new Map<string, JetState>();
     const bounds = this.arenaShape.getBoundingBox();
     const width = bounds.maxX - bounds.minX;
@@ -68,6 +95,7 @@ export class GameWorld {
         lastHitTakenFromId: null,
         lastHitDealtTick: null,
         lastHitTakenTick: null,
+        pickupsCollected: createEmptyPickupTally(),
         alive: true,
       });
     });
@@ -77,11 +105,17 @@ export class GameWorld {
       jets,
       bullets: [],
       recentHitEvents: [],
+      pickups: [],
+      pickupStats: {
+        totalSpawned: createEmptyPickupTally(),
+        totalCollected: createEmptyPickupTally(),
+      },
       arenaBounds: {
         width,
         height,
       },
     };
+    this.refillPickups();
   }
 
   step(actions: Map<string, AgentAction>): GameState {
@@ -94,8 +128,16 @@ export class GameWorld {
 
     this.applyJetActions(safeActions);
     this.resolveJetCollisions();
+    this.collectPickups();
     this.updateBullets();
     this.state.tick += 1;
+    if (
+      this.pickupConfig.enabled &&
+      this.pickupConfig.respawnIntervalTicks > 0 &&
+      this.state.tick % this.pickupConfig.respawnIntervalTicks === 0
+    ) {
+      this.refillPickups();
+    }
     this.replayLog.push(this.snapshotFrame());
     return this.state;
   }
@@ -416,6 +458,125 @@ export class GameWorld {
     };
   }
 
+  private collectPickups(): void {
+    if (!this.pickupConfig.enabled || this.state.pickups.length === 0) return;
+    for (const jet of this.state.jets.values()) {
+      if (!jet.alive) continue;
+      for (let index = this.state.pickups.length - 1; index >= 0; index -= 1) {
+        const pickup = this.state.pickups[index];
+        if (!pickup) continue;
+        const dx = pickup.x - jet.x;
+        const dy = pickup.y - jet.y;
+        const distanceSq = dx * dx + dy * dy;
+        const altitudeDelta = Math.abs(pickup.altitude - jet.altitude);
+        if (distanceSq > CONFIG.PICKUP_COLLECT_RADIUS ** 2) continue;
+        if (altitudeDelta > CONFIG.ALTITUDE_HIT_TOLERANCE) continue;
+        this.applyPickupToJet(jet, pickup.kind);
+        jet.pickupsCollected[pickup.kind] += 1;
+        this.state.pickupStats.totalCollected[pickup.kind] += 1;
+        this.state.pickups.splice(index, 1);
+      }
+    }
+  }
+
+  private applyPickupToJet(jet: JetState, kind: PickupKind): void {
+    if (kind === "health") {
+      jet.health = Math.min(CONFIG.INITIAL_HEALTH, jet.health + CONFIG.PICKUP_HEALTH_AMOUNT);
+      return;
+    }
+    if (kind === "ammo") {
+      jet.ammo = Math.min(CONFIG.INITIAL_AMMO, jet.ammo + CONFIG.PICKUP_AMMO_AMOUNT);
+      return;
+    }
+    jet.fuel = Math.min(CONFIG.INITIAL_FUEL, jet.fuel + CONFIG.PICKUP_FUEL_AMOUNT);
+  }
+
+  private refillPickups(): void {
+    if (!this.pickupConfig.enabled) {
+      this.state.pickups = [];
+      return;
+    }
+
+    if (this.pickupConfig.mode === "fixed") {
+      const counts = createEmptyPickupTally();
+      for (const pickup of this.state.pickups) {
+        counts[pickup.kind] += 1;
+      }
+      for (const kind of ["ammo", "fuel", "health"] as PickupKind[]) {
+        const targetCount = Math.max(0, Math.floor(this.pickupConfig.fixedCounts[kind] ?? 0));
+        const deficit = targetCount - counts[kind];
+        if (deficit <= 0) continue;
+        this.spawnPickups(kind, deficit);
+      }
+      return;
+    }
+
+    const autoCeiling = Math.max(1, Math.floor(CONFIG.ARENA_RADIUS / 70));
+    const maxCount =
+      this.pickupConfig.randomCeiling === "auto"
+        ? autoCeiling
+        : Math.max(0, Math.floor(this.pickupConfig.randomCeiling));
+    const deficit = maxCount - this.state.pickups.length;
+    if (deficit <= 0) return;
+    this.spawnPickups(null, deficit);
+  }
+
+  private spawnPickups(forcedKind: PickupKind | null, amount: number): void {
+    const bounds = this.arenaShape.getBoundingBox();
+    const shapeType = this.arenaShape.getConfig().shape.type;
+    for (let spawned = 0; spawned < amount; spawned += 1) {
+      let location: { x: number; y: number } | null = null;
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        if (shapeType === "circle") {
+          const angle = this.rng.next() * Math.PI * 2;
+          const radius = Math.sqrt(this.rng.next()) * CONFIG.ARENA_RADIUS * 0.85;
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
+          if (this.isPickupPlacementSafe(x, y)) {
+            location = { x, y };
+            break;
+          }
+          continue;
+        }
+        const x = bounds.minX + this.rng.next() * (bounds.maxX - bounds.minX);
+        const y = bounds.minY + this.rng.next() * (bounds.maxY - bounds.minY);
+        if (!this.isPickupPlacementSafe(x, y)) continue;
+        location = { x, y };
+        break;
+      }
+      if (!location) continue;
+      const kind = forcedKind ?? this.randomPickupKind();
+      const altitude = PICKUP_ALTITUDE_MIN + this.rng.next() * (PICKUP_ALTITUDE_MAX - PICKUP_ALTITUDE_MIN);
+      const pickup: PickupState = {
+        id: ++this.pickupIdCounter,
+        kind,
+        x: location.x,
+        y: location.y,
+        altitude,
+      };
+      this.state.pickups.push(pickup);
+      this.state.pickupStats.totalSpawned[kind] += 1;
+    }
+  }
+
+  private isPickupPlacementSafe(x: number, y: number): boolean {
+    if (!this.arenaShape.containsPoint(x, y)) return false;
+    if (this.arenaShape.distanceToBoundary(x, y) < 24) return false;
+    for (const pickup of this.state.pickups) {
+      const dx = pickup.x - x;
+      const dy = pickup.y - y;
+      if (dx * dx + dy * dy < 22 * 22) return false;
+    }
+    return true;
+  }
+
+  private randomPickupKind(): PickupKind {
+    const roll = this.rng.next();
+    if (roll < 1 / 3) return "ammo";
+    if (roll < 2 / 3) return "fuel";
+    return "health";
+  }
+
   private snapshotFrame(): ReplayFrame {
     const jets = [...this.state.jets.values()]
       .map((jet) => ({
@@ -441,6 +602,7 @@ export class GameWorld {
         lastHitTakenFromId: jet.lastHitTakenFromId,
         lastHitDealtTick: jet.lastHitDealtTick,
         lastHitTakenTick: jet.lastHitTakenTick,
+        pickupsCollected: { ...jet.pickupsCollected },
         alive: jet.alive,
       }))
       .sort((a, b) => a.id.localeCompare(b.id));
@@ -460,6 +622,7 @@ export class GameWorld {
       jets,
       bullets,
       hitEvents: this.state.recentHitEvents.map((event) => ({ ...event })),
+      pickups: this.state.pickups.map((pickup) => ({ ...pickup })),
     };
   }
 

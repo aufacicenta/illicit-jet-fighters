@@ -101,6 +101,23 @@ globalThis.__agentExport = (() => {
     return { thrust: 0.3, turn: 0.18 * patrolSign, climb, shoot: false };
   };
 
+  const choosePickup = (observation, state) => {
+    if (state !== "stalking") return null;
+    const { self, nearbyPickups } = observation;
+    return nearbyPickups
+      .filter((pickup) => {
+        if (pickup.kind === "health" && self.health >= 50) return false;
+        if (pickup.kind === "ammo" && self.ammo > 25) return false;
+        if (pickup.kind === "fuel" && self.fuel > 680) return false;
+        return pickup.distance < 170;
+      })
+      .sort((left, right) => {
+        const leftWeight = left.kind === "health" ? -25 : 0;
+        const rightWeight = right.kind === "health" ? -25 : 0;
+        return left.distance + leftWeight - (right.distance + rightWeight);
+      })[0];
+  };
+
   return {
     init() {
       patrolSign = 1;
@@ -116,11 +133,31 @@ globalThis.__agentExport = (() => {
       const liveEnemies = enemies.filter((enemy) => enemy.alive);
       const { pressure, nearest, nearestSq } = getThreatProfile(nearbyBullets);
       const state = chooseState(self, liveEnemies, pressure, distanceToWall);
+      const pickup = choosePickup(observation, state);
 
       if (liveEnemies.length === 0) {
         patienceCounter = 0;
         strikeCounter = 0;
-        return sanitizeAction(patrol(self));
+        if (!pickup) {
+          return sanitizeAction(patrol(self));
+        }
+        const pickupBearing = normAngle(Math.atan2(pickup.relY, pickup.relX) - self.angle);
+        return sanitizeAction({
+          thrust: 0.5,
+          turn: clamp(pickupBearing / Math.PI),
+          climb: clamp(-pickup.relAltitude * 2.2),
+          shoot: false,
+        });
+      }
+
+      if (pickup) {
+        const pickupBearing = normAngle(Math.atan2(pickup.relY, pickup.relX) - self.angle);
+        return sanitizeAction({
+          thrust: 0.56,
+          turn: clamp((pickupBearing / Math.PI) * 0.9),
+          climb: clamp(-pickup.relAltitude * 2.4 - self.vAlt * 0.3),
+          shoot: false,
+        });
       }
 
       const target = liveEnemies
