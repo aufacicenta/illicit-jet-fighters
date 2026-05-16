@@ -16,16 +16,21 @@ globalThis.__agentExport = (() => {
       )[0];
 
       if (!target) {
-        return { thrust: 0.3, turn: 0, shoot: false };
+        return { thrust: 0.3, turn: 0, climb: 0, shoot: false };
       }
 
       const turn = normalize(target.bearingAngle / Math.PI);
+      const climb = Math.abs(target.relAltitude) > 0.1
+        ? normalize(-target.relAltitude * 2)
+        : 0;
       const aligned = Math.abs(target.bearingAngle) < 0.14;
-      const shoot = aligned && target.distance < 210 && observation.self.cooldown <= 0;
+      const altitudeAligned = Math.abs(target.relAltitude) < 0.2;
+      const shoot = aligned && altitudeAligned && target.distance < 210 && observation.self.cooldown <= 0;
 
       return {
         thrust: target.distance > 140 ? 0.9 : 0.2,
         turn,
+        climb,
         shoot,
       };
     },

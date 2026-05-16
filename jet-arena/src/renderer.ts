@@ -1,5 +1,5 @@
 import { CONFIG } from "./types";
-import type { GameState, JetState } from "./types";
+import type { BulletState, GameState, JetState } from "./types";
 
 export class GameRenderer {
   private context: CanvasRenderingContext2D;
@@ -26,7 +26,7 @@ export class GameRenderer {
 
     this.drawArena();
     for (const bullet of state.bullets) {
-      this.drawBullet(bullet.x, bullet.y);
+      this.drawBullet(bullet);
     }
     for (const jet of state.jets.values()) {
       this.drawJet(jet);
@@ -53,8 +53,28 @@ export class GameRenderer {
 
   private drawJet(jet: JetState): void {
     const { x, y } = this.toScreen(jet.x, jet.y);
-    const bodySize = 13;
+    const altScale = 0.6 + jet.altitude * 0.8;
+    const bodySize = 13 * altScale;
     const color = this.colorForJet(jet.id);
+
+    // Ground shadow — offset downward and scaled inversely to altitude
+    if (jet.alive && jet.altitude > 0.1) {
+      const shadowOffset = jet.altitude * 6 * this.scale;
+      const shadowScale = 1.0 - jet.altitude * 0.3;
+      this.context.save();
+      this.context.translate(x, y + shadowOffset);
+      this.context.rotate(jet.angle);
+      this.context.scale(shadowScale, shadowScale * 0.4);
+      this.context.beginPath();
+      this.context.moveTo(13, 0);
+      this.context.lineTo(-13, 13 * 0.6);
+      this.context.lineTo(-13 * 0.45, 0);
+      this.context.lineTo(-13, -13 * 0.6);
+      this.context.closePath();
+      this.context.fillStyle = "rgba(0,0,0,0.18)";
+      this.context.fill();
+      this.context.restore();
+    }
 
     this.context.save();
     this.context.translate(x, y);
@@ -69,16 +89,23 @@ export class GameRenderer {
     this.context.fill();
     this.context.restore();
 
+    const altLabel = `ALT ${(jet.altitude * 100).toFixed(0)}%`;
     this.context.fillStyle = "#e2e8f0";
     this.context.font = "11px ui-monospace, SFMono-Regular, Menlo, monospace";
-    this.context.fillText(`${jet.id} (${Math.max(0, Math.round(jet.health))})`, x + 10, y - 10);
+    this.context.fillText(`${jet.id} (${Math.max(0, Math.round(jet.health))})`, x + bodySize + 2, y - bodySize);
+    this.context.fillStyle = "#94a3b8";
+    this.context.font = "9px ui-monospace, SFMono-Regular, Menlo, monospace";
+    this.context.fillText(altLabel, x + bodySize + 2, y - bodySize + 12);
   }
 
-  private drawBullet(x: number, y: number): void {
-    const point = this.toScreen(x, y);
+  private drawBullet(bullet: BulletState): void {
+    const point = this.toScreen(bullet.x, bullet.y);
+    const altScale = 0.6 + bullet.altitude * 0.8;
+    const radius = 2.5 * altScale;
+    const alpha = 0.5 + bullet.altitude * 0.5;
     this.context.beginPath();
-    this.context.arc(point.x, point.y, 2.5, 0, Math.PI * 2);
-    this.context.fillStyle = "#f97316";
+    this.context.arc(point.x, point.y, radius, 0, Math.PI * 2);
+    this.context.fillStyle = `rgba(249,115,22,${alpha.toFixed(2)})`;
     this.context.fill();
   }
 

@@ -2,8 +2,10 @@ export interface JetState {
   id: string;
   x: number;
   y: number;
+  altitude: number;
   vx: number;
   vy: number;
+  vAlt: number;
   angle: number;
   health: number;
   ammo: number;
@@ -17,6 +19,7 @@ export interface BulletState {
   ownerId: string;
   x: number;
   y: number;
+  altitude: number;
   vx: number;
   vy: number;
   ttl: number;
@@ -32,12 +35,14 @@ export interface GameState {
 export interface AgentAction {
   thrust: number;
   turn: number;
+  climb: number;
   shoot: boolean;
 }
 
 export interface EnemyObservation {
   relX: number;
   relY: number;
+  relAltitude: number;
   relVx: number;
   relVy: number;
   angle: number;
@@ -49,6 +54,7 @@ export interface EnemyObservation {
 export interface BulletObservation {
   relX: number;
   relY: number;
+  relAltitude: number;
   relVx: number;
   relVy: number;
   isMine: boolean;
@@ -60,6 +66,8 @@ export interface Observation {
     vy: number;
     speed: number;
     angle: number;
+    altitude: number;
+    vAlt: number;
     health: number;
     ammo: number;
     fuel: number;
@@ -111,10 +119,18 @@ export const CONFIG = {
   WEIGHT_DRAG_FACTOR: 0.005,
   WEIGHT_TURN_PENALTY: 0.008,
   SENSOR_RANGE: 300,
+  MIN_ALTITUDE: 0,
+  MAX_ALTITUDE: 1,
+  SPAWN_ALTITUDE: 0.5,
+  CLIMB_RATE: 0.025,
+  CLIMB_DRAG: 0.9,
+  CLIMB_FUEL_COST: 0.08,
+  ALTITUDE_HIT_TOLERANCE: 0.18,
 } as const;
 
 export const IDLE_ACTION: AgentAction = {
   thrust: 0,
   turn: 0,
+  climb: 0,
   shoot: false,
 };

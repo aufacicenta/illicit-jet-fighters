@@ -22,6 +22,7 @@ let agent: AgentModule | null = null;
 const sanitizeAction = (action: Partial<AgentAction> | undefined): AgentAction => ({
   thrust: Number.isFinite(action?.thrust) ? Math.max(-1, Math.min(1, Number(action?.thrust))) : 0,
   turn: Number.isFinite(action?.turn) ? Math.max(-1, Math.min(1, Number(action?.turn))) : 0,
+  climb: Number.isFinite(action?.climb) ? Math.max(-1, Math.min(1, Number(action?.climb))) : 0,
   shoot: Boolean(action?.shoot),
 });
 

@@ -37,8 +37,10 @@ export class GameWorld {
         id,
         x: Math.cos(angle + jitter) * spawnRadius,
         y: Math.sin(angle + jitter) * spawnRadius,
+        altitude: CONFIG.SPAWN_ALTITUDE,
         vx: 0,
         vy: 0,
+        vAlt: 0,
         angle: angle + Math.PI,
         health: CONFIG.INITIAL_HEALTH,
         ammo: CONFIG.INITIAL_AMMO,
@@ -118,6 +120,7 @@ export class GameWorld {
     return {
       thrust: Number.isFinite(action.thrust) ? clamp(action.thrust, -1, 1) : 0,
       turn: Number.isFinite(action.turn) ? clamp(action.turn, -1, 1) : 0,
+      climb: Number.isFinite(action.climb) ? clamp(action.climb, -1, 1) : 0,
       shoot: Boolean(action.shoot),
     };
   }
@@ -138,6 +141,16 @@ export class GameWorld {
         jet.vx += Math.cos(jet.angle) * thrust;
         jet.vy += Math.sin(jet.angle) * thrust;
         jet.fuel = Math.max(0, jet.fuel - Math.abs(action.thrust) * 0.5);
+      }
+
+      if (jet.fuel > 0 && action.climb !== 0) {
+        jet.vAlt += action.climb * CONFIG.CLIMB_RATE;
+        jet.fuel = Math.max(0, jet.fuel - Math.abs(action.climb) * CONFIG.CLIMB_FUEL_COST);
+      }
+      jet.vAlt *= CONFIG.CLIMB_DRAG;
+      jet.altitude = clamp(jet.altitude + jet.vAlt, CONFIG.MIN_ALTITUDE, CONFIG.MAX_ALTITUDE);
+      if (jet.altitude <= CONFIG.MIN_ALTITUDE || jet.altitude >= CONFIG.MAX_ALTITUDE) {
+        jet.vAlt = 0;
       }
 
       jet.vx *= effectiveDrag;
@@ -167,6 +180,7 @@ export class GameWorld {
           ownerId: id,
           x: jet.x + Math.cos(jet.angle) * 18,
           y: jet.y + Math.sin(jet.angle) * 18,
+          altitude: jet.altitude,
           vx: Math.cos(jet.angle) * CONFIG.BULLET_SPEED + jet.vx * 0.5,
           vy: Math.sin(jet.angle) * CONFIG.BULLET_SPEED + jet.vy * 0.5,
           ttl: CONFIG.BULLET_TTL,
@@ -177,7 +191,7 @@ export class GameWorld {
         jet.cooldown -= 1;
       }
 
-      if (jet.health <= 0) {
+      if (jet.health <= 0 || jet.fuel <= 0) {
         jet.alive = false;
       }
     }
@@ -215,6 +229,8 @@ export class GameWorld {
 
       for (const [id, jet] of this.state.jets.entries()) {
         if (!jet.alive || id === bullet.ownerId) continue;
+        const altitudeDelta = Math.abs(bullet.altitude - jet.altitude);
+        if (altitudeDelta > CONFIG.ALTITUDE_HIT_TOLERANCE) continue;
         const dx = bullet.x - jet.x;
         const dy = bullet.y - jet.y;
         if (dx * dx + dy * dy <= CONFIG.JET_HIT_RADIUS ** 2) {
@@ -235,8 +251,10 @@ export class GameWorld {
         id: jet.id,
         x: jet.x,
         y: jet.y,
+        altitude: jet.altitude,
         vx: jet.vx,
         vy: jet.vy,
+        vAlt: jet.vAlt,
         angle: jet.angle,
         health: jet.health,
         ammo: jet.ammo,
@@ -251,6 +269,7 @@ export class GameWorld {
       ownerId: bullet.ownerId,
       x: bullet.x,
       y: bullet.y,
+      altitude: bullet.altitude,
       vx: bullet.vx,
       vy: bullet.vy,
       ttl: bullet.ttl,

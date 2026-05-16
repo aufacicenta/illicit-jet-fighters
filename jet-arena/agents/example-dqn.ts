@@ -4,14 +4,18 @@ globalThis.__agentExport = (() => {
   const replayBuffer = [];
 
   const ACTIONS = [
-    { thrust: -1, turn: -1, shoot: false },
-    { thrust: -1, turn: 1, shoot: false },
-    { thrust: 0, turn: -1, shoot: false },
-    { thrust: 0, turn: 1, shoot: false },
-    { thrust: 1, turn: 0, shoot: false },
-    { thrust: 1, turn: -0.5, shoot: true },
-    { thrust: 1, turn: 0.5, shoot: true },
-    { thrust: 0.2, turn: 0, shoot: true },
+    { thrust: -1, turn: -1, climb: 0, shoot: false },
+    { thrust: -1, turn: 1, climb: 0, shoot: false },
+    { thrust: 0, turn: -1, climb: 0, shoot: false },
+    { thrust: 0, turn: 1, climb: 0, shoot: false },
+    { thrust: 1, turn: 0, climb: 0, shoot: false },
+    { thrust: 1, turn: -0.5, climb: 0, shoot: true },
+    { thrust: 1, turn: 0.5, climb: 0, shoot: true },
+    { thrust: 0.2, turn: 0, climb: 0, shoot: true },
+    { thrust: 1, turn: 0, climb: 1, shoot: false },
+    { thrust: 1, turn: 0, climb: -1, shoot: false },
+    { thrust: 0.5, turn: 0.3, climb: 0.7, shoot: false },
+    { thrust: 0.5, turn: -0.3, climb: -0.7, shoot: false },
   ];
 
   const MAX_REPLAY = 400;
@@ -45,13 +49,17 @@ globalThis.__agentExport = (() => {
       observation.self.ammo / 50,
       observation.self.fuel / 1000,
       observation.self.weight / 2.5,
+      observation.self.altitude,
+      observation.self.vAlt,
       observation.distanceToWall / 420,
       nearestEnemy ? nearestEnemy.relX / 420 : 0,
       nearestEnemy ? nearestEnemy.relY / 420 : 0,
+      nearestEnemy ? nearestEnemy.relAltitude : 0,
       nearestEnemy ? nearestEnemy.bearingAngle / Math.PI : 0,
       nearestEnemy ? nearestEnemy.distance / 420 : 1,
       nearestBullet ? nearestBullet.relX / 240 : 0,
       nearestBullet ? nearestBullet.relY / 240 : 0,
+      nearestBullet ? nearestBullet.relAltitude : 0,
       nearestBullet ? nearestBullet.relVx / 14 : 0,
       nearestBullet ? nearestBullet.relVy / 14 : 0,
     ];
@@ -60,7 +68,7 @@ globalThis.__agentExport = (() => {
   const createModel = () => {
     model = tf.sequential({
       layers: [
-        tf.layers.dense({ inputShape: [14], units: 24, activation: "relu" }),
+        tf.layers.dense({ inputShape: [18], units: 24, activation: "relu" }),
         tf.layers.dense({ units: 24, activation: "relu" }),
         tf.layers.dense({ units: ACTIONS.length, activation: "linear" }),
       ],

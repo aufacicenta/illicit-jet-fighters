@@ -237,6 +237,7 @@ export class GameOrchestrator {
         resolve({
           thrust: Math.max(-1, Math.min(1, Number(event.data.payload.action.thrust) || 0)),
           turn: Math.max(-1, Math.min(1, Number(event.data.payload.action.turn) || 0)),
+          climb: Math.max(-1, Math.min(1, Number(event.data.payload.action.climb) || 0)),
           shoot: Boolean(event.data.payload.action.shoot),
         });
       };
@@ -266,6 +267,7 @@ export class GameOrchestrator {
         return {
           relX,
           relY,
+          relAltitude: jet.altitude - self.altitude,
           relVx: jet.vx - self.vx,
           relVy: jet.vy - self.vy,
           angle: jet.angle,
@@ -284,6 +286,7 @@ export class GameOrchestrator {
       .map((bullet) => ({
         relX: bullet.x - self.x,
         relY: bullet.y - self.y,
+        relAltitude: bullet.altitude - self.altitude,
         relVx: bullet.vx - self.vx,
         relVy: bullet.vy - self.vy,
         isMine: bullet.ownerId === jetId,
@@ -296,6 +299,8 @@ export class GameOrchestrator {
         vy: self.vy,
         speed: Math.hypot(self.vx, self.vy),
         angle: self.angle,
+        altitude: self.altitude,
+        vAlt: self.vAlt,
         health: self.health,
         ammo: self.ammo,
         fuel: self.fuel,

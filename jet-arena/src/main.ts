@@ -1,20 +1,69 @@
-import aggressiveCode from "../agents/example-aggressive.ts?raw";
-import dqnCode from "../agents/example-dqn.ts?raw";
-import evaderCode from "../agents/example-evader.ts?raw";
-import heuristicCode from "../agents/example-heuristic.ts?raw";
-
 import { registerServiceWorker } from "./network-lockdown";
 import { GameOrchestrator } from "./orchestrator";
 import "./styles.css";
 
-type AgentKey = "heuristic" | "aggressive" | "evader" | "dqn";
+type AgentMeta = { label: string; code: string };
 
-const AGENT_REGISTRY: Record<AgentKey, { label: string; code: string }> = {
-  heuristic: { label: "Heuristic", code: heuristicCode },
-  aggressive: { label: "Aggressive", code: aggressiveCode },
-  evader: { label: "Evader", code: evaderCode },
-  dqn: { label: "DQN (TF.js)", code: dqnCode },
+const toTitleCase = (value: string): string =>
+  value
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+const formatAgentLabel = (fileStem: string): string => {
+  if (fileStem.includes("dqn")) return "DQN (TF.js)";
+  if (fileStem.startsWith("example-")) {
+    return toTitleCase(fileStem.replace("example-", ""));
+  }
+  return toTitleCase(fileStem);
 };
+
+const loadAgentRegistry = (): Record<string, AgentMeta> => {
+  const modules = import.meta.glob("../agents/*.ts", {
+    query: "?raw",
+    import: "default",
+    eager: true,
+  }) as Record<string, string>;
+
+  const entries = Object.entries(modules).map(([path, code]) => {
+    const fileName = path.split("/").pop() ?? "";
+    const fileStem = fileName.replace(/\.ts$/, "");
+    const key = fileStem
+      .replace(/^example-/, "")
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase();
+    const label = formatAgentLabel(fileStem);
+    return [key, { label, code }] as const;
+  });
+
+  entries.sort((left, right) => left[1].label.localeCompare(right[1].label));
+  return Object.fromEntries(entries);
+};
+
+const AGENT_REGISTRY = loadAgentRegistry();
+const AGENT_KEYS = Object.keys(AGENT_REGISTRY);
+
+if (AGENT_KEYS.length === 0) {
+  throw new Error("No agent files found in agents/.");
+}
+
+const FALLBACK_AGENT_KEY = AGENT_KEYS[0];
+if (!FALLBACK_AGENT_KEY) {
+  throw new Error("No default agent key available.");
+}
+const FALLBACK_AGENT = AGENT_REGISTRY[FALLBACK_AGENT_KEY];
+if (!FALLBACK_AGENT) {
+  throw new Error("Default agent is missing from registry.");
+}
+
+const AGENT_ENTRIES = Object.entries(AGENT_REGISTRY);
+
+const buildAgentOptions = (): string =>
+  AGENT_ENTRIES.map(([key, meta]) => `<option value="${key}">${meta.label}</option>`).join("");
+
+const DEFAULT_AGENT_KEYS = ["heuristic", "aggressive", "evader", "dqn"] as const;
 
 const controls = document.getElementById("controls");
 const status = document.getElementById("status");
@@ -41,42 +90,22 @@ controls.innerHTML = `
 
   <div class="row">
     <label for="agent-a">Agent A</label>
-    <select id="agent-a">
-      <option value="heuristic">Heuristic</option>
-      <option value="aggressive">Aggressive</option>
-      <option value="evader">Evader</option>
-      <option value="dqn">DQN (TF.js)</option>
-    </select>
+    <select id="agent-a">${buildAgentOptions()}</select>
   </div>
 
   <div class="row">
     <label for="agent-b">Agent B</label>
-    <select id="agent-b">
-      <option value="aggressive">Aggressive</option>
-      <option value="heuristic">Heuristic</option>
-      <option value="evader">Evader</option>
-      <option value="dqn">DQN (TF.js)</option>
-    </select>
+    <select id="agent-b">${buildAgentOptions()}</select>
   </div>
 
   <div class="row">
     <label for="agent-c">Agent C</label>
-    <select id="agent-c">
-      <option value="evader">Evader</option>
-      <option value="aggressive">Aggressive</option>
-      <option value="heuristic">Heuristic</option>
-      <option value="dqn">DQN (TF.js)</option>
-    </select>
+    <select id="agent-c">${buildAgentOptions()}</select>
   </div>
 
   <div class="row">
     <label for="agent-d">Agent D</label>
-    <select id="agent-d">
-      <option value="dqn">DQN (TF.js)</option>
-      <option value="heuristic">Heuristic</option>
-      <option value="aggressive">Aggressive</option>
-      <option value="evader">Evader</option>
-    </select>
+    <select id="agent-d">${buildAgentOptions()}</select>
   </div>
 
   <div class="row">
@@ -108,6 +137,16 @@ if (
   throw new Error("Missing control elements.");
 }
 
+const selectDefaultAgent = (select: HTMLSelectElement, preferredKey: string): void => {
+  const nextValue = AGENT_REGISTRY[preferredKey] ? preferredKey : FALLBACK_AGENT_KEY;
+  select.value = nextValue;
+};
+
+selectDefaultAgent(agentA, DEFAULT_AGENT_KEYS[0]);
+selectDefaultAgent(agentB, DEFAULT_AGENT_KEYS[1]);
+selectDefaultAgent(agentC, DEFAULT_AGENT_KEYS[2]);
+selectDefaultAgent(agentD, DEFAULT_AGENT_KEYS[3]);
+
 const orchestrator = new GameOrchestrator(canvas, {
   onTick: (state) => {
     const jets = [...state.jets.values()];
@@ -133,7 +172,7 @@ const orchestrator = new GameOrchestrator(canvas, {
             <div class="bar-row"><span>HP</span><div class="bar"><i style="width:${hpPct}%"></i></div><b>${Math.max(0, jet.health).toFixed(0)}</b></div>
             <div class="bar-row"><span>FUEL</span><div class="bar"><i style="width:${fuelPct}%"></i></div><b>${Math.max(0, jet.fuel).toFixed(0)}</b></div>
             <div class="bar-row"><span>AMMO</span><div class="bar"><i style="width:${ammoPct}%"></i></div><b>${Math.max(0, jet.ammo)}</b></div>
-            <footer>SPD ${speed.toFixed(2)} | CD ${jet.cooldown}</footer>
+            <footer>SPD ${speed.toFixed(2)} | ALT ${(jet.altitude * 100).toFixed(0)}% | CD ${jet.cooldown}</footer>
           </article>
         `;
       })
@@ -162,10 +201,10 @@ const colorForJet = (id: string): string => {
 };
 
 const buildPlayers = (): Array<{ id: string; code: string }> => {
-  const picks = [agentA.value, agentB.value, agentC.value, agentD.value] as AgentKey[];
+  const picks = [agentA.value, agentB.value, agentC.value, agentD.value];
   return picks.map((pick, index) => ({
-    id: `jet-${index + 1}-${AGENT_REGISTRY[pick].label.toLowerCase()}`,
-    code: AGENT_REGISTRY[pick].code,
+    id: `jet-${index + 1}-${(AGENT_REGISTRY[pick]?.label ?? "unknown").toLowerCase()}`,
+    code: AGENT_REGISTRY[pick]?.code ?? FALLBACK_AGENT.code,
   }));
 };
 

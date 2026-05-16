@@ -23,18 +23,28 @@ globalThis.__agentExport = (() => {
         .sort((left, right) => left.distance - right.distance)[0];
 
       if (nearestBullet) {
+        const bulletDist = Math.sqrt(nearestBullet.relX * nearestBullet.relX + nearestBullet.relY * nearestBullet.relY);
         const dodgeAngle = Math.atan2(nearestBullet.relY, nearestBullet.relX) + Math.PI / 2;
         const turn = clamp((dodgeAngle - observation.self.angle) / Math.PI);
-        return { thrust: 1, turn, shoot: false };
+        const climb = bulletDist < 120 && Math.abs(nearestBullet.relAltitude) < 0.2
+          ? (nearestBullet.relAltitude <= 0 ? 0.8 : -0.8)
+          : 0;
+        return { thrust: 1, turn, climb, shoot: false };
       }
 
       if (!nearestEnemy) {
-        return { thrust: 0.5, turn: 0.25, shoot: false };
+        return { thrust: 0.5, turn: 0.25, climb: 0, shoot: false };
       }
 
       const turn = clamp((nearestEnemy.bearingAngle / Math.PI) * 0.8);
+      const altDiff = nearestEnemy.relAltitude;
+      const climb = nearestEnemy.distance < 180 && Math.abs(altDiff) < 0.15
+        ? clamp((observation.self.altitude < 0.5 ? 0.6 : -0.6))
+        : 0;
+      const altitudeAligned = Math.abs(altDiff) < 0.2;
       const shouldShoot =
         nearestEnemy.distance < 150 &&
+        altitudeAligned &&
         Math.abs(nearestEnemy.bearingAngle) < 0.12 &&
         observation.self.cooldown <= 0 &&
         observation.self.ammo > 5;
@@ -42,6 +52,7 @@ globalThis.__agentExport = (() => {
       return {
         thrust: 0.55,
         turn,
+        climb,
         shoot: shouldShoot,
       };
     },

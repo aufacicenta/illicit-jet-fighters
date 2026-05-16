@@ -46,6 +46,11 @@ export const computeReward = (
     reward -= (60 - distanceToWall) * 0.02;
   }
 
+  // Penalize camping at floor/ceiling to avoid altitude exploit
+  if (currentJet.altitude < 0.08 || currentJet.altitude > 0.92) {
+    reward -= 0.15;
+  }
+
   const lateGame = currentState.tick / CONFIG.MAX_TICKS > 0.65;
   if (lateGame && currentJet.ammo > 10) {
     reward += 0.05;
