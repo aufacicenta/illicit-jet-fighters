@@ -65,7 +65,7 @@ export class GameOrchestrator {
       seed,
       battlefield,
     );
-    this.renderer = new GameRenderer(this.canvas, this.world.getArenaShape());
+    this.renderer = new GameRenderer(this.canvas, this.world.getArenaShape(), battlefield.name);
     this.previousState = cloneState(this.world.state);
     this.lastResults.clear();
     this.expectedWorkers = players.length;

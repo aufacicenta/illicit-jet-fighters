@@ -10,8 +10,9 @@ export class GameRenderer {
   private offsetX = 0;
   private offsetY = 0;
   private arenaDrawable: DrawableArena;
+  private battlefieldName: string;
 
-  constructor(private canvas: HTMLCanvasElement, arenaShape: ArenaShape) {
+  constructor(private canvas: HTMLCanvasElement, arenaShape: ArenaShape, battlefieldName: string) {
     const context = canvas.getContext("2d");
     if (!context) {
       throw new Error("2D context unavailable.");
@@ -28,6 +29,7 @@ export class GameRenderer {
     const centerY = (bounds.minY + bounds.maxY) / 2;
     this.offsetX = this.width / 2 - centerX * this.scale;
     this.offsetY = this.height / 2 - centerY * this.scale;
+    this.battlefieldName = battlefieldName;
   }
 
   draw(state: GameState): void {
@@ -161,6 +163,7 @@ export class GameRenderer {
     this.context.fillText(`TICK ${state.tick}`, 16, 24);
     this.context.fillText(`ALIVE ${alive}/${state.jets.size}`, 16, 42);
     this.context.fillText(`BULLETS ${state.bullets.length}`, 16, 60);
+    this.context.fillText(`BATTLEFIELD ${this.battlefieldName.toUpperCase()}`, 16, 78);
   }
 
   private colorForJet(id: string): string {
