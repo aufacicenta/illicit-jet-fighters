@@ -465,6 +465,11 @@ const orchestrator = new GameOrchestrator(canvas, {
         const pose = getJetPose(jet.id, state.tick);
         const roleLabel = AGENT_REGISTRY[agentKey]?.label ?? "Unknown";
         const poseVisual = renderPoseVisual(agentKey, pose, roleLabel);
+        const collisionCount = Math.max(0, jet.collisionCount);
+        const collisionDamage = Math.max(0, jet.collisionDamageTaken);
+        const lastHitLabel = jet.lastCollision
+          ? `HIT ${jet.lastCollision.wallType.toUpperCase()} @ ${jet.lastCollision.x.toFixed(0)},${jet.lastCollision.y.toFixed(0)}`
+          : "HIT NONE";
 
         return `
           <article class="jet-card ${jet.alive ? "alive" : "down"}" style="--accent:${accent}">
@@ -480,6 +485,7 @@ const orchestrator = new GameOrchestrator(canvas, {
                 <div class="bar-row"><span>FUEL</span><div class="bar"><i style="width:${fuelPct}%"></i></div><b>${Math.max(0, jet.fuel).toFixed(0)}</b></div>
                 <div class="bar-row"><span>AMMO</span><div class="bar"><i style="width:${ammoPct}%"></i></div><b>${Math.max(0, jet.ammo)}</b></div>
                 <footer>SPD ${speed.toFixed(2)} | ALT ${(jet.altitude * 100).toFixed(0)}% | CD ${jet.cooldown}</footer>
+                <footer>COLL ${collisionCount} | DMG ${collisionDamage.toFixed(1)} | ${lastHitLabel}</footer>
               </div>
             </div>
           </article>

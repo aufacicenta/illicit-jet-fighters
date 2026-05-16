@@ -3,6 +3,7 @@ globalThis.__agentExport = (() => {
 
   let controlPhase = 0;
   let lastSwapTick = 0;
+  const COLLISION_SPACING = 82;
 
   const clamp = (value) => {
     if (!Number.isFinite(value)) return 0;
@@ -56,8 +57,13 @@ globalThis.__agentExport = (() => {
 
   const chooseMode = (observation, liveEnemies, pressure) => {
     const { self, distanceToWall, tick } = observation;
+    const nearestEnemyDistance = liveEnemies.reduce(
+      (best, enemy) => Math.min(best, enemy.distance),
+      Infinity,
+    );
 
     if (self.health < 28 || self.fuel < 120) return "critical";
+    if (nearestEnemyDistance < COLLISION_SPACING) return "pressured";
     if (pressure >= 3 || distanceToWall < 52) return "pressured";
     if (liveEnemies.length <= 1 && self.health > 62 && self.fuel > 220) return "synchronized";
 
@@ -107,6 +113,7 @@ globalThis.__agentExport = (() => {
       const target = liveEnemies
         .map((enemy) => ({ enemy, score: scoreTarget(enemy, effectiveMode) }))
         .sort((left, right) => right.score - left.score)[0].enemy;
+      const collisionImminent = target.distance < COLLISION_SPACING;
 
       const leadTicks =
         effectiveMode === "whisper" ? 10 : effectiveMode === "synchronized" ? 8 : 5;
@@ -150,6 +157,14 @@ globalThis.__agentExport = (() => {
         thrust = Math.max(thrust, 0.75);
       }
 
+      if (collisionImminent) {
+        const separationTurn = target.bearingAngle >= 0 ? -1 : 1;
+        const separationClimb = target.relAltitude >= 0 ? -1 : 1;
+        turn = clamp(turn * 0.2 + separationTurn * 0.8);
+        climb = clamp(climb * 0.2 + separationClimb * 0.8);
+        thrust = Math.max(thrust, 0.88);
+      }
+
       if (nearest && nearestSq < 120 * 120) {
         const incomingBearing = normAngle(Math.atan2(nearest.relY, nearest.relX) - self.angle);
         const dodgeTurn = incomingBearing >= 0 ? -1 : 1;
@@ -168,6 +183,7 @@ globalThis.__agentExport = (() => {
       let shoot = canShoot && aligned && altitudeAligned && inRange;
       if (effectiveMode === "pressured") shoot = pressure <= 1 && shoot;
       if (effectiveMode === "critical") shoot = target.distance < 120 && shoot;
+      if (collisionImminent) shoot = false;
 
       return sanitizeAction({ thrust, turn, climb, shoot });
     },

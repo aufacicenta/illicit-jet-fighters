@@ -34,6 +34,17 @@ globalThis.__agentExport = (() => {
         return { thrust: 0.5, turn: 0.25, climb: 0, shoot: false };
       }
 
+      if (observation.distanceToWall < 65) {
+        const wallTurn = clamp(observation.self.angle > 0 ? -0.95 : 0.95);
+        return { thrust: 1, turn: wallTurn, climb: 0, shoot: false };
+      }
+
+      if (nearestEnemy.distance < 80) {
+        const separationTurn = clamp(nearestEnemy.bearingAngle >= 0 ? -1 : 1);
+        const separationClimb = nearestEnemy.relAltitude >= 0 ? -1 : 1;
+        return { thrust: 0.95, turn: separationTurn, climb: separationClimb, shoot: false };
+      }
+
       const turn = clamp((nearestEnemy.bearingAngle / Math.PI) * 0.8);
       // Stay at a different altitude from the nearest enemy to be harder to hit
       const altDiff = nearestEnemy.relAltitude;

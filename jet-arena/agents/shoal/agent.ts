@@ -11,6 +11,7 @@ globalThis.__agentExport = (() => {
   const PREFERRED_ALTITUDE = 0.12;
   const PATIENCE_THRESHOLD = 18;
   const STRIKE_DURATION = 40;
+  const COLLISION_SPACING = 78;
 
   let patrolSign = 1;
   let patienceCounter = 0;
@@ -45,6 +46,11 @@ globalThis.__agentExport = (() => {
   // Decompression dread: Shoal's pressure threshold is lower than other agents
   const chooseState = (self, liveEnemies, pressure, distanceToWall) => {
     if (self.health < 28 || self.fuel < 100) return "critical";
+    const nearestEnemyDistance = liveEnemies.reduce(
+      (best, enemy) => Math.min(best, enemy.distance),
+      Infinity,
+    );
+    if (nearestEnemyDistance < COLLISION_SPACING) return "pressured";
     if (pressure >= 2 || distanceToWall < 55) return "pressured";
     if (strikeCounter > 0) return "striking";
     if (patienceCounter >= PATIENCE_THRESHOLD && liveEnemies.length > 0) return "striking";
@@ -121,6 +127,8 @@ globalThis.__agentExport = (() => {
         .map((enemy) => ({ enemy, score: scoreTarget(enemy, state) }))
         .sort((left, right) => right.score - left.score)[0].enemy;
 
+      const collisionImminent = target.distance < COLLISION_SPACING;
+
       const leadTicks = state === "striking" ? 5 : 9;
       const leadX = target.relX + target.relVx * leadTicks;
       const leadY = target.relY + target.relVy * leadTicks;
@@ -195,6 +203,14 @@ globalThis.__agentExport = (() => {
         thrust = Math.max(thrust, 0.8);
       }
 
+      if (collisionImminent) {
+        const separationTurn = target.bearingAngle >= 0 ? -1 : 1;
+        const separationClimb = target.relAltitude >= 0 ? -1 : 1;
+        turn = clamp(turn * 0.2 + separationTurn * 0.8);
+        climb = clamp(climb * 0.15 + separationClimb * 0.85);
+        thrust = Math.max(thrust, 0.9);
+      }
+
       // Bullet evasion — decompression dread makes this more desperate than other agents
       if (nearest && nearestSq < 140 * 140) {
         const threatBearing = normAngle(Math.atan2(nearest.relY, nearest.relX) - self.angle);
@@ -223,6 +239,7 @@ globalThis.__agentExport = (() => {
         canShoot && aligned && altitudeAligned && inRange && stateAllowsFire && ammoConservation;
       if (state === "pressured") shoot = false;
       if (state === "critical") shoot = false;
+      if (collisionImminent) shoot = false;
 
       return sanitizeAction({ thrust, turn, climb, shoot });
     },

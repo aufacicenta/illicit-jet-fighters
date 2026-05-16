@@ -27,6 +27,41 @@ globalThis.__agentExport = (() => {
   let previousAction = 0;
   let step = 0;
 
+  const nearestLiveEnemy = (observation) =>
+    observation.enemies
+      .filter((enemy) => enemy.alive)
+      .sort((left, right) => left.distance - right.distance)[0] ?? null;
+
+  const collisionRiskPenalty = (observation) => {
+    const wallRisk = observation.distanceToWall < 60 ? (60 - observation.distanceToWall) / 60 : 0;
+    const enemy = nearestLiveEnemy(observation);
+    const enemyRisk = enemy && enemy.distance < 85 ? (85 - enemy.distance) / 85 : 0;
+    return wallRisk * 0.8 + enemyRisk * 1.2;
+  };
+
+  const safetyOverride = (observation) => {
+    if (observation.distanceToWall < 55) {
+      return {
+        thrust: 1,
+        turn: observation.self.angle > 0 ? -0.95 : 0.95,
+        climb: 0,
+        shoot: false,
+      };
+    }
+
+    const enemy = nearestLiveEnemy(observation);
+    if (enemy && enemy.distance < 70) {
+      return {
+        thrust: 0.9,
+        turn: enemy.bearingAngle >= 0 ? -1 : 1,
+        climb: enemy.relAltitude >= 0 ? -0.95 : 0.95,
+        shoot: false,
+      };
+    }
+
+    return null;
+  };
+
   const vectorize = (observation) => {
     const nearestEnemy =
       observation.enemies
@@ -115,6 +150,12 @@ globalThis.__agentExport = (() => {
     act(observation) {
       const state = vectorize(observation);
       step += 1;
+      const emergencyAction = safetyOverride(observation);
+      if (emergencyAction) {
+        previousState = state;
+        previousAction = -1;
+        return emergencyAction;
+      }
 
       let actionIndex = 0;
       if (Math.random() < epsilon) {
@@ -134,12 +175,13 @@ globalThis.__agentExport = (() => {
       return ACTIONS[actionIndex];
     },
     learn(observation, reward) {
-      if (!previousState) return;
+      if (!previousState || previousAction < 0) return;
       const nextState = vectorize(observation);
+      const shapedReward = reward - collisionRiskPenalty(observation) * 1.8;
       replayBuffer.push({
         state: previousState,
         action: previousAction,
-        reward,
+        reward: shapedReward,
         nextState,
       });
       if (replayBuffer.length > MAX_REPLAY) {

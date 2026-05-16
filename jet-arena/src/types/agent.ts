@@ -1,5 +1,6 @@
 import type { RuntimeConfig } from "./config";
 import type { WallContact } from "./arena";
+import type { CollisionEvent } from "./state";
 
 export interface AgentAction {
   thrust: number;
@@ -42,12 +43,15 @@ export interface Observation {
     fuel: number;
     weight: number;
     cooldown: number;
+    collisionCount: number;
+    collisionDamageTaken: number;
   };
   enemies: EnemyObservation[];
   nearbyBullets: BulletObservation[];
   nearestWall: WallContact;
   nearbyWalls: WallContact[];
   distanceToWall: number;
+  lastCollision: CollisionEvent | null;
   tick: number;
   lastAction: AgentAction | null;
   lastReward: number;

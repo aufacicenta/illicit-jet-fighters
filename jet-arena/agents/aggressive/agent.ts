@@ -12,9 +12,21 @@ globalThis.__agentExport = (() => {
       const target = observation.enemies
         .filter((enemy) => enemy.alive)
         .sort((left, right) => left.distance - right.distance)[0];
+      const nearWall = observation.distanceToWall < 55;
 
       if (!target) {
         return { thrust: 1, turn: 0.3, climb: 0, shoot: false };
+      }
+
+      if (nearWall) {
+        const wallTurn = clamp(observation.self.angle > 0 ? -0.95 : 0.95);
+        return { thrust: 1, turn: wallTurn, climb: 0, shoot: false };
+      }
+
+      if (target.distance < 65) {
+        const breakTurn = clamp(target.bearingAngle >= 0 ? -1 : 1);
+        const separationClimb = target.relAltitude >= 0 ? -0.9 : 0.9;
+        return { thrust: 0.85, turn: breakTurn, climb: separationClimb, shoot: false };
       }
 
       const turn = clamp((target.bearingAngle / Math.PI) * 1.25);

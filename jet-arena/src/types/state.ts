@@ -1,3 +1,15 @@
+import type { WallContact } from "./arena";
+
+export interface CollisionEvent {
+  tick: number;
+  jetId: string;
+  x: number;
+  y: number;
+  altitude: number;
+  wallType: WallContact["wallType"];
+  damage: number;
+}
+
 export interface JetState {
   id: string;
   x: number;
@@ -12,6 +24,9 @@ export interface JetState {
   fuel: number;
   weight: number;
   cooldown: number;
+  collisionCount: number;
+  collisionDamageTaken: number;
+  lastCollision: CollisionEvent | null;
   alive: boolean;
 }
 

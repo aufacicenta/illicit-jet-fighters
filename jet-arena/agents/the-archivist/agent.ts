@@ -4,6 +4,7 @@ globalThis.__agentExport = (() => {
   const VULNERABILITY_THRESHOLD = 35;
   const CRACK_THRESHOLD = 55;
   const MEMORY_DEPTH = 30;
+  const COLLISION_SPACING = 78;
 
   const enemyHistory = [];
   let tickCount = 0;
@@ -102,6 +103,7 @@ globalThis.__agentExport = (() => {
         .map((e) => ({ enemy: e, score: scoreTarget(e) }))
         .sort((a, b) => b.score - a.score)[0];
       const target = best.enemy;
+      const collisionImminent = target.distance < COLLISION_SPACING;
 
       // PREDICT - lead the target using velocity extrapolation
       const predicted = predictPosition(target, LEAD_TICKS);
@@ -112,6 +114,17 @@ globalThis.__agentExport = (() => {
 
       const turn = clamp(predictedBearing / Math.PI);
       const climb = clamp(-target.relAltitude * 2);
+
+      if (collisionImminent) {
+        const separationTurn = clamp(target.bearingAngle >= 0 ? -1 : 1);
+        const separationClimb = clamp(target.relAltitude >= 0 ? -1 : 1);
+        return {
+          thrust: 0.92,
+          turn: separationTurn,
+          climb: separationClimb,
+          shoot: false,
+        };
+      }
 
       // THE QUESTION - only fire when confidence is overwhelming
       const aligned = Math.abs(predictedBearing) < 0.1;

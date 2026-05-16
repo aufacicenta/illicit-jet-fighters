@@ -10,6 +10,7 @@ globalThis.__agentExport = (() => {
 
   let patrolSign = 1;
   let disciplineCycle = 0;
+  const COLLISION_SPACING = 80;
 
   const sanitizeAction = (action) => ({
     thrust: clamp(action.thrust),
@@ -38,7 +39,12 @@ globalThis.__agentExport = (() => {
 
   const chooseState = (self, liveEnemies, threatPressure, distanceToWall) => {
     const crowdedFight = liveEnemies.length >= 3;
+    const nearestEnemyDistance = liveEnemies.reduce(
+      (best, enemy) => Math.min(best, enemy.distance),
+      Infinity,
+    );
     if (self.health < 35 || self.fuel < 120) return "critical";
+    if (nearestEnemyDistance < COLLISION_SPACING) return "pressured";
     if (threatPressure >= 3 || distanceToWall < 60 || crowdedFight) return "pressured";
     if (liveEnemies.length <= 1 && self.health > 62 && self.fuel > 220) return "advantage";
     return "default";
@@ -100,6 +106,7 @@ globalThis.__agentExport = (() => {
       const target = liveEnemies
         .map((enemy) => ({ enemy, score: scoreTarget(enemy, state) }))
         .sort((left, right) => right.score - left.score)[0].enemy;
+      const collisionImminent = target.distance < COLLISION_SPACING;
 
       const leadTicks = state === "advantage" ? 6 : state === "pressured" ? 9 : 8;
       const leadX = target.relX + target.relVx * leadTicks;
@@ -139,6 +146,14 @@ globalThis.__agentExport = (() => {
         thrust = Math.max(thrust, 0.86);
       }
 
+      if (collisionImminent) {
+        const separationTurn = target.bearingAngle >= 0 ? -1 : 1;
+        const separationClimb = target.relAltitude >= 0 ? -1 : 1;
+        turn = clamp(turn * 0.22 + separationTurn * 0.78);
+        climb = clamp(climb * 0.2 + separationClimb * 0.8);
+        thrust = Math.max(thrust, 0.9);
+      }
+
       // "Market correction": absorb incoming pressure with decisive evasive movement.
       if (nearest && nearestSq < 130 * 130) {
         const threatBearing = normAngle(Math.atan2(nearest.relY, nearest.relX) - self.angle);
@@ -163,6 +178,7 @@ globalThis.__agentExport = (() => {
       const cycleGate = disciplineCycle % 6 !== 5 || state === "advantage";
       let shoot = canShoot && aligned && altitudeAligned && inRange && sixShotDiscipline && cycleGate;
       if (state === "pressured") shoot = pressure <= 1 && shoot;
+      if (collisionImminent) shoot = false;
 
       if (shoot) disciplineCycle += 1;
 

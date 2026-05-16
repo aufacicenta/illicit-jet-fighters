@@ -20,6 +20,7 @@ class SeededRandom {
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.max(min, Math.min(max, value));
+const COLLISION_DAMAGE = 1.25;
 
 export class GameWorld {
   public state: GameState;
@@ -58,6 +59,9 @@ export class GameWorld {
         fuel: CONFIG.INITIAL_FUEL,
         weight: CONFIG.BASE_WEIGHT,
         cooldown: 0,
+        collisionCount: 0,
+        collisionDamageTaken: 0,
+        lastCollision: null,
         alive: true,
       });
     });
@@ -245,7 +249,24 @@ export class GameWorld {
     jet.y = collision.y;
     jet.vx = collision.vx;
     jet.vy = collision.vy;
-    jet.health -= 1.25;
+
+    const nearestContact = collision.contacts.reduce((nearest, candidate) => {
+      if (!nearest) return candidate;
+      return candidate.distance < nearest.distance ? candidate : nearest;
+    }, collision.contacts[0]);
+
+    jet.collisionCount += 1;
+    jet.collisionDamageTaken += COLLISION_DAMAGE;
+    jet.lastCollision = {
+      tick: this.state.tick,
+      jetId: jet.id,
+      x: nearestContact?.contactX ?? jet.x,
+      y: nearestContact?.contactY ?? jet.y,
+      altitude: jet.altitude,
+      wallType: nearestContact?.wallType ?? "boundary",
+      damage: COLLISION_DAMAGE,
+    };
+    jet.health -= COLLISION_DAMAGE;
   }
 
   private updateBullets(): void {
@@ -303,6 +324,9 @@ export class GameWorld {
         fuel: jet.fuel,
         weight: jet.weight,
         cooldown: jet.cooldown,
+        collisionCount: jet.collisionCount,
+        collisionDamageTaken: jet.collisionDamageTaken,
+        lastCollision: jet.lastCollision ? { ...jet.lastCollision } : null,
         alive: jet.alive,
       }))
       .sort((a, b) => a.id.localeCompare(b.id));

@@ -9,6 +9,7 @@ globalThis.__agentExport = (() => {
   const normAngle = (angle) => Math.atan2(Math.sin(angle), Math.cos(angle));
 
   let patrolSign = 1;
+  const COLLISION_SPACING = 84;
 
   const sanitizeAction = (action) => ({
     thrust: clamp(action.thrust),
@@ -37,6 +38,11 @@ globalThis.__agentExport = (() => {
 
   const chooseState = (self, liveEnemies, pressure, distanceToWall) => {
     if (self.health < 30 || self.fuel < 110) return "critical";
+    const nearestEnemyDistance = liveEnemies.reduce(
+      (best, enemy) => Math.min(best, enemy.distance),
+      Infinity,
+    );
+    if (nearestEnemyDistance < COLLISION_SPACING) return "pressured";
     if (pressure >= 3 || distanceToWall < 58) return "pressured";
     if (liveEnemies.length <= 1 && self.health > 60 && self.fuel > 220) return "advantage";
     return "default";
@@ -97,6 +103,7 @@ globalThis.__agentExport = (() => {
       const target = liveEnemies
         .map((enemy) => ({ enemy, score: targetScore(enemy, state) }))
         .sort((left, right) => right.score - left.score)[0].enemy;
+      const collisionImminent = target.distance < COLLISION_SPACING;
 
       const leadTicks = state === "advantage" ? 6 : state === "pressured" ? 8 : 10;
       const leadX = target.relX + target.relVx * leadTicks;
@@ -137,6 +144,14 @@ globalThis.__agentExport = (() => {
         thrust = Math.max(thrust, 0.83);
       }
 
+      if (collisionImminent) {
+        const separationTurn = target.bearingAngle >= 0 ? -1 : 1;
+        const separationClimb = target.relAltitude >= 0 ? -0.9 : 0.9;
+        turn = clamp(turn * 0.25 + separationTurn * 0.75);
+        climb = clamp(climb * 0.2 + separationClimb * 0.8);
+        thrust = Math.max(thrust, 0.9);
+      }
+
       // Absorb-and-dodge posture when bullets close in.
       if (nearest && nearestSq < 120 * 120) {
         const threatBearing = normAngle(Math.atan2(nearest.relY, nearest.relX) - self.angle);
@@ -158,6 +173,7 @@ globalThis.__agentExport = (() => {
 
       let shoot = canShoot && aligned && altitudeAligned && inRange;
       if (state === "pressured") shoot = pressure <= 1 && shoot;
+      if (collisionImminent) shoot = false;
 
       return sanitizeAction({ thrust, turn, climb, shoot });
     },
