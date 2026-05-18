@@ -1,0 +1,14 @@
+diff --git a/tsconfig.json b/tsconfig.json
+index 74bd33f5507886f414c827ddfc7423fed164338c..e097d2ac2bce3c390f163cc75908dfee5a660235 100644
+--- a/tsconfig.json
++++ b/tsconfig.json
+@@ -15,8 +15,7 @@
+     "sourceMap": true,
+     "rootDir": "src",
+     "outDir": "esm",
+-    "rootDir": "src",
+-    
++
+ 
+     // https://github.com/tsconfig/bases/blob/a1bf7c0fa2e094b068ca3e1448ca2ece4157977e/bases/strictest.json
+     "strict": true,

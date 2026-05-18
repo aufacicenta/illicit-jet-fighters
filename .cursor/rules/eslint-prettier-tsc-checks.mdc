@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+Run `bun run check` whenever you edit Javascript/Typescript projects and fix all errors.

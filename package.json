@@ -2,7 +2,10 @@
   "name": "@ijf/root",
   "private": true,
   "type": "module",
-  "workspaces": ["api", "jet-arena"],
+  "workspaces": [
+    "api",
+    "jet-arena"
+  ],
   "scripts": {
     "lint": "bun run --workspaces lint:fix",
     "format": "bun run --workspaces format",
@@ -10,7 +13,7 @@
     "eslint": "bun run --workspaces lint",
     "prettier": "bun run --workspaces format:check",
     "typecheck": "bun run --workspaces typecheck",
-    "check": "F=0; bun run lint || F=1; bun run format:check || F=1; bun run eslint || F=1; bun run prettier || F=1; bun run typecheck || F=1; exit $F",
+    "check": "F=0; bun run lint || F=1; bun run format || F=1; bun run typecheck || F=1; exit $F",
     "dev:api": "bun run --filter '@ijf/api' dev",
     "dev:arena": "bun run --filter 'illicit-jet-fighters' dev"
   },
@@ -27,5 +30,8 @@
     "prettier-plugin-tailwindcss": "^0.7.2",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.3"
+  },
+  "patchedDependencies": {
+    "@openrouter/sdk@0.12.35": "patches/@openrouter%2Fsdk@0.12.35.patch"
   }
 }
