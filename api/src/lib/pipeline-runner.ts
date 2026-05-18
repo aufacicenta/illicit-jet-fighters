@@ -10,6 +10,7 @@ import {
 import { decodeImagePayload, extensionForMime } from "./image-payload";
 import { withFighterContext as withContext } from "./log-context";
 import { logger } from "./logger";
+import type { SectionStatus } from "./pipeline-status";
 import { deriveSectionStatuses } from "./pipeline-status";
 import {
   getObjectBuffer,
@@ -202,7 +203,55 @@ const sanitizeOutputs = async (
   return next;
 };
 
-export const serializeClientPipelineState = async (fighterKey: string) => {
+export type ClientPipelineStateSnapshot = {
+  sectionStatuses: Record<SectionId, SectionStatus>;
+  outputs: Partial<Record<SectionId, SectionOutput>>;
+  histories: Partial<Record<SectionId, ChatMessage[]>>;
+  gateMessage: string | null;
+};
+
+type FighterPipelinePreview = {
+  characterDescription: string | null;
+  specsheetPrompt: string | null;
+  specsheetImageUrl: string | null;
+  status: SectionStatus;
+};
+
+export const buildFighterPreviewFromSnapshot = (
+  snapshot: ClientPipelineStateSnapshot,
+): FighterPipelinePreview => {
+  const characterDescription = snapshot.outputs["character-description"]?.content ?? null;
+  const specsheetPrompt = snapshot.outputs["specsheet-prompt"]?.content ?? null;
+  const specsheetImageUrl =
+    snapshot.outputs["specsheet-image"]?.assetUrl ??
+    snapshot.outputs["specsheet-image"]?.content ??
+    null;
+
+  const statuses = Object.values(snapshot.sectionStatuses);
+  let status: SectionStatus = "ready";
+  if (statuses.includes("error")) {
+    status = "error";
+  } else if (statuses.includes("generating")) {
+    status = "generating";
+  } else if (snapshot.sectionStatuses["specsheet-image"] === "complete") {
+    status = "complete";
+  } else if (statuses.includes("complete")) {
+    status = "ready";
+  } else if (statuses.includes("locked")) {
+    status = "locked";
+  }
+
+  return {
+    characterDescription,
+    specsheetPrompt,
+    specsheetImageUrl,
+    status,
+  };
+};
+
+export const serializeClientPipelineState = async (
+  fighterKey: string,
+): Promise<ClientPipelineStateSnapshot | null> => {
   const tenant = tenantByFighter.get(fighterKey);
   if (!tenant) {
     return null;

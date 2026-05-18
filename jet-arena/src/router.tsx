@@ -1,11 +1,13 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
+import { AppLayout } from "./components/AppLayout";
 import { RequireAuth } from "./context/Auth/RequireAuth";
 import { routes } from "./hooks/useRoutes";
 import { BroadcastPage } from "./pages/BroadcastPage";
 import { CreateFighterPage } from "./pages/CreateFighterPage";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
+import { MyFightersPage } from "./pages/terminal/MyFightersPage";
 import { FighterWizardPage } from "./pages/wizard/FighterWizardPage";
 
 export const router = createBrowserRouter([
@@ -22,20 +24,25 @@ export const router = createBrowserRouter([
     element: <BroadcastPage />,
   },
   {
-    path: routes.createFighter(),
     element: (
       <RequireAuth>
-        <CreateFighterPage />
+        <AppLayout />
       </RequireAuth>
     ),
-  },
-  {
-    path: "/wizard/fighter/:id",
-    element: (
-      <RequireAuth>
-        <FighterWizardPage />
-      </RequireAuth>
-    ),
+    children: [
+      {
+        path: routes.terminalFighters(),
+        element: <MyFightersPage />,
+      },
+      {
+        path: routes.createFighter(),
+        element: <CreateFighterPage />,
+      },
+      {
+        path: "/wizard/fighter/:id",
+        element: <FighterWizardPage />,
+      },
+    ],
   },
   {
     path: "*",

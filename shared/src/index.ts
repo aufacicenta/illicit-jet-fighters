@@ -1,2 +1,7 @@
-export { pipelineStartSchema } from "./fighters";
-export type { PipelineStartPayload } from "./fighters";
+export { myFightersResponseSchema, pipelineStartSchema } from "./fighters";
+export type {
+  FighterSectionStatus,
+  MyFighter,
+  MyFightersResponse,
+  PipelineStartPayload,
+} from "./fighters";

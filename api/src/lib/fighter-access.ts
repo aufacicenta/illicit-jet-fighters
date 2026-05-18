@@ -1,4 +1,4 @@
-import { and, asc, eq } from "@ijf/database";
+import { and, asc, desc, eq } from "@ijf/database";
 import { db, fighters, generateUniqueFighterSlug } from "@ijf/database";
 
 export const parseFighterIdParam = (value: string): number | null => {
@@ -61,6 +61,27 @@ export const ensureFighterForUser = async (userId: string): Promise<number> => {
 
   return id;
 };
+
+export type OwnedFighterListItem = {
+  id: number;
+  slug: string;
+  briefing: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export const listOwnedFighters = async (userId: string): Promise<OwnedFighterListItem[]> =>
+  db
+    .select({
+      id: fighters.id,
+      slug: fighters.slug,
+      briefing: fighters.briefing,
+      createdAt: fighters.createdAt,
+      updatedAt: fighters.updatedAt,
+    })
+    .from(fighters)
+    .where(eq(fighters.userId, userId))
+    .orderBy(desc(fighters.updatedAt), desc(fighters.id));
 
 export const touchFighterUpdatedAt = async (fighterId: number) => {
   await db.update(fighters).set({ updatedAt: new Date() }).where(eq(fighters.id, fighterId));

@@ -41,7 +41,7 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background px-4 py-10 text-foreground md:px-6">
+    <div className="flex min-h-screen flex-col justify-center bg-background px-4 py-10 text-foreground md:px-6">
       <div className="mx-auto flex w-full max-w-md flex-col gap-6 rounded-sm border border-border bg-card/95 p-6">
         <div className="space-y-1 text-center">
           <img

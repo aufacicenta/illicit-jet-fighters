@@ -29,11 +29,13 @@ export const routes = {
   /** Loads fighter session then redirects into the intake wizard. */
   createFighter: () => `/fighters/new`,
   fighterWizard: (id: string) => `/wizard/fighter/${id}`,
+  terminalFighters: () => `/terminal/fighters`,
   login: () => `/login`,
   signup: () => `/signup`,
 };
 
 export const apiRoutes = {
+  fighters: `${API_BASE}/fighters`,
   fighterSession: `${API_BASE}/fighters/session`,
   pipelineStart: `${API_BASE}/pipeline/start`,
   pipelineSpecsheet: `${API_BASE}/pipeline/specsheet`,

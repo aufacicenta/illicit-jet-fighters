@@ -11,7 +11,6 @@ import { DescriptionSection } from "./sections/DescriptionSection";
 import { SpecsheetSection } from "./sections/SpecsheetSection";
 
 type WizardView = "briefing" | "generating" | "debrief";
-const logoClassName = "mx-auto w-full max-w-[420px] object-contain";
 
 const WizardLayout = () => {
   const { sectionStatuses, outputs, errorMessage, connectionStatus, originalBriefing } =
@@ -34,57 +33,51 @@ const WizardLayout = () => {
   const showConnectionHint = connectionStatus !== "open";
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 md:px-6">
-        {view === "briefing" ? (
-          <section className="flex min-h-[80vh] flex-col items-center justify-center gap-5">
-            <img src="/ijf-1.png" alt="Illicit Jet Fighters" className={logoClassName} />
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 md:px-6">
+      {view === "briefing" ? (
+        <section className="flex min-h-[60vh] flex-col items-center justify-center gap-5">
+          <p className="text-xs tracking-widest text-muted-foreground uppercase">
+            Pilot Intake Terminal
+          </p>
+          <PromptBar mode="briefing" disabled={isGenerating} />
+        </section>
+      ) : (
+        <section className="space-y-4">
+          <header className="space-y-2 text-center">
             <p className="text-xs tracking-widest text-muted-foreground uppercase">
               Pilot Intake Terminal
             </p>
-            <PromptBar mode="briefing" disabled={isGenerating} />
-          </section>
-        ) : (
-          <section className="space-y-4">
-            <header className="space-y-2 text-center">
-              <img src="/ijf-1.png" alt="Illicit Jet Fighters" className={logoClassName} />
-              <p className="text-xs tracking-widest text-muted-foreground uppercase">
-                Pilot Intake Terminal
-              </p>
-            </header>
-            <ProgressHud sectionStatuses={sectionStatuses} />
-            {originalBriefing ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-xl tracking-wide uppercase">
-                    Original Briefing
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <pre className="max-h-[260px] overflow-auto rounded-sm border border-primary/40 bg-primary/5 p-4 text-base leading-relaxed whitespace-pre-wrap text-primary">
-                    {originalBriefing}
-                  </pre>
-                </CardContent>
-              </Card>
-            ) : null}
+          </header>
+          <ProgressHud sectionStatuses={sectionStatuses} />
+          {originalBriefing ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl tracking-wide uppercase">Original Briefing</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <pre className="max-h-[260px] overflow-auto rounded-sm border border-primary/40 bg-primary/5 p-4 text-base leading-relaxed whitespace-pre-wrap text-primary">
+                  {originalBriefing}
+                </pre>
+              </CardContent>
+            </Card>
+          ) : null}
 
-            {view === "debrief" ? <DescriptionSection /> : null}
-            <SpecsheetSection />
-          </section>
-        )}
+          {view === "debrief" ? <DescriptionSection /> : null}
+          <SpecsheetSection />
+        </section>
+      )}
 
-        {showConnectionHint ? (
-          <p className="text-xs tracking-wide text-muted-foreground uppercase">
-            Sync link {connectionStatus === "connecting" ? "initializing" : "reconnecting"}...
-          </p>
-        ) : null}
+      {showConnectionHint ? (
+        <p className="text-xs tracking-wide text-muted-foreground uppercase">
+          Sync link {connectionStatus === "connecting" ? "initializing" : "reconnecting"}...
+        </p>
+      ) : null}
 
-        {errorMessage ? (
-          <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
-            {errorMessage}
-          </div>
-        ) : null}
-      </div>
+      {errorMessage ? (
+        <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
+          {errorMessage}
+        </div>
+      ) : null}
     </div>
   );
 };
