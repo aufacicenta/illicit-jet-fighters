@@ -21,10 +21,27 @@ function neonAuthConnectSrcOrigins(env: Record<string, string>): string {
   }
 }
 
+function extraImgSrcOrigins(env: Record<string, string>): string {
+  const values = [env.VITE_R2_ENDPOINT, env.VITE_IMAGE_CDN_URL]
+    .map((value) => value?.trim() ?? "")
+    .filter((value) => value.length > 0);
+  const origins = values.flatMap((value) => {
+    try {
+      return [new URL(value).origin];
+    } catch {
+      return [];
+    }
+  });
+  const uniqueOrigins = Array.from(new Set(origins));
+  const cloudflareWildcard = "https://*.r2.cloudflarestorage.com";
+  return [cloudflareWildcard, ...uniqueOrigins].join(" ");
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, "");
   const apiTarget = resolveApiProxyTarget(env.VITE_API_PROXY_TARGET ?? env.VITE_API_URL);
   const neonConnectSrc = neonAuthConnectSrcOrigins(env);
+  const imgSrcSubstitution = extraImgSrcOrigins(env);
   const devApiConnectSrc =
     mode === "development"
       ? " http://localhost:4000 ws://localhost:4000 http://127.0.0.1:4000 ws://127.0.0.1:4000"
@@ -36,7 +53,9 @@ export default defineConfig(({ mode }) => {
       {
         name: "inject-csp-connect-src",
         transformIndexHtml(html) {
-          return html.replaceAll("__VITE_EXTRA_CONNECT_SRC__", connectSrcSubstitution);
+          return html
+            .replaceAll("__VITE_EXTRA_CONNECT_SRC__", connectSrcSubstitution)
+            .replaceAll("__VITE_EXTRA_IMG_SRC__", imgSrcSubstitution);
         },
       },
       react(),

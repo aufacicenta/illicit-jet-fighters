@@ -15,6 +15,7 @@ type PromptBarMode = "briefing" | "docked";
 export const PromptBar = ({ mode, disabled }: { mode: PromptBarMode; disabled?: boolean }) => {
   const {
     activeSectionId,
+    outputs,
     gateMessage,
     promptInput,
     setPromptInput,
@@ -22,7 +23,9 @@ export const PromptBar = ({ mode, disabled }: { mode: PromptBarMode; disabled?: 
     requestContinuePipeline,
   } = useWizardContext();
   const isBriefing = mode === "briefing";
-  const placeholder = activeSectionId
+  const hasGeneratedDetails = Object.keys(outputs).length > 0;
+  const isRefining = hasGeneratedDetails && Boolean(activeSectionId);
+  const placeholder = isRefining
     ? "Refine your fighter..."
     : "Describe your fighter. Role, personality, visual vibe...";
 
@@ -45,7 +48,7 @@ export const PromptBar = ({ mode, disabled }: { mode: PromptBarMode; disabled?: 
         ) : null}
 
         <div className="text-xs tracking-widest text-muted-foreground uppercase">
-          {activeSectionId ? (
+          {isRefining && activeSectionId ? (
             <>
               Refining: <span className="text-foreground">{sectionLabels[activeSectionId]}</span>
             </>

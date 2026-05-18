@@ -20,6 +20,7 @@ export const fighters = pgTable(
   {
     id: serial("id").primaryKey(),
     slug: text("slug").notNull(),
+    briefing: text("briefing"),
     userId: uuid("user_id")
       .notNull()
       .references(() => neonAuthUser.id, { onDelete: "cascade" }),

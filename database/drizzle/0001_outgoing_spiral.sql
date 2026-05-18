@@ -1,0 +1,1 @@
+ALTER TABLE "fighters" ADD COLUMN "briefing" text;

@@ -378,7 +378,9 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     setErrorMessage(null);
 
     try {
-      if (!activeSectionId) {
+      const hasGeneratedDetails = Object.keys(outputs).length > 0;
+
+      if (!hasGeneratedDetails) {
         setSectionStatuses({
           "character-description": "generating",
           "specsheet-prompt": "locked",
@@ -474,7 +476,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Unable to process prompt.");
     }
-  }, [activeSectionId, fighterNumericId, promptInput, resetDownstream, sectionHistories]);
+  }, [activeSectionId, fighterNumericId, outputs, promptInput, resetDownstream, sectionHistories]);
 
   const saveEditedSection = useCallback(
     (sectionId: SectionId, content: string) => {

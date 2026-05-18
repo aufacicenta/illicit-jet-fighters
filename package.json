@@ -5,7 +5,8 @@
   "workspaces": [
     "api",
     "jet-arena",
-    "database"
+    "database",
+    "shared"
   ],
   "scripts": {
     "lint": "bun run --workspaces lint:fix",

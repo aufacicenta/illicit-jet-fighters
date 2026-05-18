@@ -1,7 +1,6 @@
-export type PipelineStartRequest = {
-  id: number;
-  prompt: string;
-};
+import type { PipelineStartPayload } from "@ijf/shared";
+
+export type PipelineStartRequest = PipelineStartPayload;
 
 export type PipelineSpecsheetRequest = {
   id: number;

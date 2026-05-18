@@ -17,6 +17,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1048.0",
     "@elysiajs/cors": "^1.4.2",
     "@ijf/database": "workspace:*",
+    "@ijf/shared": "workspace:*",
     "@openrouter/sdk": "^0.12.35",
     "archiver": "^8.0.0",
     "elysia": "^1.4.28",

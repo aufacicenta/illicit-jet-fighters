@@ -65,3 +65,10 @@ export const ensureFighterForUser = async (userId: string): Promise<number> => {
 export const touchFighterUpdatedAt = async (fighterId: number) => {
   await db.update(fighters).set({ updatedAt: new Date() }).where(eq(fighters.id, fighterId));
 };
+
+export const saveFighterBriefing = async (fighterId: number, briefing: string) => {
+  await db
+    .update(fighters)
+    .set({ briefing, updatedAt: new Date() })
+    .where(eq(fighters.id, fighterId));
+};

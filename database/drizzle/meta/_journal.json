@@ -8,6 +8,13 @@
       "when": 1779084437220,
       "tag": "0000_magenta_enchantress",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779127102259,
+      "tag": "0001_outgoing_spiral",
+      "breakpoints": true
     }
   ]
 }

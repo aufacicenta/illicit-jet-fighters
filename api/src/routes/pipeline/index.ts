@@ -1,7 +1,13 @@
+import { pipelineStartSchema } from "@ijf/shared";
 import { Elysia, t } from "elysia";
 
 import { createCorrelationId } from "../../lib/correlation-id";
-import { fighterKeyFromId, getOwnedFighter, parseFighterIdParam } from "../../lib/fighter-access";
+import {
+  fighterKeyFromId,
+  getOwnedFighter,
+  parseFighterIdParam,
+  saveFighterBriefing,
+} from "../../lib/fighter-access";
 import { logger } from "../../lib/logger";
 import {
   bindPipelineTenant,
@@ -10,11 +16,7 @@ import {
   startPipeline,
 } from "../../lib/pipeline-runner";
 import { requireBearerAuth } from "../../lib/require-bearer-auth";
-import type {
-  PipelineSpecsheetRequest,
-  PipelineStartRequest,
-  PipelineStartResponse,
-} from "./types";
+import type { PipelineSpecsheetRequest, PipelineStartResponse } from "./types";
 
 const resolveFighterAccess = async (authUserId: string, rawId: string) => {
   const fighterId = parseFighterIdParam(rawId);
@@ -42,50 +44,49 @@ export const pipelineRoutes = new Elysia({ prefix: "/pipeline" })
 
     return serializeClientPipelineState(resolution.fighterKey);
   })
-  .post(
-    "/start",
-    async ({ body, request, headers, status }) => {
-      const auth = await requireBearerAuth(request, headers);
-      const payload = body as PipelineStartRequest;
-      const resolution = await resolveFighterAccess(auth.userId, String(payload.id));
-      if ("error" in resolution) {
-        return status(404, resolution.error);
-      }
+  .post("/start", async ({ body, request, headers, status }) => {
+    let payload;
+    try {
+      payload = pipelineStartSchema.parse(body);
+    } catch {
+      return status(400, "Invalid pipeline start payload.");
+    }
 
-      const correlationId = createCorrelationId("pipeline-start");
-      logger.info("pipeline start endpoint hit", {
-        path: "/pipeline/start",
-        fighterId: resolution.fighterId,
-        correlationId,
-        promptLength: typeof payload.prompt === "string" ? payload.prompt.length : undefined,
+    const auth = await requireBearerAuth(request, headers);
+    const resolution = await resolveFighterAccess(auth.userId, String(payload.id));
+    if ("error" in resolution) {
+      return status(404, resolution.error);
+    }
+
+    await saveFighterBriefing(resolution.fighterId, payload.prompt);
+
+    const correlationId = createCorrelationId("pipeline-start");
+    logger.info("pipeline start endpoint hit", {
+      path: "/pipeline/start",
+      fighterId: resolution.fighterId,
+      correlationId,
+      promptLength: typeof payload.prompt === "string" ? payload.prompt.length : undefined,
+    });
+
+    void startPipeline(resolution.fighterKey, payload.prompt, correlationId)
+      .then(() => {
+        logger.info("pipeline start endpoint async execution completed", {
+          path: "/pipeline/start",
+          fighterId: resolution.fighterId,
+          correlationId,
+        });
+      })
+      .catch((error) => {
+        logger.error("pipeline start endpoint async execution failed", {
+          path: "/pipeline/start",
+          fighterId: resolution.fighterId,
+          correlationId,
+          error: error instanceof Error ? error.message : String(error),
+        });
       });
 
-      void startPipeline(resolution.fighterKey, payload.prompt, correlationId)
-        .then(() => {
-          logger.info("pipeline start endpoint async execution completed", {
-            path: "/pipeline/start",
-            fighterId: resolution.fighterId,
-            correlationId,
-          });
-        })
-        .catch((error) => {
-          logger.error("pipeline start endpoint async execution failed", {
-            path: "/pipeline/start",
-            fighterId: resolution.fighterId,
-            correlationId,
-            error: error instanceof Error ? error.message : String(error),
-          });
-        });
-
-      return { status: "started" } satisfies PipelineStartResponse;
-    },
-    {
-      body: t.Object({
-        id: t.Number(),
-        prompt: t.String(),
-      }),
-    },
-  )
+    return { status: "started" } satisfies PipelineStartResponse;
+  })
   .post(
     "/specsheet",
     async ({ body, request, headers, status }) => {

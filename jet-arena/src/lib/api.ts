@@ -1,3 +1,5 @@
+import { pipelineStartSchema } from "@ijf/shared";
+
 import { apiRoutes } from "../hooks/useRoutes";
 
 export type ChatMessage = {
@@ -78,8 +80,10 @@ export const fetchPipelineState = async (
   return (await response.json()) as PipelineStateSnapshot;
 };
 
-export const startPipeline = (fighterId: number, prompt: string) =>
-  post<{ status: "started" }>(apiRoutes.pipelineStart, { id: fighterId, prompt });
+export const startPipeline = (fighterId: number, prompt: string) => {
+  const payload = pipelineStartSchema.parse({ id: fighterId, prompt });
+  return post<{ status: "started" }>(apiRoutes.pipelineStart, payload);
+};
 
 export const generatePipelineSpecsheet = (fighterId: number, characterDescription: string) =>
   post<{ status: "started" }>(apiRoutes.pipelineSpecsheet, {

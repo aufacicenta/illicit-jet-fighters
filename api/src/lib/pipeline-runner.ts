@@ -511,6 +511,10 @@ export const startPipeline = async (fighterKey: string, prompt: string, correlat
 
     state.activeSectionId = null;
 
+    if (tenant) {
+      await persistSnapshot(fighterKey, state, tenant);
+    }
+
     const promptStartedAt = Date.now();
     state.activeSectionId = "specsheet-prompt";
     sendToFighter(fighterKey, { type: "section:start", sectionId: "specsheet-prompt" });
@@ -545,9 +549,12 @@ export const startPipeline = async (fighterKey: string, prompt: string, correlat
 
     state.activeSectionId = null;
 
+    if (tenant) {
+      await persistSnapshot(fighterKey, state, tenant);
+    }
+
     await runSpecsheetImageStep(fighterKey, specPrompt.prompt, correlationId, startedAt);
     if (tenant) {
-      await persistSnapshot(fighterKey, getState(fighterKey, correlationId), tenant);
       await syncPipelineState(fighterKey);
     }
   } catch (error) {
@@ -616,9 +623,12 @@ export const generateSpecsheetFromCharacterDescription = async (
       model: specPrompt.model,
     });
 
-    await runSpecsheetImageStep(fighterKey, specPrompt.prompt, correlationId, startedAt);
     if (tenant) {
       await persistSnapshot(fighterKey, state, tenant);
+    }
+
+    await runSpecsheetImageStep(fighterKey, specPrompt.prompt, correlationId, startedAt);
+    if (tenant) {
       await syncPipelineState(fighterKey);
     }
   } catch (error) {
