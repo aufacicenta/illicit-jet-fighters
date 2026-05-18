@@ -165,6 +165,36 @@ const getSpecsheetImage = (completion: unknown): SpecsheetImagePart | undefined 
   };
 };
 
+const generateImageWithModel = async (
+  model: string,
+  prompt: string,
+  label: string,
+): Promise<{ imageBase64: string; mimeType: string; model: string }> => {
+  const completion = await openrouter.chat.send({
+    chatRequest: {
+      model,
+      modalities: ["image"],
+      messages: [{ role: "user", content: prompt }],
+    },
+  });
+
+  const image = getSpecsheetImage(completion);
+  if (!image) {
+    const diagnostics = buildSpecsheetImageDiagnostic(completion);
+    logger.warn(`${label} response had no image payload`, {
+      model,
+      promptLength: prompt.length,
+      ...diagnostics,
+    });
+    throw new Error(`${label} returned no image.`);
+  }
+
+  const mimeType = image.type || "image/png";
+  const imageBase64 = image.imageUrl;
+
+  return { imageBase64, mimeType, model };
+};
+
 export const generateCharacterDescription = async (prompt: string) => {
   const completion = await openrouter.chat.send({
     chatRequest: {
@@ -261,31 +291,113 @@ export const generateSpecsheetPromptRefine = async (history: ChatMessage[], mess
 };
 
 export const generateSpecsheetImage = async (prompt: string) => {
+  return generateImageWithModel(aiModels.specsheetImage, prompt, "Specsheet image generation");
+};
+
+export const generateSpritesheetPrompt = async (characterDescription: string) => {
   const completion = await openrouter.chat.send({
     chatRequest: {
-      model: aiModels.specsheetImage,
-      modalities: ["image"],
-      messages: [{ role: "user", content: prompt }],
+      model: aiModels.spritesheetPrompt,
+      messages: [
+        { role: "system", content: skills.spritesheetPrompt },
+        { role: "user", content: characterDescription },
+      ],
     },
   });
 
-  const image = getSpecsheetImage(completion);
-  if (!image) {
-    const diagnostics = buildSpecsheetImageDiagnostic(completion);
-    logger.warn("specsheet image response had no image payload", {
-      model: aiModels.specsheetImage,
-      promptLength: prompt.length,
-      ...diagnostics,
-    });
-    throw new Error("Specsheet image generation returned no image.");
+  const prompt = getText(completion.choices[0]?.message?.content);
+  if (!prompt) {
+    throw new Error("Spritesheet prompt generation returned empty output.");
   }
 
-  const mimeType = image.type || "image/png";
-  const imageBase64 = image.imageUrl;
+  return {
+    prompt,
+    model: aiModels.spritesheetPrompt,
+  };
+};
+
+export const generateSpritesheetImage = async (prompt: string) => {
+  return generateImageWithModel(aiModels.spritesheetImage, prompt, "Spritesheet image generation");
+};
+
+export const generateAgentCode = async (characterDescription: string) => {
+  const completion = await openrouter.chat.send({
+    chatRequest: {
+      model: aiModels.agentCode,
+      messages: [
+        { role: "system", content: skills.agentCode },
+        { role: "user", content: characterDescription },
+      ],
+    },
+  });
+
+  const code = getText(completion.choices[0]?.message?.content);
+  if (!code) {
+    throw new Error("Agent code generation returned empty output.");
+  }
 
   return {
-    imageBase64,
-    mimeType,
-    model: aiModels.specsheetImage,
+    code,
+    model: aiModels.agentCode,
   };
+};
+
+export const generateStrikecraftSpecsheetPrompt = async (characterDescription: string) => {
+  const completion = await openrouter.chat.send({
+    chatRequest: {
+      model: aiModels.strikecraftSpecsheetPrompt,
+      messages: [
+        { role: "system", content: skills.strikecraftSpecsheetPrompt },
+        { role: "user", content: characterDescription },
+      ],
+    },
+  });
+
+  const prompt = getText(completion.choices[0]?.message?.content);
+  if (!prompt) {
+    throw new Error("Strikecraft specsheet prompt generation returned empty output.");
+  }
+
+  return {
+    prompt,
+    model: aiModels.strikecraftSpecsheetPrompt,
+  };
+};
+
+export const generateStrikecraftSpecsheetImage = async (prompt: string) => {
+  return generateImageWithModel(
+    aiModels.strikecraftSpecsheetImage,
+    prompt,
+    "Strikecraft specsheet image generation",
+  );
+};
+
+export const generateStrikecraftSpritePrompt = async (strikecraftSpecsheet: string) => {
+  const completion = await openrouter.chat.send({
+    chatRequest: {
+      model: aiModels.strikecraftSpritePrompt,
+      messages: [
+        { role: "system", content: skills.strikecraftSpritePrompt },
+        { role: "user", content: strikecraftSpecsheet },
+      ],
+    },
+  });
+
+  const prompt = getText(completion.choices[0]?.message?.content);
+  if (!prompt) {
+    throw new Error("Strikecraft sprite prompt generation returned empty output.");
+  }
+
+  return {
+    prompt,
+    model: aiModels.strikecraftSpritePrompt,
+  };
+};
+
+export const generateStrikecraftSpriteImage = async (prompt: string) => {
+  return generateImageWithModel(
+    aiModels.strikecraftSpriteImage,
+    prompt,
+    "Strikecraft sprite image generation",
+  );
 };

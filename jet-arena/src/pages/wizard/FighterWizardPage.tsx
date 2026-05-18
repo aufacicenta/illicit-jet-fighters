@@ -1,20 +1,32 @@
 import { useMemo } from "react";
 import { Navigate, useParams } from "react-router-dom";
 
+import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { useWizardContext } from "../../context/Wizard/useWizardContext";
 import { WizardContextController } from "../../context/Wizard/WizardContextController";
 import { routes } from "../../hooks/useRoutes";
 import { ProgressHud } from "./ProgressHud";
 import { PromptBar } from "./PromptBar";
+import { AgentCodeSection } from "./sections/AgentCodeSection";
 import { DescriptionSection } from "./sections/DescriptionSection";
 import { SpecsheetSection } from "./sections/SpecsheetSection";
+import { SpritesheetSection } from "./sections/SpritesheetSection";
+import { StrikecraftSpecsheetSection } from "./sections/StrikecraftSpecsheetSection";
+import { StrikecraftSpriteSection } from "./sections/StrikecraftSpriteSection";
 
 type WizardView = "briefing" | "generating" | "debrief";
 
 const WizardLayout = () => {
-  const { sectionStatuses, outputs, errorMessage, connectionStatus, originalBriefing } =
-    useWizardContext();
+  const {
+    sectionStatuses,
+    outputs,
+    errorMessage,
+    connectionStatus,
+    originalBriefing,
+    gateMessage,
+    requestContinuePipeline,
+  } = useWizardContext();
 
   const view = useMemo<WizardView>(() => {
     if (outputs["specsheet-image"]) {
@@ -31,6 +43,18 @@ const WizardLayout = () => {
 
   const isGenerating = Object.values(sectionStatuses).some((status) => status === "generating");
   const showConnectionHint = connectionStatus !== "open";
+  const showPhaseTwo =
+    sectionStatuses["spritesheet-prompt"] === "generating" ||
+    sectionStatuses["spritesheet-image"] === "generating" ||
+    sectionStatuses["agent-code"] === "generating" ||
+    sectionStatuses["strikecraft-specsheet-prompt"] === "generating" ||
+    sectionStatuses["strikecraft-specsheet-image"] === "generating" ||
+    sectionStatuses["strikecraft-sprite-prompt"] === "generating" ||
+    sectionStatuses["strikecraft-sprite-image"] === "generating" ||
+    Boolean(outputs["spritesheet-image"]) ||
+    Boolean(outputs["agent-code"]) ||
+    Boolean(outputs["strikecraft-specsheet-image"]) ||
+    Boolean(outputs["strikecraft-sprite-image"]);
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 md:px-6">
@@ -64,6 +88,34 @@ const WizardLayout = () => {
 
           {view === "debrief" ? <DescriptionSection /> : null}
           <SpecsheetSection />
+          {gateMessage ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg tracking-wide uppercase">
+                  Continue Generation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">{gateMessage}</p>
+                <Button
+                  className="h-14 w-full text-base font-semibold tracking-wide uppercase"
+                  variant="default"
+                  onClick={requestContinuePipeline}
+                  type="button"
+                >
+                  Continue Generation
+                </Button>
+              </CardContent>
+            </Card>
+          ) : null}
+          {showPhaseTwo ? (
+            <>
+              <SpritesheetSection />
+              <AgentCodeSection />
+              <StrikecraftSpecsheetSection />
+              <StrikecraftSpriteSection />
+            </>
+          ) : null}
         </section>
       )}
 

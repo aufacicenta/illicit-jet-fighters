@@ -2,7 +2,18 @@ import type { SectionId, SectionOutput } from "./types";
 
 export type SectionStatus = "locked" | "ready" | "generating" | "complete" | "error";
 
-const sectionOrder: SectionId[] = ["character-description", "specsheet-prompt", "specsheet-image"];
+const sectionOrder: SectionId[] = [
+  "character-description",
+  "specsheet-prompt",
+  "specsheet-image",
+  "spritesheet-prompt",
+  "spritesheet-image",
+  "agent-code",
+  "strikecraft-specsheet-prompt",
+  "strikecraft-specsheet-image",
+  "strikecraft-sprite-prompt",
+  "strikecraft-sprite-image",
+];
 
 export type PipelineSnapshot = {
   outputs: Partial<Record<SectionId, SectionOutput>>;
@@ -19,6 +30,13 @@ export const deriveSectionStatuses = ({
     "character-description": "ready",
     "specsheet-prompt": "locked",
     "specsheet-image": "locked",
+    "spritesheet-prompt": "locked",
+    "spritesheet-image": "locked",
+    "agent-code": "locked",
+    "strikecraft-specsheet-prompt": "locked",
+    "strikecraft-specsheet-image": "locked",
+    "strikecraft-sprite-prompt": "locked",
+    "strikecraft-sprite-image": "locked",
   };
 
   for (const sectionId of sectionOrder) {

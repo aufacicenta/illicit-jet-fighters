@@ -54,6 +54,28 @@ const getClient = (): S3Client => {
 export const specsheetObjectKey = (userId: string, fighterId: number, extension: string) =>
   path.posix.join(`users/${userId}/fighters/${String(fighterId)}`, `specsheet-image.${extension}`);
 
+export const spritesheetImageObjectKey = (userId: string, fighterId: number, extension: string) =>
+  path.posix.join(
+    `users/${userId}/fighters/${String(fighterId)}`,
+    `spritesheet-image.${extension}`,
+  );
+
+export const strikecraftSpecsheetObjectKey = (
+  userId: string,
+  fighterId: number,
+  extension: string,
+) =>
+  path.posix.join(
+    `users/${userId}/fighters/${String(fighterId)}`,
+    `strikecraft-specsheet-image.${extension}`,
+  );
+
+export const strikecraftSpriteObjectKey = (userId: string, fighterId: number, extension: string) =>
+  path.posix.join(
+    `users/${userId}/fighters/${String(fighterId)}`,
+    `strikecraft-sprite-top.${extension}`,
+  );
+
 export const pipelineStateObjectKey = (userId: string, fighterId: number) =>
   path.posix.join(`users/${userId}/fighters/${String(fighterId)}`, `pipeline-state.json`);
 

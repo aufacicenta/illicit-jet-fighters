@@ -7,7 +7,17 @@ export type WizardContextControllerProps = {
   children: ReactNode;
 };
 
-export type SectionId = "character-description" | "specsheet-prompt" | "specsheet-image";
+export type SectionId =
+  | "character-description"
+  | "specsheet-prompt"
+  | "specsheet-image"
+  | "spritesheet-prompt"
+  | "spritesheet-image"
+  | "agent-code"
+  | "strikecraft-specsheet-prompt"
+  | "strikecraft-specsheet-image"
+  | "strikecraft-sprite-prompt"
+  | "strikecraft-sprite-image";
 
 export type SectionStatus = "locked" | "ready" | "generating" | "complete" | "error";
 

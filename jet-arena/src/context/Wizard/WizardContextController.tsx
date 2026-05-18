@@ -26,9 +26,27 @@ const baseStatuses = {
   "character-description": "ready",
   "specsheet-prompt": "locked",
   "specsheet-image": "locked",
+  "spritesheet-prompt": "locked",
+  "spritesheet-image": "locked",
+  "agent-code": "locked",
+  "strikecraft-specsheet-prompt": "locked",
+  "strikecraft-specsheet-image": "locked",
+  "strikecraft-sprite-prompt": "locked",
+  "strikecraft-sprite-image": "locked",
 } as const;
 
-const sectionOrder: SectionId[] = ["character-description", "specsheet-prompt", "specsheet-image"];
+const sectionOrder: SectionId[] = [
+  "character-description",
+  "specsheet-prompt",
+  "specsheet-image",
+  "spritesheet-prompt",
+  "spritesheet-image",
+  "agent-code",
+  "strikecraft-specsheet-prompt",
+  "strikecraft-specsheet-image",
+  "strikecraft-sprite-prompt",
+  "strikecraft-sprite-image",
+];
 const wizardBookmarkVersion = 1;
 
 type WizardBookmark = {
@@ -151,6 +169,10 @@ const resolveActiveSection = (
     if (!outputs[sectionId]) {
       return sectionId;
     }
+  }
+
+  if (outputs["strikecraft-sprite-image"]) {
+    return "strikecraft-sprite-image";
   }
 
   return outputs["specsheet-image"] ? "specsheet-image" : "character-description";
@@ -390,6 +412,13 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
           "character-description": "generating",
           "specsheet-prompt": "locked",
           "specsheet-image": "locked",
+          "spritesheet-prompt": "locked",
+          "spritesheet-image": "locked",
+          "agent-code": "locked",
+          "strikecraft-specsheet-prompt": "locked",
+          "strikecraft-specsheet-image": "locked",
+          "strikecraft-sprite-prompt": "locked",
+          "strikecraft-sprite-image": "locked",
         });
         setOutputs({});
         setSectionHistories({});
@@ -454,7 +483,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
           "specsheet-image": "ready",
         }));
         resetDownstream("specsheet-prompt");
-      } else {
+      } else if (activeSectionId === "specsheet-image") {
         setSectionStatuses((current) => ({
           ...current,
           "specsheet-image": "generating",
@@ -475,6 +504,9 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
           ...current,
           "specsheet-image": "complete",
         }));
+      } else {
+        setErrorMessage("Refinement is not available for this section.");
+        return;
       }
 
       setPromptInput("");

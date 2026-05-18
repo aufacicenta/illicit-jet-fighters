@@ -1,11 +1,18 @@
 import { clearPendingForFighter, sendToFighter } from "../ws/store";
 import { touchFighterUpdatedAt } from "./fighter-access";
 import {
+  generateAgentCode,
   generateCharacterDescription,
   generateCharacterDescriptionRefine,
   generateSpecsheetImage,
   generateSpecsheetPrompt,
   generateSpecsheetPromptRefine,
+  generateSpritesheetImage,
+  generateSpritesheetPrompt,
+  generateStrikecraftSpecsheetImage,
+  generateStrikecraftSpecsheetPrompt,
+  generateStrikecraftSpriteImage,
+  generateStrikecraftSpritePrompt,
 } from "./generate";
 import { decodeImagePayload, extensionForMime } from "./image-payload";
 import { withFighterContext as withContext } from "./log-context";
@@ -18,6 +25,9 @@ import {
   pipelineStateObjectKey,
   putObject,
   specsheetObjectKey,
+  spritesheetImageObjectKey,
+  strikecraftSpecsheetObjectKey,
+  strikecraftSpriteObjectKey,
 } from "./r2";
 import type { ChatMessage, SectionId, SectionOutput } from "./types";
 
@@ -44,7 +54,35 @@ type PersistedPipelineSnapshot = {
 };
 
 const PIPELINE_STORAGE_VERSION = 1 as const;
-const stepOrder: SectionId[] = ["character-description", "specsheet-prompt", "specsheet-image"];
+const stepOrder: SectionId[] = [
+  "character-description",
+  "specsheet-prompt",
+  "specsheet-image",
+  "spritesheet-prompt",
+  "spritesheet-image",
+  "agent-code",
+  "strikecraft-specsheet-prompt",
+  "strikecraft-specsheet-image",
+  "strikecraft-sprite-prompt",
+  "strikecraft-sprite-image",
+];
+
+const imageSections = new Set<SectionId>([
+  "specsheet-image",
+  "spritesheet-image",
+  "strikecraft-specsheet-image",
+  "strikecraft-sprite-image",
+]);
+
+const imageObjectKeyBuilders = {
+  "specsheet-image": specsheetObjectKey,
+  "spritesheet-image": spritesheetImageObjectKey,
+  "strikecraft-specsheet-image": strikecraftSpecsheetObjectKey,
+  "strikecraft-sprite-image": strikecraftSpriteObjectKey,
+} as const;
+
+const isImageSection = (sectionId: SectionId): sectionId is keyof typeof imageObjectKeyBuilders =>
+  imageSections.has(sectionId);
 
 const stateByFighter = new Map<string, FighterPipelineState>();
 const tenantByFighter = new Map<string, PipelineTenant>();
@@ -169,7 +207,7 @@ const sanitizeSectionOutput = async (
   sectionId: SectionId,
   output: SectionOutput,
 ): Promise<SectionOutput> => {
-  if (sectionId !== "specsheet-image") {
+  if (!imageSections.has(sectionId)) {
     const { assetUrl: _discard, ...rest } = output;
     return rest;
   }
@@ -406,20 +444,22 @@ const emitSectionError = (
   });
 };
 
-const commitSpecsheetImage = async ({
+const commitImageAsset = async ({
   fighterKey,
   mimeTypeHint,
   imageUrl,
+  objectKeyBuilder,
 }: {
   fighterKey: string;
   mimeTypeHint: string;
   imageUrl: string;
+  objectKeyBuilder: (userId: string, fighterId: number, extension: string) => string;
 }): Promise<{ objectKey: string; signedUrl: string }> => {
   const tenant = requireTenant(fighterKey);
   const { buffer, mimeType } = await decodeImagePayload(imageUrl, mimeTypeHint);
   const resolvedMime = mimeType || mimeTypeHint || "image/png";
   const extension = extensionForMime(resolvedMime);
-  const objectKey = specsheetObjectKey(tenant.userId, tenant.fighterId, extension);
+  const objectKey = objectKeyBuilder(tenant.userId, tenant.fighterId, extension);
   await putObject(objectKey, buffer, resolvedMime);
   const signedUrl = await getSignedReadUrl(objectKey);
   return { objectKey, signedUrl };
@@ -443,37 +483,69 @@ const runSpecsheetImageStep = async (
   correlationId?: string,
   startedAt?: number,
 ) => {
+  return runImageSectionStep({
+    fighterKey,
+    sectionId: "specsheet-image",
+    prompt,
+    correlationId,
+    startedAt,
+    objectKeyBuilder: specsheetObjectKey,
+    generator: generateSpecsheetImage,
+    emitGateOnComplete: true,
+  });
+};
+
+const runImageSectionStep = async ({
+  fighterKey,
+  sectionId,
+  prompt,
+  correlationId,
+  startedAt,
+  objectKeyBuilder,
+  generator,
+  emitGateOnComplete,
+}: {
+  fighterKey: string;
+  sectionId:
+    | "specsheet-image"
+    | "spritesheet-image"
+    | "strikecraft-specsheet-image"
+    | "strikecraft-sprite-image";
+  prompt: string;
+  correlationId?: string;
+  startedAt?: number;
+  objectKeyBuilder: (userId: string, fighterId: number, extension: string) => string;
+  generator: (prompt: string) => Promise<{ imageBase64: string; mimeType: string; model: string }>;
+  emitGateOnComplete?: boolean;
+}) => {
   const tenant = tenantByFighter.get(fighterKey);
   const state = getState(fighterKey, correlationId);
   const imageStartedAt = Date.now();
-  state.activeSectionId = "specsheet-image";
-  sendToFighter(fighterKey, { type: "section:start", sectionId: "specsheet-image" });
+  state.activeSectionId = sectionId;
+  sendToFighter(fighterKey, { type: "section:start", sectionId });
 
-  const image = await generateSpecsheetImage(prompt);
+  const image = await generator(prompt);
 
   try {
-    const { objectKey, signedUrl } = await commitSpecsheetImage({
+    const { objectKey, signedUrl } = await commitImageAsset({
       fighterKey,
       imageUrl: image.imageBase64,
       mimeTypeHint: image.mimeType,
+      objectKeyBuilder,
     });
     const output = setOutput(
       fighterKey,
-      "specsheet-image",
+      sectionId,
       objectKey,
       image.model,
       image.mimeType,
       correlationId,
       signedUrl,
     );
-    sendToFighter(fighterKey, {
-      type: "section:complete",
-      sectionId: "specsheet-image",
-      output: await sanitizeSectionOutput("specsheet-image", output),
-    });
+    await broadcastSectionComplete(fighterKey, sectionId, output);
     logger.info("pipeline section completed", {
       ...withContext(fighterKey, correlationId),
-      sectionId: "specsheet-image",
+      sectionId,
       durationMs: Date.now() - imageStartedAt,
       model: image.model,
       mimeType: image.mimeType,
@@ -484,22 +556,203 @@ const runSpecsheetImageStep = async (
     }
 
     state.activeSectionId = null;
-    state.gateMessage =
-      "Character description and specsheet are ready. Continue generating remaining assets?";
-    sendToFighter(fighterKey, {
-      type: "pipeline:gate",
-      sectionId: "specsheet-image",
-      message: state.gateMessage,
-    });
-    logger.info("pipeline gate emitted", {
-      ...withContext(fighterKey, correlationId),
-      sectionId: "specsheet-image",
-      totalDurationMs: startedAt ? Date.now() - startedAt : Date.now() - imageStartedAt,
-    });
+    if (emitGateOnComplete) {
+      state.gateMessage = "Happy with the result? Continue generating remaining assets";
+      sendToFighter(fighterKey, {
+        type: "pipeline:gate",
+        sectionId,
+        message: state.gateMessage,
+      });
+      logger.info("pipeline gate emitted", {
+        ...withContext(fighterKey, correlationId),
+        sectionId,
+        totalDurationMs: startedAt ? Date.now() - startedAt : Date.now() - imageStartedAt,
+      });
+    }
   } catch (error) {
-    emitSectionError(fighterKey, "specsheet-image", error, correlationId);
+    emitSectionError(fighterKey, sectionId, error, correlationId);
     return;
   }
+};
+
+const runPhase2Pipeline = async (fighterKey: string, correlationId?: string) => {
+  const state = getState(fighterKey, correlationId);
+  const tenant = tenantByFighter.get(fighterKey);
+  const characterDescription = state.outputs["character-description"]?.content;
+  if (!characterDescription) {
+    throw new Error("Character description is required before continuing the pipeline.");
+  }
+
+  const spritesheetPromptStartedAt = Date.now();
+  state.activeSectionId = "spritesheet-prompt";
+  sendToFighter(fighterKey, { type: "section:start", sectionId: "spritesheet-prompt" });
+  const spritesheetPrompt = await generateSpritesheetPrompt(characterDescription);
+  const spritesheetPromptOutput = setOutput(
+    fighterKey,
+    "spritesheet-prompt",
+    spritesheetPrompt.prompt,
+    spritesheetPrompt.model,
+    undefined,
+    correlationId,
+  );
+  await broadcastSectionComplete(fighterKey, "spritesheet-prompt", spritesheetPromptOutput);
+  setHistory(
+    fighterKey,
+    "spritesheet-prompt",
+    [
+      { role: "user", content: characterDescription },
+      { role: "assistant", content: spritesheetPrompt.prompt },
+    ],
+    correlationId,
+  );
+  logger.info("pipeline section completed", {
+    ...withContext(fighterKey, correlationId),
+    sectionId: "spritesheet-prompt",
+    durationMs: Date.now() - spritesheetPromptStartedAt,
+    model: spritesheetPrompt.model,
+  });
+  state.activeSectionId = null;
+  if (tenant) {
+    await persistSnapshot(fighterKey, state, tenant);
+  }
+
+  await runImageSectionStep({
+    fighterKey,
+    sectionId: "spritesheet-image",
+    prompt: spritesheetPrompt.prompt,
+    correlationId,
+    objectKeyBuilder: spritesheetImageObjectKey,
+    generator: generateSpritesheetImage,
+  });
+
+  const agentCodeStartedAt = Date.now();
+  state.activeSectionId = "agent-code";
+  sendToFighter(fighterKey, { type: "section:start", sectionId: "agent-code" });
+  const agentCode = await generateAgentCode(characterDescription);
+  const agentCodeOutput = setOutput(
+    fighterKey,
+    "agent-code",
+    agentCode.code,
+    agentCode.model,
+    undefined,
+    correlationId,
+  );
+  await broadcastSectionComplete(fighterKey, "agent-code", agentCodeOutput);
+  setHistory(
+    fighterKey,
+    "agent-code",
+    [
+      { role: "user", content: characterDescription },
+      { role: "assistant", content: agentCode.code },
+    ],
+    correlationId,
+  );
+  logger.info("pipeline section completed", {
+    ...withContext(fighterKey, correlationId),
+    sectionId: "agent-code",
+    durationMs: Date.now() - agentCodeStartedAt,
+    model: agentCode.model,
+  });
+  state.activeSectionId = null;
+  if (tenant) {
+    await persistSnapshot(fighterKey, state, tenant);
+  }
+
+  const strikecraftSpecsheetPromptStartedAt = Date.now();
+  state.activeSectionId = "strikecraft-specsheet-prompt";
+  sendToFighter(fighterKey, { type: "section:start", sectionId: "strikecraft-specsheet-prompt" });
+  const strikecraftSpecsheetPrompt = await generateStrikecraftSpecsheetPrompt(characterDescription);
+  const strikecraftSpecsheetPromptOutput = setOutput(
+    fighterKey,
+    "strikecraft-specsheet-prompt",
+    strikecraftSpecsheetPrompt.prompt,
+    strikecraftSpecsheetPrompt.model,
+    undefined,
+    correlationId,
+  );
+  await broadcastSectionComplete(
+    fighterKey,
+    "strikecraft-specsheet-prompt",
+    strikecraftSpecsheetPromptOutput,
+  );
+  setHistory(
+    fighterKey,
+    "strikecraft-specsheet-prompt",
+    [
+      { role: "user", content: characterDescription },
+      { role: "assistant", content: strikecraftSpecsheetPrompt.prompt },
+    ],
+    correlationId,
+  );
+  logger.info("pipeline section completed", {
+    ...withContext(fighterKey, correlationId),
+    sectionId: "strikecraft-specsheet-prompt",
+    durationMs: Date.now() - strikecraftSpecsheetPromptStartedAt,
+    model: strikecraftSpecsheetPrompt.model,
+  });
+  state.activeSectionId = null;
+  if (tenant) {
+    await persistSnapshot(fighterKey, state, tenant);
+  }
+
+  await runImageSectionStep({
+    fighterKey,
+    sectionId: "strikecraft-specsheet-image",
+    prompt: strikecraftSpecsheetPrompt.prompt,
+    correlationId,
+    objectKeyBuilder: strikecraftSpecsheetObjectKey,
+    generator: generateStrikecraftSpecsheetImage,
+  });
+
+  const strikecraftSpritePromptStartedAt = Date.now();
+  state.activeSectionId = "strikecraft-sprite-prompt";
+  sendToFighter(fighterKey, { type: "section:start", sectionId: "strikecraft-sprite-prompt" });
+  const strikecraftSpritePrompt = await generateStrikecraftSpritePrompt(
+    strikecraftSpecsheetPrompt.prompt,
+  );
+  const strikecraftSpritePromptOutput = setOutput(
+    fighterKey,
+    "strikecraft-sprite-prompt",
+    strikecraftSpritePrompt.prompt,
+    strikecraftSpritePrompt.model,
+    undefined,
+    correlationId,
+  );
+  await broadcastSectionComplete(
+    fighterKey,
+    "strikecraft-sprite-prompt",
+    strikecraftSpritePromptOutput,
+  );
+  setHistory(
+    fighterKey,
+    "strikecraft-sprite-prompt",
+    [
+      { role: "user", content: strikecraftSpecsheetPrompt.prompt },
+      { role: "assistant", content: strikecraftSpritePrompt.prompt },
+    ],
+    correlationId,
+  );
+  logger.info("pipeline section completed", {
+    ...withContext(fighterKey, correlationId),
+    sectionId: "strikecraft-sprite-prompt",
+    durationMs: Date.now() - strikecraftSpritePromptStartedAt,
+    model: strikecraftSpritePrompt.model,
+  });
+  state.activeSectionId = null;
+  if (tenant) {
+    await persistSnapshot(fighterKey, state, tenant);
+  }
+
+  await runImageSectionStep({
+    fighterKey,
+    sectionId: "strikecraft-sprite-image",
+    prompt: strikecraftSpritePrompt.prompt,
+    correlationId,
+    objectKeyBuilder: strikecraftSpriteObjectKey,
+    generator: generateStrikecraftSpriteImage,
+  });
+
+  state.activeSectionId = null;
 };
 
 export const startPipeline = async (fighterKey: string, prompt: string, correlationId?: string) => {
@@ -697,14 +950,34 @@ export const generateSpecsheetFromCharacterDescription = async (
 
 export const continuePipeline = async (fighterKey: string, correlationId?: string) => {
   logger.info("pipeline continue requested", withContext(fighterKey, correlationId));
+  requireTenant(fighterKey);
   const state = getState(fighterKey, correlationId);
   state.gateMessage = null;
-  sendToFighter(fighterKey, { type: "pipeline:complete" });
   const tenant = tenantByFighter.get(fighterKey);
   if (tenant) {
     await persistSnapshot(fighterKey, state, tenant);
   }
-  logger.info("pipeline marked complete", withContext(fighterKey, correlationId));
+
+  try {
+    await runPhase2Pipeline(fighterKey, correlationId);
+    sendToFighter(fighterKey, { type: "pipeline:complete" });
+    logger.info("pipeline marked complete", withContext(fighterKey, correlationId));
+  } catch (error) {
+    logger.error("phase 2 pipeline failed", {
+      ...withContext(fighterKey, correlationId),
+      error: getErrorMessage(error),
+    });
+    emitSectionError(
+      fighterKey,
+      getState(fighterKey, correlationId).activeSectionId ?? "spritesheet-prompt",
+      error,
+      correlationId,
+    );
+  } finally {
+    if (tenant) {
+      await syncPipelineState(fighterKey);
+    }
+  }
 };
 
 export const refineSection = async (
@@ -788,12 +1061,13 @@ export const refineSection = async (
         sectionId,
         model: refined.model,
       });
-    } else {
+    } else if (sectionId === "specsheet-image") {
       const generated = await generateSpecsheetImage(message);
-      const committed = await commitSpecsheetImage({
+      const committed = await commitImageAsset({
         fighterKey,
         imageUrl: generated.imageBase64,
         mimeTypeHint: generated.mimeType,
+        objectKeyBuilder: imageObjectKeyBuilders["specsheet-image"],
       });
 
       const outputRecord = setOutput(
@@ -813,6 +1087,8 @@ export const refineSection = async (
         model: generated.model,
         mimeType: generated.mimeType,
       });
+    } else {
+      throw new Error(`Refine is not supported for section "${sectionId}".`);
     }
 
     if (tenant) {
@@ -877,11 +1153,13 @@ export const editSection = async (
     const model = previous?.model ?? "manual-edit";
     const mimeType = previous?.mimeType;
 
-    if (sectionId === "specsheet-image") {
-      const committed = await commitSpecsheetImage({
+    if (isImageSection(sectionId)) {
+      const objectKeyBuilder = imageObjectKeyBuilders[sectionId];
+      const committed = await commitImageAsset({
         fighterKey,
         imageUrl: content,
         mimeTypeHint: mimeType ?? "image/png",
+        objectKeyBuilder,
       });
       const outputRecord = setOutput(
         fighterKey,
