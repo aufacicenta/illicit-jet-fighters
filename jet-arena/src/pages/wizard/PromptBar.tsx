@@ -1,3 +1,4 @@
+import { SendHorizontal } from "lucide-react";
 import { useMemo } from "react";
 
 import { Button } from "../../components/ui/button";
@@ -28,8 +29,8 @@ export const PromptBar = () => {
   );
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-800 bg-slate-950/95 backdrop-blur">
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-3 p-4">
+    <div className="mt-4 rounded-lg border border-slate-800 bg-slate-950/90 p-4">
+      <div className="flex flex-col gap-3">
         {gateMessage ? (
           <div className="flex items-center justify-between rounded-md border border-sky-600/40 bg-sky-950/30 p-3 text-sm text-sky-100">
             <span>{gateMessage}</span>
@@ -60,9 +61,9 @@ export const PromptBar = () => {
           </ScrollArea>
         ) : null}
 
-        <div className="flex items-end gap-3">
+        <div className="relative">
           <Textarea
-            className="min-h-20"
+            className="min-h-20 w-full pr-14"
             onChange={(event) => setPromptInput(event.target.value)}
             placeholder={
               activeSectionId
@@ -72,12 +73,15 @@ export const PromptBar = () => {
             value={promptInput}
           />
           <Button
-            className="shrink-0"
+            className="absolute right-2 bottom-2 h-9! w-9! rounded-full p-0"
+            size="sm"
             onClick={() => {
               void submitPrompt();
             }}
+            type="button"
           >
-            Send
+            <SendHorizontal className="size-4" />
+            <span className="sr-only">Send</span>
           </Button>
         </div>
       </div>

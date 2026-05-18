@@ -1,6 +1,6 @@
 import "./styles.css";
 
-import { APP_DEFAULTS,resolveDefaultAgentKey, resolveDefaultBattlefieldKey } from "./app-defaults";
+import { APP_DEFAULTS, resolveDefaultAgentKey, resolveDefaultBattlefieldKey } from "./app-defaults";
 import { loadBattlefieldRegistry } from "./battlefield-config";
 import { registerServiceWorker } from "./network-lockdown";
 import { GameOrchestrator } from "./orchestrator";

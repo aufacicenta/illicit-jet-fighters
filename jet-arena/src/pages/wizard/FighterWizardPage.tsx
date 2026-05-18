@@ -19,7 +19,7 @@ const WizardLayout = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-6 px-6 py-6 pb-56">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-6 px-6 py-6">
         <header className="space-y-1">
           <h1 className="text-2xl font-semibold">Fighter Wizard</h1>
           <p className="text-sm text-slate-400">
@@ -39,11 +39,11 @@ const WizardLayout = () => {
             <SpecsheetSection />
             <LockedSection title="Spritesheet (coming next)" />
             <LockedSection title="Strikecraft Sheets (coming next)" />
+            <PromptBar />
           </div>
           <PreviewPanel />
         </div>
       </div>
-      <PromptBar />
     </div>
   );
 };

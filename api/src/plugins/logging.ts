@@ -140,7 +140,8 @@ export const logServerStartup = (app: RoutableApp, server: StartupServer | null)
       return left.method.localeCompare(right.method);
     });
 
-  const baseUrl = server?.url?.origin ?? `http://${server?.hostname ?? "localhost"}:${server?.port ?? "?"}`;
+  const baseUrl =
+    server?.url?.origin ?? `http://${server?.hostname ?? "localhost"}:${server?.port ?? "?"}`;
 
   logger.info("API server started", {
     url: baseUrl,

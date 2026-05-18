@@ -1,9 +1,12 @@
 import { Elysia } from "elysia";
 
+import { createCorrelationId } from "../../../lib/correlation-id";
 import {
   generateCharacterDescription,
   generateCharacterDescriptionRefine,
 } from "../../../lib/generate";
+import { withCorrelationContext } from "../../../lib/log-context";
+import { logger } from "../../../lib/logger";
 import type {
   CharacterDescriptionRefineRequest,
   CharacterDescriptionRequest,
@@ -12,11 +15,70 @@ import type {
 
 export const characterDescriptionRoute = new Elysia()
   .post("/character-description", async ({ body }) => {
+    const startedAt = Date.now();
+    const correlationId = createCorrelationId("generate-character-description");
     const { prompt } = body as CharacterDescriptionRequest;
-    const generated = await generateCharacterDescription(prompt);
-    return generated satisfies CharacterDescriptionResponse;
+    logger.info(
+      "generate character description requested",
+      withCorrelationContext(correlationId, { path: "/generate/character-description" }),
+    );
+    try {
+      const generated = await generateCharacterDescription(prompt);
+      logger.info(
+        "generate character description completed",
+        withCorrelationContext(correlationId, {
+          path: "/generate/character-description",
+          durationMs: Date.now() - startedAt,
+          promptLength: prompt.length,
+          model: generated.model,
+        }),
+      );
+      return generated satisfies CharacterDescriptionResponse;
+    } catch (error) {
+      logger.error(
+        "generate character description failed",
+        withCorrelationContext(correlationId, {
+          path: "/generate/character-description",
+          durationMs: Date.now() - startedAt,
+          promptLength: prompt.length,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
+      throw error;
+    }
   })
   .post("/character-description/refine", async ({ body }) => {
+    const startedAt = Date.now();
+    const correlationId = createCorrelationId("generate-character-description-refine");
     const { message, history } = body as CharacterDescriptionRefineRequest;
-    return generateCharacterDescriptionRefine(history, message);
+    logger.info(
+      "refine character description requested",
+      withCorrelationContext(correlationId, { path: "/generate/character-description/refine" }),
+    );
+    try {
+      const refined = await generateCharacterDescriptionRefine(history, message);
+      logger.info(
+        "refine character description completed",
+        withCorrelationContext(correlationId, {
+          path: "/generate/character-description/refine",
+          durationMs: Date.now() - startedAt,
+          messageLength: message.length,
+          historyLength: history.length,
+          model: refined.model,
+        }),
+      );
+      return refined;
+    } catch (error) {
+      logger.error(
+        "refine character description failed",
+        withCorrelationContext(correlationId, {
+          path: "/generate/character-description/refine",
+          durationMs: Date.now() - startedAt,
+          messageLength: message.length,
+          historyLength: history.length,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
+      throw error;
+    }
   });

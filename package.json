@@ -34,4 +34,5 @@
   "patchedDependencies": {
     "@openrouter/sdk@0.12.35": "patches/@openrouter%2Fsdk@0.12.35.patch"
   }
+  }
 }
