@@ -4,7 +4,8 @@
   "type": "module",
   "workspaces": [
     "api",
-    "jet-arena"
+    "jet-arena",
+    "database"
   ],
   "scripts": {
     "lint": "bun run --workspaces lint:fix",
@@ -33,6 +34,5 @@
   },
   "patchedDependencies": {
     "@openrouter/sdk@0.12.35": "patches/@openrouter%2Fsdk@0.12.35.patch"
-  }
   }
 }

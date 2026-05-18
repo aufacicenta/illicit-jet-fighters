@@ -25,7 +25,7 @@ export const disableNetworkLockdown = (): void => {
   postNetworkState("GAME_END");
 };
 
-export const lockdownWorkerNetwork = (scope: DedicatedWorkerGlobalScope): void => {
+export const lockdownWorkerNetwork = (scope: typeof globalThis): void => {
   const denied = () => {
     throw new Error("Network access is blocked during matches.");
   };

@@ -51,7 +51,7 @@ const compileAgent = (code: string, tfLib: unknown): AgentModule => {
 
 const handleLoadAgent = async (code: string): Promise<void> => {
   try {
-    lockdownWorkerNetwork(self as DedicatedWorkerGlobalScope);
+    lockdownWorkerNetwork(self);
     const needsTensorFlow = /\btf\./.test(code);
     const tfLib = needsTensorFlow ? await import("@tensorflow/tfjs") : undefined;
     agent = compileAgent(code, tfLib);

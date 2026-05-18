@@ -22,7 +22,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   eslintConfigPrettier,
   {
-    files: ["api/**/*.ts", "jet-arena/**/*.{ts,tsx}"],
+    files: ["api/**/*.ts", "database/**/*.ts", "jet-arena/**/*.{ts,tsx}"],
     plugins: {
       "simple-import-sort": simpleImportSort,
       "unused-imports": unusedImports,
@@ -52,6 +52,16 @@ export default tseslint.config(
   },
   {
     files: ["api/**/*.ts"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.es2021,
+        Bun: "readonly",
+      },
+    },
+  },
+  {
+    files: ["database/**/*.ts"],
     languageOptions: {
       globals: {
         ...globals.node,

@@ -1,0 +1,33 @@
+import {
+  index,
+  pgSchema,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
+
+const neonAuthSchema = pgSchema("neon_auth");
+
+const neonAuthUser = neonAuthSchema.table("user", {
+  id: text("id").primaryKey(),
+});
+
+export const fighters = pgTable(
+  "fighters",
+  {
+    id: serial("id").primaryKey(),
+    slug: text("slug").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => neonAuthUser.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("fighters_slug_key").on(table.slug),
+    index("fighters_user_id_idx").on(table.userId),
+  ],
+);

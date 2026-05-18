@@ -13,6 +13,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@ijf/database": "workspace:*",
     "@elysiajs/cors": "^1.4.2",
     "@openrouter/sdk": "^0.12.35",
     "elysia": "^1.4.28"
