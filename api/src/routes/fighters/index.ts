@@ -2,6 +2,7 @@ import type { MyFightersResponse } from "@ijf/shared";
 import { Elysia } from "elysia";
 
 import {
+  createFighterForUser,
   ensureFighterForUser,
   fighterKeyFromId,
   listOwnedFighters,
@@ -14,6 +15,11 @@ import {
 import { requireBearerAuth } from "../../lib/require-bearer-auth";
 
 export const fighterSessionRoutes = new Elysia({ prefix: "/fighters" })
+  .post("", async ({ request, headers }) => {
+    const auth = await requireBearerAuth(request, headers);
+    const id = await createFighterForUser(auth.userId);
+    return { id };
+  })
   .post("/session", async ({ request, headers }) => {
     const auth = await requireBearerAuth(request, headers);
     const id = await ensureFighterForUser(auth.userId);

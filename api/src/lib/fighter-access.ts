@@ -24,22 +24,7 @@ export const getOwnedFighter = async (
   return rows[0];
 };
 
-export const ensureFighterForUser = async (userId: string): Promise<number> => {
-  const existing = await db
-    .select({ id: fighters.id })
-    .from(fighters)
-    .where(eq(fighters.userId, userId))
-    .orderBy(asc(fighters.id))
-    .limit(1);
-
-  if (existing.length > 0) {
-    const first = existing[0];
-    if (!first?.id) {
-      throw new Error("Invalid fighter lookup.");
-    }
-    return first.id;
-  }
-
+export const createFighterForUser = async (userId: string): Promise<number> => {
   const slug = await generateUniqueFighterSlug(async (candidate) => {
     const row = await db
       .select({ id: fighters.id })
@@ -60,6 +45,25 @@ export const ensureFighterForUser = async (userId: string): Promise<number> => {
   }
 
   return id;
+};
+
+export const ensureFighterForUser = async (userId: string): Promise<number> => {
+  const existing = await db
+    .select({ id: fighters.id })
+    .from(fighters)
+    .where(eq(fighters.userId, userId))
+    .orderBy(asc(fighters.id))
+    .limit(1);
+
+  if (existing.length > 0) {
+    const first = existing[0];
+    if (!first?.id) {
+      throw new Error("Invalid fighter lookup.");
+    }
+    return first.id;
+  }
+
+  return createFighterForUser(userId);
 };
 
 export type OwnedFighterListItem = {

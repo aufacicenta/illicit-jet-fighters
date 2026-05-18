@@ -62,6 +62,7 @@ const post = async <TResponse>(url: string, body: Record<string, unknown>): Prom
 };
 
 export const fighterSessionPost = async () => post<{ id: number }>(apiRoutes.fighterSession, {});
+export const fighterCreatePost = async () => post<{ id: number }>(apiRoutes.fighters, {});
 
 export const fetchMyFighters = async (): Promise<MyFightersResponse> => {
   const response = await fetch(apiRoutes.fighters, {

@@ -26,7 +26,7 @@ const WS_BASE = resolveWsBase();
 
 export const routes = {
   broadcast: (id: string) => `/broadcast/${id}`,
-  /** Loads fighter session then redirects into the intake wizard. */
+  /** Opens the create-fighter flow and provisions a fresh fighter record. */
   createFighter: () => `/fighters/new`,
   fighterWizard: (id: string) => `/wizard/fighter/${id}`,
   terminalFighters: () => `/terminal/fighters`,
