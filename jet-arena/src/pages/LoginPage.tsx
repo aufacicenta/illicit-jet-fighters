@@ -1,29 +1,18 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { Button } from "../components/ui/button";
 import { useAuth } from "../context/Auth/useAuth";
 import { routes } from "../hooks/useRoutes";
-import { navigateToNewFighterWizard } from "../lib/navigate-new-fighter-wizard";
 
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { signInWithEmail, isBootstrapping, configError, isAuthenticated } = useAuth();
+  const { signInWithEmail, signOut, isBootstrapping, configError, isAuthenticated } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  if (!isBootstrapping && isAuthenticated && !configError) {
-    const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
-    if (typeof from === "string" && from.startsWith("/")) {
-      return <Navigate replace to={from} />;
-    }
-
-    return <Navigate replace to="/broadcast/local" />;
-  }
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -36,9 +25,18 @@ export const LoginPage = () => {
         return;
       }
 
-      await navigateToNewFighterWizard(navigate, { replace: true });
+      navigate(routes.createFighter(), { replace: true });
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Sign-in failed.");
+    }
+  };
+
+  const onSignOut = async () => {
+    setErrorMessage(null);
+    try {
+      await signOut();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Sign-out failed.");
     }
   };
 
@@ -60,44 +58,67 @@ export const LoginPage = () => {
           </div>
         ) : null}
 
-        <form className="space-y-4" onSubmit={onSubmit}>
-          <label className="flex flex-col gap-1 text-xs tracking-wide uppercase">
-            Email
-            <input
-              autoComplete="email"
-              className="rounded-sm border border-border bg-background px-3 py-2 text-sm tracking-normal text-foreground normal-case"
-              disabled={Boolean(configError) || isBootstrapping}
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              type="email"
-              required
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-xs tracking-wide uppercase">
-            Password
-            <input
-              autoComplete="current-password"
-              className="rounded-sm border border-border bg-background px-3 py-2 text-sm tracking-normal text-foreground normal-case"
-              disabled={Boolean(configError) || isBootstrapping}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              type="password"
-              required
-            />
-          </label>
-          {errorMessage ? (
-            <div className="rounded-sm border border-destructive/40 bg-destructive/10 p-3 text-sm normal-case">
-              {errorMessage}
+        {!isBootstrapping && isAuthenticated && !configError ? (
+          <div className="space-y-4">
+            <div className="rounded-sm border border-border bg-background p-3 text-sm normal-case">
+              Existing session detected. Continue to fighter setup or sign out first.
             </div>
-          ) : null}
-          <Button
-            className="w-full tracking-[0.12em] uppercase"
-            disabled={Boolean(configError) || isBootstrapping}
-            type="submit"
-          >
-            Enter arena
-          </Button>
-        </form>
+            <Button
+              className="w-full tracking-[0.12em] uppercase"
+              onClick={() => navigate(routes.createFighter(), { replace: true })}
+              type="button"
+            >
+              Continue to intake
+            </Button>
+            <Button
+              className="w-full tracking-[0.12em] uppercase"
+              onClick={onSignOut}
+              type="button"
+              variant="outline"
+            >
+              Sign out
+            </Button>
+          </div>
+        ) : (
+          <form className="space-y-4" onSubmit={onSubmit}>
+            <label className="flex flex-col gap-1 text-xs tracking-wide uppercase">
+              Email
+              <input
+                autoComplete="email"
+                className="rounded-sm border border-border bg-background px-3 py-2 text-sm tracking-normal text-foreground normal-case"
+                disabled={Boolean(configError) || isBootstrapping}
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                type="email"
+                required
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs tracking-wide uppercase">
+              Password
+              <input
+                autoComplete="current-password"
+                className="rounded-sm border border-border bg-background px-3 py-2 text-sm tracking-normal text-foreground normal-case"
+                disabled={Boolean(configError) || isBootstrapping}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                type="password"
+                required
+              />
+            </label>
+            {errorMessage ? (
+              <div className="rounded-sm border border-destructive/40 bg-destructive/10 p-3 text-sm normal-case">
+                {errorMessage}
+              </div>
+            ) : null}
+            <Button
+              className="w-full tracking-[0.12em] uppercase"
+              disabled={Boolean(configError) || isBootstrapping}
+              type="submit"
+            >
+              Enter arena
+            </Button>
+          </form>
+        )}
 
         <p className="text-center text-xs text-muted-foreground normal-case">
           Need clearance?{" "}

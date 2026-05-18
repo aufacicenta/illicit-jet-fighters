@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { RequireAuth } from "./context/Auth/RequireAuth";
 import { routes } from "./hooks/useRoutes";
 import { BroadcastPage } from "./pages/BroadcastPage";
+import { CreateFighterPage } from "./pages/CreateFighterPage";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
 import { FighterWizardPage } from "./pages/wizard/FighterWizardPage";
@@ -21,7 +22,15 @@ export const router = createBrowserRouter([
     element: <BroadcastPage />,
   },
   {
-    path: routes.fighterWizard(":id"),
+    path: routes.createFighter(),
+    element: (
+      <RequireAuth>
+        <CreateFighterPage />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: "/wizard/fighter/:id",
     element: (
       <RequireAuth>
         <FighterWizardPage />

@@ -1,19 +1,20 @@
 import { createRemoteJWKSet, type JWTPayload, jwtVerify } from "jose";
 
-const neonAuthUrl = process.env.NEON_AUTH_URL;
+import { env } from "../config/env";
 
-if (!neonAuthUrl) {
-  throw new Error("NEON_AUTH_URL is required for JWT verification.");
-}
+const neonAuthUrl = env.NEON_AUTH_URL;
 
 const jwksUrl = new URL(
-  "/.well-known/jwks.json",
+  ".well-known/jwks.json",
   neonAuthUrl.endsWith("/") ? neonAuthUrl : `${neonAuthUrl}/`,
 );
 
 const JWKS = createRemoteJWKSet(jwksUrl);
 
-const issuer = new URL(neonAuthUrl).origin;
+const normalizedNeonAuthUrl = neonAuthUrl.replace(/\/+$/, "");
+const issuerCandidates = Array.from(
+  new Set([normalizedNeonAuthUrl, new URL(normalizedNeonAuthUrl).origin]),
+);
 
 export type AuthPayload = {
   userId: string;
@@ -23,8 +24,7 @@ export type AuthPayload = {
 
 export const verifyJwt = async (token: string): Promise<AuthPayload> => {
   const { payload } = await jwtVerify(token, JWKS, {
-    issuer,
-    audience: issuer,
+    issuer: issuerCandidates,
   });
 
   const claims = payload as JWTPayload & {

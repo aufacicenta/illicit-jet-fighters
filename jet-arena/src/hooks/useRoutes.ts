@@ -1,9 +1,19 @@
-/** Same-origin in dev (Vite proxy); override with VITE_API_URL for direct API access. */
-export const API_BASE = import.meta.env.VITE_API_URL ?? "";
+import { resolveApiBase } from "../config/apiBase";
+
+const envApiBase = resolveApiBase({
+  apiBase: import.meta.env.VITE_API_URL,
+  isDev: import.meta.env.DEV,
+});
+
+/** In dev without VITE_API_URL, call the API on :4000 directly (matches API default PORT); override with VITE_API_URL otherwise. */
+export const API_BASE = envApiBase;
 
 const resolveWsBase = (): string => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL.replace(/^http/, "ws");
+  if (envApiBase.length > 0) {
+    return envApiBase.replace(/^http/, "ws").replace(/\/+$/, "");
+  }
+  if (import.meta.env.DEV) {
+    return "ws://localhost:4000";
   }
   if (typeof window !== "undefined") {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -16,6 +26,8 @@ const WS_BASE = resolveWsBase();
 
 export const routes = {
   broadcast: (id: string) => `/broadcast/${id}`,
+  /** Loads fighter session then redirects into the intake wizard. */
+  createFighter: () => `/fighters/new`,
   fighterWizard: (id: string) => `/wizard/fighter/${id}`,
   login: () => `/login`,
   signup: () => `/signup`,

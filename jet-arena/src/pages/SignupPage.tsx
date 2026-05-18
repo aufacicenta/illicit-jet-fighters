@@ -5,7 +5,6 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../context/Auth/useAuth";
 import { routes } from "../hooks/useRoutes";
-import { navigateToNewFighterWizard } from "../lib/navigate-new-fighter-wizard";
 
 export const SignupPage = () => {
   const navigate = useNavigate();
@@ -24,7 +23,7 @@ export const SignupPage = () => {
       return <Navigate replace to={from} />;
     }
 
-    return <Navigate replace to="/broadcast/local" />;
+    return <Navigate replace to={routes.createFighter()} />;
   }
 
   const onSubmit = async (event: FormEvent) => {
@@ -47,7 +46,7 @@ export const SignupPage = () => {
         return;
       }
 
-      await navigateToNewFighterWizard(navigate, { replace: true });
+      navigate(routes.createFighter(), { replace: true });
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Sign-up failed.");
     }

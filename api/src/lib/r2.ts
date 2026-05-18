@@ -8,10 +8,12 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
+import { env } from "../config/env";
+
 let cachedClient: S3Client | null = null;
 
 const getBucket = () => {
-  const bucket = process.env.R2_BUCKET;
+  const bucket = env.R2_BUCKET;
   if (!bucket) {
     throw new Error("R2_BUCKET is required.");
   }
@@ -24,23 +26,23 @@ const getClient = (): S3Client => {
     return cachedClient;
   }
 
-  const bucket = process.env.R2_BUCKET;
-  const endpoint = process.env.R2_ENDPOINT;
+  const bucket = env.R2_BUCKET;
+  const endpoint = env.R2_ENDPOINT;
 
   if (!bucket || !endpoint) {
     throw new Error("R2_BUCKET and R2_ENDPOINT are required.");
   }
 
-  const region = process.env.R2_REGION ?? "auto";
+  const region = env.R2_REGION ?? "auto";
 
   cachedClient = new S3Client({
     region,
     endpoint,
     credentials:
-      process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY
+      env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY
         ? {
-            accessKeyId: process.env.R2_ACCESS_KEY_ID,
-            secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+            accessKeyId: env.R2_ACCESS_KEY_ID,
+            secretAccessKey: env.R2_SECRET_ACCESS_KEY,
           }
         : undefined,
     forcePathStyle: true,

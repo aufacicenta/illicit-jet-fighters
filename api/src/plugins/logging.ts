@@ -1,5 +1,6 @@
 import type { Elysia } from "elysia";
 
+import { env } from "../config/env";
 import { logger } from "../lib/logger";
 
 type RequestContext = {
@@ -42,6 +43,46 @@ const summarizeBody = (body: unknown): string | undefined => {
   }
 
   return `{ ${keys.join(", ")} }`;
+};
+
+const stringifyUnknown = (value: unknown): string => {
+  try {
+    return typeof value === "string" ? value : JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+};
+
+const serializeUnknownError = (error: unknown): Record<string, unknown> => {
+  if (error instanceof Error) {
+    return {
+      kind: "Error",
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause ? stringifyUnknown(error.cause) : undefined,
+    };
+  }
+
+  if (error && typeof error === "object") {
+    const maybe = error as Record<string, unknown>;
+    return {
+      kind: maybe.constructor?.name ?? "Object",
+      name: typeof maybe.name === "string" ? maybe.name : undefined,
+      message: typeof maybe.message === "string" ? maybe.message : undefined,
+      code: typeof maybe.code === "string" ? maybe.code : undefined,
+      status:
+        typeof maybe.status === "number" || typeof maybe.status === "string"
+          ? maybe.status
+          : undefined,
+      summary: stringifyUnknown(maybe),
+    };
+  }
+
+  return {
+    kind: typeof error,
+    summary: String(error),
+  };
 };
 
 const getRequestContext = (request: Request): RequestContext => {
@@ -98,7 +139,7 @@ export const withLogging = (app: Elysia): Elysia =>
       const context = getRequestContext(request);
       const durationMs = Math.round(performance.now() - context.startedAt);
       const status = getStatusCode(set.status);
-      const message = error instanceof Error ? error.message : String(error);
+      const details = serializeUnknownError(error);
 
       logger.error("request failed", {
         requestId: context.requestId,
@@ -106,7 +147,8 @@ export const withLogging = (app: Elysia): Elysia =>
         path: getRequestPath(request),
         status,
         durationMs,
-        error: message,
+        error: details.message ?? details.summary,
+        errorDetails: details,
       });
     });
 
@@ -149,7 +191,7 @@ export const logServerStartup = (app: RoutableApp, server: StartupServer | null)
     port: server?.port,
     development: server?.development,
     pid: process.pid,
-    nodeEnv: process.env.NODE_ENV ?? "development",
+    nodeEnv: env.NODE_ENV,
   });
 
   logger.info(`registered routes (${routes.length})`);

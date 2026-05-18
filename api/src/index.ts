@@ -1,6 +1,7 @@
 import { cors } from "@elysiajs/cors";
 import { Elysia } from "elysia";
 
+import { env } from "./config/env";
 import { logServerStartup, withLogging } from "./plugins/logging";
 import { fighterSessionRoutes } from "./routes/fighters";
 import { generateRoutes } from "./routes/generate";
@@ -8,8 +9,8 @@ import { pipelineRoutes } from "./routes/pipeline";
 import { agentRoutes, assetRoutes } from "./routes/storage";
 import { wsHandler } from "./ws";
 
-const PORT = Number(process.env.PORT) || 4000;
-const HOST = process.env.HOST ?? "0.0.0.0";
+const PORT = env.PORT;
+const HOST = env.HOST;
 
 const guardedHttp = new Elysia({ name: "guarded-http" })
   .use(fighterSessionRoutes)

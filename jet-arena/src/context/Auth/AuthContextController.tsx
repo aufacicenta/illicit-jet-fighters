@@ -150,7 +150,6 @@ export const AuthContextController = ({ children }: { children: ReactNode }) => 
 
     setToken(null);
     setApiAccessToken(undefined);
-    signingOutRef.current = false;
   }, []);
 
   const value = useMemo<AuthContextValue>(

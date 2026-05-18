@@ -4,7 +4,7 @@ export const registerServiceWorker = async (): Promise<void> => {
   }
 
   try {
-    await navigator.serviceWorker.register("/service-worker.js");
+    await navigator.serviceWorker.register("/service-worker.js", { scope: "/broadcast/" });
     await navigator.serviceWorker.ready;
   } catch (error) {
     console.warn("Service worker registration failed:", error);
