@@ -26,7 +26,9 @@ export const validateBattlefieldConfig = (config: BattlefieldConfig): void => {
   const spawnCells = new Set<string>();
   for (const [index, [sx, sy]] of config.spawnPoints.entries()) {
     if (!arena.containsPoint(sx, sy)) {
-      throw new Error(`Battlefield "${config.name}" spawn point #${index + 1} is outside the boundary.`);
+      throw new Error(
+        `Battlefield "${config.name}" spawn point #${index + 1} is outside the boundary.`,
+      );
     }
     const clearances = getClearances(arena, sx, sy, spawnAltitude);
     if (clearances.boundary < CONFIG.JET_HIT_RADIUS * 2) {
@@ -56,7 +58,10 @@ export const validateBattlefieldConfig = (config: BattlefieldConfig): void => {
       const y = minY + (row + 0.5) * cellSize;
       if (!arena.containsPoint(x, y)) continue;
       const clearances = getClearances(arena, x, y, spawnAltitude);
-      if (clearances.boundary < CONFIG.JET_HIT_RADIUS || clearances.interior < CONFIG.JET_HIT_RADIUS) {
+      if (
+        clearances.boundary < CONFIG.JET_HIT_RADIUS ||
+        clearances.interior < CONFIG.JET_HIT_RADIUS
+      ) {
         continue;
       }
       traversable.add(keyFor(col, row));
@@ -115,7 +120,8 @@ const getClearances = (arena: ArenaShape, x: number, y: number, altitude: number
 
   return {
     boundary: boundaryDistance,
-    interior: interiorDistances.length > 0 ? Math.min(...interiorDistances) : Number.POSITIVE_INFINITY,
+    interior:
+      interiorDistances.length > 0 ? Math.min(...interiorDistances) : Number.POSITIVE_INFINITY,
   };
 };
 

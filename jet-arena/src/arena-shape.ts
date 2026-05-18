@@ -147,8 +147,7 @@ export class ArenaShape {
       const vi = vertices[i]!;
       const vj = vertices[j]!;
       const intersects =
-        vi.y > y !== vj.y > y &&
-        x < ((vj.x - vi.x) * (y - vi.y)) / (vj.y - vi.y + EPSILON) + vi.x;
+        vi.y > y !== vj.y > y && x < ((vj.x - vi.x) * (y - vi.y)) / (vj.y - vi.y + EPSILON) + vi.x;
       if (intersects) inside = !inside;
     }
     return inside;
@@ -234,9 +233,10 @@ export class ArenaShape {
       const dist = distance(point, closest);
       if (dist > maxDistance) continue;
 
-      const normal = dist <= EPSILON
-        ? normalize(segment.to.y - segment.from.y, -(segment.to.x - segment.from.x))
-        : normalize(point.x - closest.x, point.y - closest.y);
+      const normal =
+        dist <= EPSILON
+          ? normalize(segment.to.y - segment.from.y, -(segment.to.x - segment.from.x))
+          : normalize(point.x - closest.x, point.y - closest.y);
       contacts.push({
         distance: dist,
         normalX: normal.x,
@@ -253,7 +253,13 @@ export class ArenaShape {
     return contacts;
   }
 
-  rayIntersectsWall(fromX: number, fromY: number, toX: number, toY: number, altitude: number): boolean {
+  rayIntersectsWall(
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+    altitude: number,
+  ): boolean {
     const from = { x: fromX, y: fromY };
     const to = { x: toX, y: toY };
 
@@ -318,9 +324,10 @@ export class ArenaShape {
       const dist = distance(point, closest);
       if (dist >= hitRadius) continue;
 
-      const normal = dist <= EPSILON
-        ? normalize(segment.to.y - segment.from.y, -(segment.to.x - segment.from.x))
-        : normalize(point.x - closest.x, point.y - closest.y);
+      const normal =
+        dist <= EPSILON
+          ? normalize(segment.to.y - segment.from.y, -(segment.to.x - segment.from.x))
+          : normalize(point.x - closest.x, point.y - closest.y);
       const penetration = hitRadius - dist;
       nextX += normal.x * penetration;
       nextY += normal.y * penetration;

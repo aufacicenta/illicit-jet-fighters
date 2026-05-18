@@ -5,7 +5,10 @@ export const APP_DEFAULTS = {
   fallbackBattlefieldKey: "classic-arena",
 } as const;
 
-const pickFirstExistingKey = <T>(registry: Record<string, T>, keys: readonly string[]): string | null => {
+const pickFirstExistingKey = <T>(
+  registry: Record<string, T>,
+  keys: readonly string[],
+): string | null => {
   for (const key of keys) {
     if (registry[key]) return key;
   }
@@ -15,7 +18,8 @@ const pickFirstExistingKey = <T>(registry: Record<string, T>, keys: readonly str
 export const resolveDefaultAgentKey = <T>(
   registry: Record<string, T>,
   fallbackKey: string,
-): string => (registry[APP_DEFAULTS.preferredAgentKey] ? APP_DEFAULTS.preferredAgentKey : fallbackKey);
+): string =>
+  registry[APP_DEFAULTS.preferredAgentKey] ? APP_DEFAULTS.preferredAgentKey : fallbackKey;
 
 export const resolveDefaultBattlefieldKey = <T>(
   registry: Record<string, T>,

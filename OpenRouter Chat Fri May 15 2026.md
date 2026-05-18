@@ -4,7 +4,7 @@
 
 Is there a machine learning library for frontend clients/web-browsers. So imagine this game:
 
-several players enter a battlefield, each one represents a fighter jet that shoots to other players. Players are machines, the computer itself, with tools programmed to it in the browser before the game begins. Each fighter jet tool is a learning algorithm that will reinforce itself in order to actually hit and take other jets down. 
+several players enter a battlefield, each one represents a fighter jet that shoots to other players. Players are machines, the computer itself, with tools programmed to it in the browser before the game begins. Each fighter jet tool is a learning algorithm that will reinforce itself in order to actually hit and take other jets down.
 
 It must learn how to aim, how to shoot, how to dock.
 Shooting takes bullets and decreases one of the jet parameters, making it slower, heavier, laggy. This is a counterincentive to just shoot infinite bullets and "hope to hit".
@@ -17,18 +17,18 @@ This is a multiplayer game, so owners can register with some token economics. Th
 
 # Browser-Based ML Fighter Jet Arena
 
-This is a fantastic concept — essentially a **programmable AI battle royale** where the competition happens *before* the game starts (in the algorithm design), and the execution is fully offline in the browser.
+This is a fantastic concept — essentially a **programmable AI battle royale** where the competition happens _before_ the game starts (in the algorithm design), and the execution is fully offline in the browser.
 
 ## ML Libraries That Run Entirely in the Browser
 
-| Library | Focus | Size | Best For |
-|---|---|---|---|
-| **TensorFlow.js** | Full ML framework | ~1MB+ | Deep RL, neural nets |
-| **ONNX Runtime Web** | Model inference | ~500KB | Pre-trained models |
-| **Brain.js** | Simple neural nets | ~50KB | Lightweight NN |
-| **ml5.js** | Friendly TF.js wrapper | ~200KB | Quick prototyping |
-| **WebPPO / custom** | RL from scratch | Tiny | Full control |
-| **Synaptic.js** | Architecture-free NNs | ~30KB | Custom topologies |
+| Library              | Focus                  | Size   | Best For             |
+| -------------------- | ---------------------- | ------ | -------------------- |
+| **TensorFlow.js**    | Full ML framework      | ~1MB+  | Deep RL, neural nets |
+| **ONNX Runtime Web** | Model inference        | ~500KB | Pre-trained models   |
+| **Brain.js**         | Simple neural nets     | ~50KB  | Lightweight NN       |
+| **ml5.js**           | Friendly TF.js wrapper | ~200KB | Quick prototyping    |
+| **WebPPO / custom**  | RL from scratch        | Tiny   | Full control         |
+| **Synaptic.js**      | Architecture-free NNs  | ~30KB  | Custom topologies    |
 
 **My recommendation: TensorFlow.js** for the RL backbone, but with a **custom lightweight RL loop** since you need real-time performance in a game tick.
 
@@ -91,13 +91,13 @@ interface JetState {
   y: number;
   vx: number;
   vy: number;
-  angle: number;        // radians, heading direction
+  angle: number; // radians, heading direction
   angularVel: number;
-  health: number;       // 0–100
-  ammo: number;         // finite resource
-  fuel: number;         // finite resource
-  weight: number;       // increases as ammo is spent (debris/heat penalty)
-  cooldown: number;     // ticks until next shot allowed
+  health: number; // 0–100
+  ammo: number; // finite resource
+  fuel: number; // finite resource
+  weight: number; // increases as ammo is spent (debris/heat penalty)
+  cooldown: number; // ticks until next shot allowed
   alive: boolean;
 }
 
@@ -107,7 +107,7 @@ interface Bullet {
   y: number;
   vx: number;
   vy: number;
-  ttl: number;          // time-to-live in ticks
+  ttl: number; // time-to-live in ticks
 }
 
 interface GameState {
@@ -119,39 +119,39 @@ interface GameState {
 
 // Actions an agent can take each tick
 interface AgentAction {
-  thrust: number;       // -1 to 1 (brake to full thrust)
-  turn: number;         // -1 to 1 (left to right)
-  shoot: boolean;       // fire a bullet
+  thrust: number; // -1 to 1 (brake to full thrust)
+  turn: number; // -1 to 1 (left to right)
+  shoot: boolean; // fire a bullet
 }
 
 const CONFIG = {
-  TICK_RATE: 30,            // ticks per second
-  MAX_TICKS: 30 * 60 * 5,  // 5-minute max game
+  TICK_RATE: 30, // ticks per second
+  MAX_TICKS: 30 * 60 * 5, // 5-minute max game
   ARENA_RADIUS: 1000,
-  
+
   // Jet physics
   MAX_SPEED: 8,
   THRUST_FORCE: 0.15,
-  TURN_RATE: 0.06,          // radians per tick at turn=1
+  TURN_RATE: 0.06, // radians per tick at turn=1
   DRAG: 0.98,
-  
+
   // Resources
   INITIAL_AMMO: 50,
   INITIAL_FUEL: 1000,
   INITIAL_HEALTH: 100,
-  
+
   // Shooting costs & penalties
-  SHOOT_COOLDOWN: 5,        // ticks between shots
+  SHOOT_COOLDOWN: 5, // ticks between shots
   SHOOT_FUEL_COST: 3,
-  SHOOT_WEIGHT_PENALTY: 0.02,  // each shot makes jet heavier
+  SHOOT_WEIGHT_PENALTY: 0.02, // each shot makes jet heavier
   BULLET_SPEED: 12,
-  BULLET_TTL: 60,           // ticks before bullet despawns
+  BULLET_TTL: 60, // ticks before bullet despawns
   BULLET_DAMAGE: 15,
-  
+
   // Weight effects
   BASE_WEIGHT: 1.0,
-  WEIGHT_DRAG_FACTOR: 0.005,   // extra drag per weight unit
-  WEIGHT_TURN_PENALTY: 0.008,  // reduced turn rate per weight unit
+  WEIGHT_DRAG_FACTOR: 0.005, // extra drag per weight unit
+  WEIGHT_TURN_PENALTY: 0.008, // reduced turn rate per weight unit
 } as const;
 
 class GameWorld {
@@ -162,7 +162,7 @@ class GameWorld {
   constructor(playerIds: string[], seed: number) {
     this.rng = new SeededRandom(seed);
     const jets = new Map<string, JetState>();
-    
+
     // Spawn jets in a circle
     playerIds.forEach((id, i) => {
       const angle = (2 * Math.PI * i) / playerIds.length;
@@ -171,7 +171,8 @@ class GameWorld {
         id,
         x: Math.cos(angle) * spawnR,
         y: Math.sin(angle) * spawnR,
-        vx: 0, vy: 0,
+        vx: 0,
+        vy: 0,
         angle: angle + Math.PI, // face center
         angularVel: 0,
         health: CONFIG.INITIAL_HEALTH,
@@ -204,8 +205,10 @@ class GameWorld {
       const action = actions.get(id) ?? { thrust: 0, turn: 0, shoot: false };
 
       // Weight-adjusted parameters
-      const effectiveDrag = CONFIG.DRAG - (jet.weight - CONFIG.BASE_WEIGHT) * CONFIG.WEIGHT_DRAG_FACTOR;
-      const effectiveTurnRate = CONFIG.TURN_RATE - (jet.weight - CONFIG.BASE_WEIGHT) * CONFIG.WEIGHT_TURN_PENALTY;
+      const effectiveDrag =
+        CONFIG.DRAG - (jet.weight - CONFIG.BASE_WEIGHT) * CONFIG.WEIGHT_DRAG_FACTOR;
+      const effectiveTurnRate =
+        CONFIG.TURN_RATE - (jet.weight - CONFIG.BASE_WEIGHT) * CONFIG.WEIGHT_TURN_PENALTY;
 
       // Turn
       const clampedTurn = Math.max(-1, Math.min(1, action.turn));
@@ -285,7 +288,8 @@ class GameWorld {
         if (!jet.alive || id === b.ownerId) continue;
         const dx = b.x - jet.x;
         const dy = b.y - jet.y;
-        if (dx * dx + dy * dy < 20 * 20) { // 20px hit radius
+        if (dx * dx + dy * dy < 20 * 20) {
+          // 20px hit radius
           jet.health -= CONFIG.BULLET_DAMAGE;
           if (jet.health <= 0) {
             jet.alive = false;
@@ -297,10 +301,10 @@ class GameWorld {
     }
 
     this.state.tick++;
-    
+
     // Record for replay
     this.replayLog.push(structuredClone(this.state));
-    
+
     return this.state;
   }
 
@@ -313,7 +317,7 @@ class GameWorld {
   }
 
   getWinner(): string | null {
-    const alive = [...this.state.jets.values()].filter(j => j.alive);
+    const alive = [...this.state.jets.values()].filter((j) => j.alive);
     if (alive.length === 1) return alive[0].id;
     if (alive.length === 0) return null; // draw
     if (this.state.tick >= CONFIG.MAX_TICKS) {
@@ -328,7 +332,9 @@ class GameWorld {
 // Deterministic PRNG for fair seeded games
 class SeededRandom {
   private seed: number;
-  constructor(seed: number) { this.seed = seed; }
+  constructor(seed: number) {
+    this.seed = seed;
+  }
   next(): number {
     this.seed = (this.seed * 16807) % 2147483647;
     return (this.seed - 1) / 2147483646;
@@ -348,7 +354,8 @@ class SeededRandom {
 interface Observation {
   // Self state
   self: {
-    vx: number; vy: number;
+    vx: number;
+    vy: number;
     speed: number;
     angle: number;
     health: number;
@@ -357,19 +364,19 @@ interface Observation {
     weight: number;
     cooldown: number;
   };
-  
+
   // Other jets (relative positions/velocities)
   enemies: Array<{
-    relX: number;      // relative x from self
-    relY: number;      // relative y from self
-    relVx: number;     // relative velocity
+    relX: number; // relative x from self
+    relY: number; // relative y from self
+    relVx: number; // relative velocity
     relVy: number;
-    angle: number;     // their heading
+    angle: number; // their heading
     distance: number;
     bearingAngle: number; // angle from self heading to enemy
     alive: boolean;
   }>;
-  
+
   // Incoming bullets (only those within sensor range)
   nearbyBullets: Array<{
     relX: number;
@@ -378,11 +385,11 @@ interface Observation {
     relVy: number;
     isMine: boolean;
   }>;
-  
+
   // Arena info
   distanceToWall: number;
   tick: number;
-  
+
   // Previous action result
   lastAction: AgentAction | null;
   lastReward: number;
@@ -398,13 +405,13 @@ interface AgentModule {
    * loading pre-trained weights from the bundled code, etc.
    */
   init(config: typeof CONFIG): void;
-  
+
   /**
    * Called every tick. Must return an action within 2ms.
    * If it takes longer, default action (drift) is used.
    */
   act(observation: Observation): AgentAction;
-  
+
   /**
    * Called after each tick with the reward signal.
    * Use this for online learning during the match.
@@ -443,31 +450,40 @@ self.addEventListener('fetch', (event) => {
 function lockdownWorkerNetwork(workerScope: any) {
   // Delete all network APIs from the worker scope
   const forbidden = [
-    'fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource',
-    'RTCPeerConnection', 'RTCDataChannel',
-    'navigator.sendBeacon', 'navigator.serviceWorker',
+    "fetch",
+    "XMLHttpRequest",
+    "WebSocket",
+    "EventSource",
+    "RTCPeerConnection",
+    "RTCDataChannel",
+    "navigator.sendBeacon",
+    "navigator.serviceWorker",
   ];
-  
+
   // Override fetch
   workerScope.fetch = () => {
-    throw new Error('Network access is forbidden during game');
+    throw new Error("Network access is forbidden during game");
   };
-  
+
   // Override XMLHttpRequest
   workerScope.XMLHttpRequest = class {
-    open() { throw new Error('Network access is forbidden'); }
+    open() {
+      throw new Error("Network access is forbidden");
+    }
   };
-  
+
   // Override WebSocket
   workerScope.WebSocket = class {
-    constructor() { throw new Error('Network access is forbidden'); }
+    constructor() {
+      throw new Error("Network access is forbidden");
+    }
   };
-  
+
   // Override importScripts (prevent loading external code)
   workerScope.importScripts = () => {
-    throw new Error('importScripts is forbidden during game');
+    throw new Error("importScripts is forbidden during game");
   };
-  
+
   // Freeze to prevent re-assignment
   Object.freeze(workerScope.fetch);
   Object.freeze(workerScope.XMLHttpRequest);
@@ -493,67 +509,67 @@ const ACTION_TIMEOUT_MS = 2;
 // On worker init, receive the agent's source code
 self.onmessage = async (event: MessageEvent) => {
   const { type, data } = event.data;
-  
+
   switch (type) {
-    case 'LOAD_AGENT': {
+    case "LOAD_AGENT": {
       // Lock down network BEFORE loading agent code
       lockdownWorkerNetwork(self);
-      
+
       // The agent code is passed as a string and evaluated
       // It must export an object conforming to AgentModule
       try {
         // Create a sandboxed evaluation context
         const moduleFactory = new Function(
-          'tf',           // TensorFlow.js (pre-bundled)
-          'Math',         // Allow math
-          'Array',        // Allow arrays  
-          'Float32Array', // Allow typed arrays
-          'console',      // Allow logging (for debug)
+          "tf", // TensorFlow.js (pre-bundled)
+          "Math", // Allow math
+          "Array", // Allow arrays
+          "Float32Array", // Allow typed arrays
+          "console", // Allow logging (for debug)
           `
           "use strict";
           ${data.agentCode}
           return module.exports;
-          `
+          `,
         );
-        
+
         // We pre-bundle tf.js into the worker
         agent = moduleFactory(tf, Math, Array, Float32Array, console);
         agent!.init(data.config);
-        
-        self.postMessage({ type: 'AGENT_READY' });
+
+        self.postMessage({ type: "AGENT_READY" });
       } catch (e) {
-        self.postMessage({ type: 'AGENT_ERROR', error: String(e) });
+        self.postMessage({ type: "AGENT_ERROR", error: String(e) });
       }
       break;
     }
-    
-    case 'TICK': {
+
+    case "TICK": {
       if (!agent) {
-        self.postMessage({ type: 'ACTION', action: { thrust: 0, turn: 0, shoot: false } });
+        self.postMessage({ type: "ACTION", action: { thrust: 0, turn: 0, shoot: false } });
         return;
       }
-      
+
       const obs: Observation = data.observation;
       const reward: number = data.reward;
-      
+
       try {
         // Let agent learn from previous tick
         agent.learn(obs, reward);
-        
+
         // Get action with timeout
         const action = agent.act(obs);
-        
+
         // Validate action
         const safeAction: AgentAction = {
           thrust: Math.max(-1, Math.min(1, Number(action.thrust) || 0)),
           turn: Math.max(-1, Math.min(1, Number(action.turn) || 0)),
           shoot: Boolean(action.shoot),
         };
-        
-        self.postMessage({ type: 'ACTION', action: safeAction });
+
+        self.postMessage({ type: "ACTION", action: safeAction });
       } catch (e) {
         // Agent crashed — return no-op
-        self.postMessage({ type: 'ACTION', action: { thrust: 0, turn: 0, shoot: false } });
+        self.postMessage({ type: "ACTION", action: { thrust: 0, turn: 0, shoot: false } });
       }
       break;
     }
@@ -573,7 +589,8 @@ const module = { exports: null };
 module.exports = (() => {
   let model: any;
   let optimizer: any;
-  let replayBuffer: Array<{ obs: number[], action: number[], reward: number, nextObs: number[] }> = [];
+  let replayBuffer: Array<{ obs: number[]; action: number[]; reward: number; nextObs: number[] }> =
+    [];
   let prevObsVec: number[] | null = null;
   let prevAction: number[] | null = null;
   const GAMMA = 0.95;
@@ -584,10 +601,10 @@ module.exports = (() => {
   const EPSILON_END = 0.05;
   const EPSILON_DECAY = 3000;
   let stepCount = 0;
-  
+
   function obsToVector(obs: Observation): number[] {
     const v: number[] = [];
-    
+
     // Self state (8 values)
     v.push(
       obs.self.speed / 8,
@@ -599,13 +616,13 @@ module.exports = (() => {
       obs.self.cooldown / 5,
       obs.distanceToWall / 1000,
     );
-    
+
     // Nearest 3 enemies (5 values each = 15)
     const enemies = obs.enemies
-      .filter(e => e.alive)
+      .filter((e) => e.alive)
       .sort((a, b) => a.distance - b.distance)
       .slice(0, 3);
-    
+
     for (let i = 0; i < 3; i++) {
       if (enemies[i]) {
         v.push(
@@ -613,21 +630,19 @@ module.exports = (() => {
           enemies[i].relY / 1000,
           enemies[i].bearingAngle / Math.PI,
           enemies[i].distance / 1000,
-          (enemies[i].relVx) / 8,
+          enemies[i].relVx / 8,
         );
       } else {
         v.push(0, 0, 0, 1, 0); // no enemy — max distance
       }
     }
-    
+
     // Nearest 3 bullets (4 values each = 12)
     const bullets = obs.nearbyBullets
-      .filter(b => !b.isMine)
-      .sort((a, b) => 
-        (a.relX**2 + a.relY**2) - (b.relX**2 + b.relY**2)
-      )
+      .filter((b) => !b.isMine)
+      .sort((a, b) => a.relX ** 2 + a.relY ** 2 - (b.relX ** 2 + b.relY ** 2))
       .slice(0, 3);
-    
+
     for (let i = 0; i < 3; i++) {
       if (bullets[i]) {
         v.push(
@@ -640,10 +655,10 @@ module.exports = (() => {
         v.push(0, 0, 0, 0);
       }
     }
-    
+
     return v; // 35 total features
   }
-  
+
   // Action space: [thrust, turn, shootProbability]
   // We discretize into 18 combos for DQN simplicity:
   // thrust ∈ {-1, 0, 1} × turn ∈ {-1, 0, 1} × shoot ∈ {0, 1}
@@ -655,39 +670,38 @@ module.exports = (() => {
       }
     }
   }
-  
+
   function createModel() {
     const inputDim = 35;
     const numActions = ACTION_COMBOS.length; // 18
-    
+
     model = tf.sequential({
       layers: [
-        tf.layers.dense({ inputShape: [inputDim], units: 64, activation: 'relu' }),
-        tf.layers.dense({ units: 64, activation: 'relu' }),
-        tf.layers.dense({ units: 32, activation: 'relu' }),
-        tf.layers.dense({ units: numActions, activation: 'linear' }), // Q-values
-      ]
+        tf.layers.dense({ inputShape: [inputDim], units: 64, activation: "relu" }),
+        tf.layers.dense({ units: 64, activation: "relu" }),
+        tf.layers.dense({ units: 32, activation: "relu" }),
+        tf.layers.dense({ units: numActions, activation: "linear" }), // Q-values
+      ],
     });
-    
+
     optimizer = tf.train.adam(LEARNING_RATE);
   }
-  
+
   function getEpsilon(): number {
-    return EPSILON_END + (EPSILON_START - EPSILON_END) * 
-      Math.exp(-stepCount / EPSILON_DECAY);
+    return EPSILON_END + (EPSILON_START - EPSILON_END) * Math.exp(-stepCount / EPSILON_DECAY);
   }
-  
+
   return {
     init(config: any) {
       createModel();
     },
-    
+
     act(obs: Observation): AgentAction {
       const obsVec = obsToVector(obs);
       stepCount++;
-      
+
       let actionIndex: number;
-      
+
       // Epsilon-greedy
       if (Math.random() < getEpsilon()) {
         actionIndex = Math.floor(Math.random() * ACTION_COMBOS.length);
@@ -699,18 +713,18 @@ module.exports = (() => {
         input.dispose();
         qValues.dispose();
       }
-      
+
       prevObsVec = obsVec;
       prevAction = [actionIndex];
-      
+
       return ACTION_COMBOS[actionIndex];
     },
-    
+
     learn(obs: Observation, reward: number) {
       if (prevObsVec === null || prevAction === null) return;
-      
+
       const nextObsVec = obsToVector(obs);
-      
+
       // Store in replay buffer
       replayBuffer.push({
         obs: prevObsVec,
@@ -718,47 +732,47 @@ module.exports = (() => {
         reward,
         nextObs: nextObsVec,
       });
-      
+
       if (replayBuffer.length > REPLAY_SIZE) {
         replayBuffer.shift();
       }
-      
+
       // Train every 4 steps when we have enough data
       if (stepCount % 4 === 0 && replayBuffer.length >= BATCH_SIZE) {
         trainBatch();
       }
-    }
+    },
   };
-  
+
   function trainBatch() {
     // Sample random minibatch
     const batch = [];
     for (let i = 0; i < BATCH_SIZE; i++) {
       batch.push(replayBuffer[Math.floor(Math.random() * replayBuffer.length)]);
     }
-    
+
     tf.tidy(() => {
-      const states = tf.tensor2d(batch.map(b => b.obs));
-      const nextStates = tf.tensor2d(batch.map(b => b.nextObs));
-      
+      const states = tf.tensor2d(batch.map((b) => b.obs));
+      const nextStates = tf.tensor2d(batch.map((b) => b.nextObs));
+
       // Current Q-values
       const currentQ = model.predict(states);
-      
+
       // Next Q-values (for target)
       const nextQ = model.predict(nextStates);
       const nextQMax = nextQ.max(1);
-      
+
       // Build target Q-values
       const targetData = currentQ.arraySync();
       const nextQData = nextQMax.arraySync();
-      
+
       for (let i = 0; i < BATCH_SIZE; i++) {
         const actionIdx = batch[i].action[0];
         targetData[i][actionIdx] = batch[i].reward + GAMMA * nextQData[i];
       }
-      
+
       const targets = tf.tensor2d(targetData);
-      
+
       // One gradient step
       optimizer.minimize(() => {
         const pred = model.predict(states);
@@ -782,14 +796,14 @@ function computeReward(
 ): number {
   const prev = prevState.jets.get(jetId)!;
   const curr = currState.jets.get(jetId)!;
-  
+
   if (!curr.alive) return -100; // death is very bad
-  
+
   let reward = 0;
-  
+
   // ── Survival bonus (small per tick) ──
   reward += 0.1;
-  
+
   // ── Damage dealt ──
   for (const [otherId, otherJet] of currState.jets) {
     if (otherId === jetId) continue;
@@ -802,31 +816,31 @@ function computeReward(
       reward += 50; // kill bonus
     }
   }
-  
+
   // ── Damage taken penalty ──
   if (curr.health < prev.health) {
     reward -= (prev.health - curr.health) * 0.3;
   }
-  
+
   // ── Shooting penalty (resource conservation) ──
   if (action.shoot) {
     reward -= 0.5; // small cost to discourage spray
   }
-  
+
   // ── Positional awareness ──
   // Penalty for being too close to wall
   const distToWall = CONFIG.ARENA_RADIUS - Math.sqrt(curr.x ** 2 + curr.y ** 2);
   if (distToWall < 100) {
     reward -= (100 - distToWall) * 0.01;
   }
-  
+
   // ── Ammo conservation bonus ──
   // Late game ammo is more valuable
   const gameProgress = currState.tick / CONFIG.MAX_TICKS;
   if (gameProgress > 0.5 && curr.ammo > 10) {
     reward += 0.05; // small bonus for having ammo late
   }
-  
+
   return reward;
 }
 ```
@@ -841,98 +855,106 @@ class GameOrchestrator {
   private agentWorkers: Map<string, Worker> = new Map();
   private pendingActions: Map<string, AgentAction> = new Map();
   private renderer: GameRenderer;
-  
+
   async startGame(players: Array<{ id: string; code: string }>, seed: number) {
     // 1. Activate network lockdown
-    navigator.serviceWorker.controller?.postMessage({ type: 'GAME_START' });
-    
+    navigator.serviceWorker.controller?.postMessage({ type: "GAME_START" });
+
     // 2. Create world
-    this.world = new GameWorld(players.map(p => p.id), seed);
-    
+    this.world = new GameWorld(
+      players.map((p) => p.id),
+      seed,
+    );
+
     // 3. Spawn agent workers
     for (const player of players) {
-      const worker = new Worker('/agent-worker.js');
+      const worker = new Worker("/agent-worker.js");
       this.agentWorkers.set(player.id, worker);
-      
+
       worker.postMessage({
-        type: 'LOAD_AGENT',
+        type: "LOAD_AGENT",
         data: { agentCode: player.code, config: CONFIG },
       });
-      
+
       // Wait for ready
       await new Promise<void>((resolve) => {
         worker.onmessage = (e) => {
-          if (e.data.type === 'AGENT_READY') resolve();
+          if (e.data.type === "AGENT_READY") resolve();
         };
       });
-      
+
       // Set up action listener
       worker.onmessage = (e) => {
-        if (e.data.type === 'ACTION') {
+        if (e.data.type === "ACTION") {
           this.pendingActions.set(player.id, e.data.action);
         }
       };
     }
-    
+
     // 4. Game loop
-    this.renderer = new GameRenderer(document.getElementById('canvas') as HTMLCanvasElement);
-    
+    this.renderer = new GameRenderer(document.getElementById("canvas") as HTMLCanvasElement);
+
     let prevState = structuredClone(this.world.state);
-    
+
     const tickLoop = () => {
       // Send observations to all agents
       for (const [id, worker] of this.agentWorkers) {
         const jet = this.world.state.jets.get(id)!;
         if (!jet.alive) continue;
-        
+
         const obs = this.buildObservation(id, this.world.state);
-        const reward = computeReward(id, prevState, this.world.state, 
-          this.pendingActions.get(id) ?? { thrust: 0, turn: 0, shoot: false });
-        
+        const reward = computeReward(
+          id,
+          prevState,
+          this.world.state,
+          this.pendingActions.get(id) ?? { thrust: 0, turn: 0, shoot: false },
+        );
+
         worker.postMessage({
-          type: 'TICK',
+          type: "TICK",
           data: { observation: obs, reward },
         });
       }
-      
+
       // Wait a frame for agents to respond, then step
       setTimeout(() => {
         prevState = structuredClone(this.world.state);
         this.world.step(this.pendingActions);
         this.pendingActions.clear();
-        
+
         // Render
         this.renderer.draw(this.world.state);
-        
+
         // Check game over
         const winner = this.world.getWinner();
         if (winner !== null || this.world.getAliveCount() <= 1) {
           this.endGame(winner);
           return;
         }
-        
+
         // Next tick
         setTimeout(tickLoop, 1000 / CONFIG.TICK_RATE);
       }, ACTION_TIMEOUT_MS + 1);
     };
-    
+
     tickLoop();
   }
-  
+
   private buildObservation(jetId: string, state: GameState): Observation {
     const self = state.jets.get(jetId)!;
-    
+
     const enemies = [...state.jets.values()]
-      .filter(j => j.id !== jetId)
-      .map(j => {
+      .filter((j) => j.id !== jetId)
+      .map((j) => {
         const relX = j.x - self.x;
         const relY = j.y - self.y;
         const distance = Math.sqrt(relX ** 2 + relY ** 2);
         const angleToEnemy = Math.atan2(relY, relX);
         const bearingAngle = angleToEnemy - self.angle;
-        
+
         return {
-          relX, relY,
+          relX,
+          relY,
           relVx: j.vx - self.vx,
           relVy: j.vy - self.vy,
           angle: j.angle,
@@ -941,22 +963,22 @@ class GameOrchestrator {
           alive: j.alive,
         };
       });
-    
+
     const sensorRange = 500;
     const nearbyBullets = state.bullets
-      .filter(b => {
+      .filter((b) => {
         const dx = b.x - self.x;
         const dy = b.y - self.y;
         return dx * dx + dy * dy < sensorRange * sensorRange;
       })
-      .map(b => ({
+      .map((b) => ({
         relX: b.x - self.x,
         relY: b.y - self.y,
         relVx: b.vx - self.vx,
         relVy: b.vy - self.vy,
         isMine: b.ownerId === jetId,
       }));
-    
+
     return {
       self: {
         vx: self.vx,
@@ -977,31 +999,32 @@ class GameOrchestrator {
       lastReward: 0,
     };
   }
-  
+
   private async endGame(winnerId: string | null) {
     // Terminate all workers
     for (const worker of this.agentWorkers.values()) {
       worker.terminate();
     }
-    
+
     // Re-enable network
-    navigator.serviceWorker.controller?.postMessage({ type: 'GAME_END' });
-    
+    navigator.serviceWorker.controller?.postMessage({ type: "GAME_END" });
+
     // Hash the replay for on-chain verification
     const replayData = JSON.stringify(this.world.replayLog);
-    const replayHash = await crypto.subtle.digest(
-      'SHA-256',
-      new TextEncoder().encode(replayData)
+    const replayHash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(replayData));
+
+    console.log("Game Over! Winner:", winnerId);
+    console.log(
+      "Replay hash:",
+      Array.from(new Uint8Array(replayHash))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join(""),
     );
-    
-    console.log('Game Over! Winner:', winnerId);
-    console.log('Replay hash:', Array.from(new Uint8Array(replayHash))
-      .map(b => b.toString(16).padStart(2, '0')).join(''));
-    
+
     // Submit result on-chain...
     this.submitResult(winnerId, replayHash);
   }
-  
+
   private async submitResult(winnerId: string | null, replayHash: ArrayBuffer) {
     // Smart contract interaction would go here
   }
@@ -1025,44 +1048,44 @@ contract JetArena {
         bool settled;
         uint256 startTime;
     }
-    
+
     mapping(bytes32 => Match) public matches;
     mapping(address => bytes32) public agentCodeHash; // IPFS CID of agent code
-    
+
     uint256 public constant MIN_STAKE = 0.01 ether;
     uint256 public constant PLATFORM_FEE_BPS = 250; // 2.5%
     uint256 public constant MAX_PLAYERS = 8;
-    
+
     event MatchCreated(bytes32 indexed matchId, uint256 stake);
     event PlayerJoined(bytes32 indexed matchId, address player);
     event MatchSettled(bytes32 indexed matchId, address winner, uint256 payout);
-    
+
     // Players register their AI agent code hash
     function registerAgent(bytes32 codeHash) external {
         agentCodeHash[msg.sender] = codeHash;
     }
-    
+
     // Create a new match lobby
     function createMatch(uint256 maxPlayers) external payable returns (bytes32) {
         require(msg.value >= MIN_STAKE, "Stake too low");
         require(maxPlayers >= 2 && maxPlayers <= MAX_PLAYERS, "Invalid player count");
         require(agentCodeHash[msg.sender] != bytes32(0), "Register agent first");
-        
+
         bytes32 matchId = keccak256(abi.encodePacked(
             block.timestamp, msg.sender, block.prevrandao
         ));
-        
+
         Match storage m = matches[matchId];
         m.matchId = matchId;
         m.stakePerPlayer = msg.value;
         m.pot = msg.value;
         m.startTime = block.timestamp;
         m.players.push(msg.sender);
-        
+
         emit MatchCreated(matchId, msg.value);
         return matchId;
     }
-    
+
     // Join an existing match
     function joinMatch(bytes32 matchId) external payable {
         Match storage m = matches[matchId];
@@ -1070,13 +1093,13 @@ contract JetArena {
         require(msg.value == m.stakePerPlayer, "Wrong stake amount");
         require(!m.settled, "Match already settled");
         require(agentCodeHash[msg.sender] != bytes32(0), "Register agent first");
-        
+
         m.players.push(msg.sender);
         m.pot += msg.value;
-        
+
         emit PlayerJoined(matchId, msg.sender);
     }
-    
+
     // Submit game result (called by oracle/verifier nodes)
     // In production, use an optimistic oracle or ZK proof
     function settleMatch(
@@ -1087,16 +1110,16 @@ contract JetArena {
         // TODO: proper oracle verification
         Match storage m = matches[matchId];
         require(!m.settled, "Already settled");
-        
+
         m.winner = winner;
         m.replayHash = replayHash;
         m.settled = true;
-        
+
         uint256 fee = (m.pot * PLATFORM_FEE_BPS) / 10000;
         uint256 payout = m.pot - fee;
-        
+
         payable(winner).transfer(payout);
-        
+
         emit MatchSettled(matchId, winner, payout);
     }
 }
@@ -1110,18 +1133,21 @@ contract JetArena {
 <summary><strong>Why Web Workers for Agent Isolation?</strong></summary>
 
 Each agent runs in its own Web Worker, which provides:
+
 - **Memory isolation** — one agent can't read another's neural network weights
 - **Fault isolation** — if an agent crashes, the game continues
 - **Timeout enforcement** — if an agent is too slow, we use a no-op action
-- **Network lockdown** — we delete `fetch`, `XMLHttpRequest`, `WebSocket` from the worker scope *before* loading agent code
+- **Network lockdown** — we delete `fetch`, `XMLHttpRequest`, `WebSocket` from the worker scope _before_ loading agent code
 
 The main thread acts as a trusted game server that feeds observations and collects actions.
+
 </details>
 
 <details>
 <summary><strong>Why Deterministic Physics?</strong></summary>
 
 Deterministic simulation with a seeded PRNG means:
+
 - Any node can **replay the game** from the seed + agent code and get the exact same result
 - This enables **on-chain dispute resolution** — if someone claims the result was wrong, any verifier can re-run the game
 - The replay hash is a commitment to the entire game history
@@ -1130,13 +1156,14 @@ Deterministic simulation with a seeded PRNG means:
 <details>
 <summary><strong>Why Online RL During the Match?</strong></summary>
 
-The example agent uses **DQN with experience replay** that learns *during* the 5-minute match. This creates emergent strategy:
+The example agent uses **DQN with experience replay** that learns _during_ the 5-minute match. This creates emergent strategy:
 
 - Early game: agent explores, tests different approaches (high $\epsilon$)
 - Mid game: agent starts exploiting learned patterns (decaying $\epsilon$)
 - Late game: agent uses refined policy with low $\epsilon$
 
 Players compete by designing agents with:
+
 - Better **network architectures** (how many layers, what features)
 - Better **reward shaping** (the agent code can override reward interpretation)
 - Pre-trained weights loaded at `init()` (from offline training against simulations)
@@ -1147,17 +1174,20 @@ Players compete by designing agents with:
 <summary><strong>Counter-Incentive Economics for Shooting</strong></summary>
 
 Each shot costs:
+
 - 1 ammo (finite: 50 total)
 - 3 fuel (makes future movement more limited)
 - +0.02 weight (permanently increases drag and reduces turn rate)
 
 So an agent that fires all 50 bullets recklessly ends up with:
+
 - $\text{weight} = 1.0 + 50 \times 0.02 = 2.0$ (double base weight)
 - Extra drag: $0.005 \times 1.0 = 0.005$ reduction in drag coefficient
 - Turn penalty: $0.008 \times 1.0 = 0.008$ radians/tick slower turning
 - 150 fuel wasted on shooting alone
 
 This creates a genuine **accuracy vs. volume** tradeoff that the RL agent must learn to balance.
+
 </details>
 
 ---

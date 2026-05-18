@@ -5,6 +5,7 @@ disable-model-invocation: true
 ---
 
 # Setting
+
 Setting: 2187 — After the "Shattered Sky" event fractured Earth's atmosphere into layered combat zones, traditional law enforcement collapsed. The Bounty Exchange emerged — a semi-legal network where licensed hunters take contracts across aerial and ground theaters. Each hunter flies a personalized Strikecraft — part fighter jet, part expression of identity.
 
 Visual DNA: The character art should blend Metal Gear's tactical grit and portrait-style realism with Star Fox's colorful, personality-driven cockpit energy and F-Zero's exaggerated silhouette design and speed-culture aesthetics. Think: sharp angular linework, muted military tones punctuated by neon accent colors, and portraits that look like they belong on wanted posters.
@@ -26,11 +27,11 @@ Authenticity comes from **specific imperfection**, not encyclopedic detail. Char
 
 Every character is built on exactly three layers with weighted prominence:
 
-| Layer | Weight | Purpose | Example |
-|-------|--------|---------|---------|
-| Core Trait | 40% | Primary cognitive/behavioral pattern | Analytical thinker, impulsive protector, quiet observer |
-| Modifier | 35% | Lens through which the core expresses itself | Expresses through food metaphors (former chef), channels everything into music theory |
-| Quirk | 25% | Memorable surface-level habit or pattern | Quotes 90s R&B mid-explanation, taps morse code on surfaces when nervous |
+| Layer      | Weight | Purpose                                      | Example                                                                               |
+| ---------- | ------ | -------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Core Trait | 40%    | Primary cognitive/behavioral pattern         | Analytical thinker, impulsive protector, quiet observer                               |
+| Modifier   | 35%    | Lens through which the core expresses itself | Expresses through food metaphors (former chef), channels everything into music theory |
+| Quirk      | 25%    | Memorable surface-level habit or pattern     | Quotes 90s R&B mid-explanation, taps morse code on surfaces when nervous              |
 
 The stack should make the character summarizable in one sentence: "the [modifier context] who [core trait verb]s and [quirk]."
 
@@ -81,12 +82,12 @@ Format: `<anchor> — <why it matters or what it communicates>`
 
 Pick emotions specific to this character's personality. Avoid generic labels.
 
-| Label | Description |
-|-------|-------------|
+| Label                        | Description                                      |
+| ---------------------------- | ------------------------------------------------ |
 | [CHARACTER-SPECIFIC EMOTION] | Physical acting direction (face, hands, posture) |
-| [CHARACTER-SPECIFIC EMOTION] | Physical acting direction |
-| [CHARACTER-SPECIFIC EMOTION] | Physical acting direction |
-| [CHARACTER-SPECIFIC EMOTION] | Physical acting direction |
+| [CHARACTER-SPECIFIC EMOTION] | Physical acting direction                        |
+| [CHARACTER-SPECIFIC EMOTION] | Physical acting direction                        |
+| [CHARACTER-SPECIFIC EMOTION] | Physical acting direction                        |
 
 At least one positive, one negative, one that shows their vulnerability.
 

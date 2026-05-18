@@ -1,0 +1,12 @@
+node_modules
+dist
+out
+coverage
+.venv
+.git
+bun.lock
+**/bun.lock
+*.min.js
+jet-arena/dist
+api/dist
+**/*.md

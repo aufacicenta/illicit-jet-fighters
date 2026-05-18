@@ -68,11 +68,7 @@ globalThis.__agentExport = (() => {
 
     if (state === "striking") {
       return (
-        distanceScore * 1.8 +
-        alignmentScore * 2.0 +
-        altitudeScore * 1.0 +
-        ambushBand +
-        belowBonus
+        distanceScore * 1.8 + alignmentScore * 2.0 + altitudeScore * 1.0 + ambushBand + belowBonus
       );
     }
 
@@ -87,11 +83,7 @@ globalThis.__agentExport = (() => {
 
     // Stalking: weight alignment heavily — he's tracking, not chasing
     return (
-      distanceScore * 1.0 +
-      alignmentScore * 1.9 +
-      altitudeScore * 1.3 +
-      ambushBand +
-      belowBonus
+      distanceScore * 1.0 + alignmentScore * 1.9 + altitudeScore * 1.3 + ambushBand + belowBonus
     );
   };
 
@@ -270,7 +262,8 @@ globalThis.__agentExport = (() => {
       const inRange = leadDistance < rangeCap;
 
       // Only fires in striking state or when a gift shot presents itself in stalking
-      const stateAllowsFire = state === "striking" || (state === "stalking" && patienceCounter > 12);
+      const stateAllowsFire =
+        state === "striking" || (state === "stalking" && patienceCounter > 12);
       const ammoConservation = self.ammo <= 8 ? aligned && inRange && leadDistance < 130 : true;
       let shoot =
         canShoot && aligned && altitudeAligned && inRange && stateAllowsFire && ammoConservation;

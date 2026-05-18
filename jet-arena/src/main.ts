@@ -170,7 +170,9 @@ const buildAgentOptions = (): string =>
   AGENT_ENTRIES.map(([key, meta]) => `<option value="${key}">${meta.label}</option>`).join("");
 
 const buildBattlefieldOptions = (): string =>
-  BATTLEFIELD_ENTRIES.map(([key, config]) => `<option value="${key}">${config.name}</option>`).join("");
+  BATTLEFIELD_ENTRIES.map(([key, config]) => `<option value="${key}">${config.name}</option>`).join(
+    "",
+  );
 
 const POSE_PRIORITY: Record<PoseKey, number> = {
   idle: 0,
@@ -184,11 +186,16 @@ const POSE_PRIORITY: Record<PoseKey, number> = {
 
 const FALLBACK_POSE_SVG: Record<PoseKey, string> = {
   idle: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90'><rect width='160' height='90' rx='12' fill='%23111f36'/><text x='12' y='50' fill='%23cbd5e1' font-size='12' font-family='monospace'>IDLE</text></svg>",
-  planning: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90'><rect width='160' height='90' rx='12' fill='%231b2b4a'/><text x='12' y='50' fill='%2393c5fd' font-size='12' font-family='monospace'>PLANNING</text></svg>",
-  attacking: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90'><rect width='160' height='90' rx='12' fill='%23372020'/><text x='12' y='50' fill='%23fca5a5' font-size='12' font-family='monospace'>ATTACKING</text></svg>",
-  "hit-target": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90'><rect width='160' height='90' rx='12' fill='%2313342b'/><text x='12' y='50' fill='%2386efac' font-size='12' font-family='monospace'>HIT TARGET</text></svg>",
-  "got-hit": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90'><rect width='160' height='90' rx='12' fill='%23311b1b'/><text x='12' y='50' fill='%23fda4af' font-size='12' font-family='monospace'>GOT HIT</text></svg>",
-  "low-fuel": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90'><rect width='160' height='90' rx='12' fill='%23322716'/><text x='12' y='50' fill='%23fdba74' font-size='12' font-family='monospace'>LOW FUEL</text></svg>",
+  planning:
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90'><rect width='160' height='90' rx='12' fill='%231b2b4a'/><text x='12' y='50' fill='%2393c5fd' font-size='12' font-family='monospace'>PLANNING</text></svg>",
+  attacking:
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90'><rect width='160' height='90' rx='12' fill='%23372020'/><text x='12' y='50' fill='%23fca5a5' font-size='12' font-family='monospace'>ATTACKING</text></svg>",
+  "hit-target":
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90'><rect width='160' height='90' rx='12' fill='%2313342b'/><text x='12' y='50' fill='%2386efac' font-size='12' font-family='monospace'>HIT TARGET</text></svg>",
+  "got-hit":
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90'><rect width='160' height='90' rx='12' fill='%23311b1b'/><text x='12' y='50' fill='%23fda4af' font-size='12' font-family='monospace'>GOT HIT</text></svg>",
+  "low-fuel":
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90'><rect width='160' height='90' rx='12' fill='%23322716'/><text x='12' y='50' fill='%23fdba74' font-size='12' font-family='monospace'>LOW FUEL</text></svg>",
   down: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90'><rect width='160' height='90' rx='12' fill='%23111520'/><text x='12' y='50' fill='%239ca3af' font-size='12' font-family='monospace'>DOWN</text></svg>",
 };
 

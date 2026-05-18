@@ -9,13 +9,14 @@ Core visual anchors: bald head and close white beard; long royal-purple command 
 Mood: composed, commanding, strategic, warm, dangerous
 
 Frame acting direction:
-1) idle at x=0 y=0 w=64 h=64 — Stand or sit upright in calm command stance, trumpet lowered, eyes steady forward.
-2) planning at x=64 y=0 w=64 h=64 — Lean slightly toward a tactical readout with one hand signaling orders and focused calculating gaze.
-3) attacking at x=128 y=0 w=64 h=64 — Snap into decisive command action, arm thrust forward while lifting trumpet like a battle cue.
-4) hit-target at x=192 y=0 w=64 h=64 — Hold a brief confirmed-victory beat with subtle satisfied smile and squared shoulders.
-5) got-hit at x=256 y=0 w=64 h=64 — Recoil with coat flaring and defensive twist, expression tightened but controlled.
-6) low-fuel at x=320 y=0 w=64 h=64 — Sink into a strained conserving posture, trumpet lowered and shoulders heavy yet alert.
-7) down at x=384 y=0 w=64 h=64 — Collapse into an incapacitated final pose with coat spread and trumpet slipped aside.
+
+1. idle at x=0 y=0 w=64 h=64 — Stand or sit upright in calm command stance, trumpet lowered, eyes steady forward.
+2. planning at x=64 y=0 w=64 h=64 — Lean slightly toward a tactical readout with one hand signaling orders and focused calculating gaze.
+3. attacking at x=128 y=0 w=64 h=64 — Snap into decisive command action, arm thrust forward while lifting trumpet like a battle cue.
+4. hit-target at x=192 y=0 w=64 h=64 — Hold a brief confirmed-victory beat with subtle satisfied smile and squared shoulders.
+5. got-hit at x=256 y=0 w=64 h=64 — Recoil with coat flaring and defensive twist, expression tightened but controlled.
+6. low-fuel at x=320 y=0 w=64 h=64 — Sink into a strained conserving posture, trumpet lowered and shoulders heavy yet alert.
+7. down at x=384 y=0 w=64 h=64 — Collapse into an incapacitated final pose with coat spread and trumpet slipped aside.
 
 Do not add labels, borders, UI chrome, or extra frames.
 Keep silhouette readable at 64x64.

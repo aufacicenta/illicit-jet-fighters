@@ -22,7 +22,9 @@ const parseConfig = (raw: unknown, sourcePath: string): BattlefieldConfig => {
   const wallsRaw = Array.isArray(objectValue.walls) ? objectValue.walls : [];
   const spawnRaw = Array.isArray(objectValue.spawnPoints) ? objectValue.spawnPoints : [];
   const shapeType = shape.type;
-  const vertices = Array.isArray(shape.vertices) ? shape.vertices.map(asTuplePair).filter(Boolean) : [];
+  const vertices = Array.isArray(shape.vertices)
+    ? shape.vertices.map(asTuplePair).filter(Boolean)
+    : [];
   const spawnPoints = spawnRaw.map(asTuplePair).filter(Boolean);
   const walls = wallsRaw
     .map((wall) => {
@@ -49,13 +51,15 @@ const parseConfig = (raw: unknown, sourcePath: string): BattlefieldConfig => {
       : undefined;
 
   return {
-    name: typeof objectValue.name === "string" && objectValue.name.length > 0
-      ? objectValue.name
-      : sourcePath.split("/").at(-2) ?? "Unknown Battlefield",
+    name:
+      typeof objectValue.name === "string" && objectValue.name.length > 0
+        ? objectValue.name
+        : (sourcePath.split("/").at(-2) ?? "Unknown Battlefield"),
     shape: {
       type: shapeType,
       vertices: shapeType === "polygon" ? (vertices as [number, number][]) : undefined,
-      radius: shapeType === "circle" && Number.isFinite(shape.radius) ? Number(shape.radius) : undefined,
+      radius:
+        shapeType === "circle" && Number.isFinite(shape.radius) ? Number(shape.radius) : undefined,
     },
     walls: walls as BattlefieldConfig["walls"],
     spawnPoints: spawnPoints as [number, number][],
@@ -79,9 +83,10 @@ export const loadBattlefieldRegistry = (): Record<string, BattlefieldConfig> => 
   const entries: Array<[string, BattlefieldConfig]> = [["classic-arena", DEFAULT_BATTLEFIELD]];
   for (const [path, moduleValue] of Object.entries(modules)) {
     try {
-      const raw = moduleValue && typeof moduleValue === "object" && "default" in moduleValue
-        ? (moduleValue as { default: unknown }).default
-        : moduleValue;
+      const raw =
+        moduleValue && typeof moduleValue === "object" && "default" in moduleValue
+          ? (moduleValue as { default: unknown }).default
+          : moduleValue;
       const parsed = parseConfig(raw, path);
       validateBattlefieldConfig(parsed);
       const key = path.split("/").at(-2) ?? parsed.name.toLowerCase().replace(/\s+/g, "-");

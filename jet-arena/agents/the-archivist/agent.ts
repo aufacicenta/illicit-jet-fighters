@@ -63,9 +63,7 @@ globalThis.__agentExport = (() => {
       const mask = getMaskState(self, liveEnemies.length);
       const incomingBullets = nearbyBullets.filter((b) => !b.isMine);
       const nearestThreat = incomingBullets.sort(
-        (a, b) =>
-          a.relX * a.relX + a.relY * a.relY -
-          (b.relX * b.relX + b.relY * b.relY),
+        (a, b) => a.relX * a.relX + a.relY * a.relY - (b.relX * b.relX + b.relY * b.relY),
       )[0];
 
       // ARCHIVE: record enemy state snapshots
@@ -133,9 +131,7 @@ globalThis.__agentExport = (() => {
       // PREDICT - lead the target using velocity extrapolation
       const predicted = predictPosition(target, LEAD_TICKS);
       const predictedDist = Math.hypot(predicted.x, predicted.y);
-      const predictedBearing = normAngle(
-        Math.atan2(predicted.y, predicted.x) - self.angle,
-      );
+      const predictedBearing = normAngle(Math.atan2(predicted.y, predicted.x) - self.angle);
 
       const turn = clamp(predictedBearing / Math.PI);
       const climb = clamp(-target.relAltitude * 2);
@@ -146,9 +142,16 @@ globalThis.__agentExport = (() => {
           score: scorePickup(candidate, observation, nearestThreat),
         }))
         .sort((left, right) => right.score - left.score)[0];
-      const shouldCollectPickup = pickup && pickup.score > 0.16 && (!nearestThreat || nearestThreat.relX * nearestThreat.relX + nearestThreat.relY * nearestThreat.relY > 120 * 120);
+      const shouldCollectPickup =
+        pickup &&
+        pickup.score > 0.16 &&
+        (!nearestThreat ||
+          nearestThreat.relX * nearestThreat.relX + nearestThreat.relY * nearestThreat.relY >
+            120 * 120);
       if (shouldCollectPickup) {
-        const pickupBearing = normAngle(Math.atan2(pickup.candidate.relY, pickup.candidate.relX) - self.angle);
+        const pickupBearing = normAngle(
+          Math.atan2(pickup.candidate.relY, pickup.candidate.relX) - self.angle,
+        );
         return {
           thrust: 0.55,
           turn: clamp(pickupBearing / Math.PI),
@@ -172,14 +175,8 @@ globalThis.__agentExport = (() => {
       const aligned = Math.abs(predictedBearing) < 0.1;
       const altAligned = Math.abs(target.relAltitude) < 0.15;
       const inRange = predictedDist < 200;
-      const confidence =
-        (aligned ? 0.4 : 0) +
-        (altAligned ? 0.3 : 0) +
-        (inRange ? 0.3 : 0);
-      const shoot =
-        confidence >= SHOOT_CONFIDENCE &&
-        self.cooldown <= 0 &&
-        self.ammo > 0;
+      const confidence = (aligned ? 0.4 : 0) + (altAligned ? 0.3 : 0) + (inRange ? 0.3 : 0);
+      const shoot = confidence >= SHOOT_CONFIDENCE && self.cooldown <= 0 && self.ammo > 0;
 
       // Composed thrust: the Archivist does not rush
       let thrust;
@@ -196,8 +193,7 @@ globalThis.__agentExport = (() => {
       // Bullet dodge layered on top of pursuit - composure, not panic
       if (nearestThreat) {
         const threatDist =
-          nearestThreat.relX * nearestThreat.relX +
-          nearestThreat.relY * nearestThreat.relY;
+          nearestThreat.relX * nearestThreat.relX + nearestThreat.relY * nearestThreat.relY;
         if (threatDist < 80 * 80) {
           const d = dodgeBullet(self, nearestThreat);
           return {

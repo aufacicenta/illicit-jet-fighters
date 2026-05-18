@@ -25,13 +25,14 @@ Core visual anchors: <3-6 short semicolon-separated anchors>
 Mood: <3-6 adjectives>
 
 Frame acting direction:
-1) idle at x=0 y=0 w=64 h=64 — <direction>
-2) planning at x=64 y=0 w=64 h=64 — <direction>
-3) attacking at x=128 y=0 w=64 h=64 — <direction>
-4) hit-target at x=192 y=0 w=64 h=64 — <direction>
-5) got-hit at x=256 y=0 w=64 h=64 — <direction>
-6) low-fuel at x=320 y=0 w=64 h=64 — <direction>
-7) down at x=384 y=0 w=64 h=64 — <direction>
+
+1. idle at x=0 y=0 w=64 h=64 — <direction>
+2. planning at x=64 y=0 w=64 h=64 — <direction>
+3. attacking at x=128 y=0 w=64 h=64 — <direction>
+4. hit-target at x=192 y=0 w=64 h=64 — <direction>
+5. got-hit at x=256 y=0 w=64 h=64 — <direction>
+6. low-fuel at x=320 y=0 w=64 h=64 — <direction>
+7. down at x=384 y=0 w=64 h=64 — <direction>
 
 Do not add labels, borders, UI chrome, or extra frames.
 Keep silhouette readable at 64x64.

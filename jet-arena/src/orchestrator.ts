@@ -68,7 +68,10 @@ export class GameOrchestrator {
   private lastResults = new Map<string, PendingResult>();
   private inFlight = false;
 
-  constructor(private canvas: HTMLCanvasElement, private ui: UiCallbacks) {}
+  constructor(
+    private canvas: HTMLCanvasElement,
+    private ui: UiCallbacks,
+  ) {}
 
   async start(
     players: PlayerConfig[],
@@ -190,9 +193,7 @@ export class GameOrchestrator {
     if (!this.world) return;
     this.stop();
     const replayHashHex = await hashReplay(this.world.replayLog);
-    this.ui.onStatus(
-      winnerId ? `Game over. Winner: ${winnerId}` : "Game over. Draw.",
-    );
+    this.ui.onStatus(winnerId ? `Game over. Winner: ${winnerId}` : "Game over. Draw.");
     this.ui.onGameEnd(winnerId, replayHashHex);
     submitResult({
       winnerId,
@@ -214,25 +215,34 @@ export class GameOrchestrator {
       this.ui.onStatus(`Agent ${player.id} startup timeout, running degraded mode`);
     }, 8000);
 
-    worker.addEventListener("message", (event: MessageEvent<{ type: string; payload?: unknown }>) => {
-      if (event.data.type === "AGENT_READY") {
-        window.clearTimeout(startupTimer);
-        this.workerReady.set(player.id, true);
-        const readyCount = [...this.workerReady.values()].filter(Boolean).length;
-        this.ui.onStatus(`Agent ready: ${player.id} (${readyCount}/${this.expectedWorkers})`);
-        if (!this.networkLockActive && readyCount === this.expectedWorkers && this.expectedWorkers > 0) {
-          enableNetworkLockdown();
-          this.networkLockActive = true;
-          this.ui.onStatus("All agents ready. Network lockdown active.");
+    worker.addEventListener(
+      "message",
+      (event: MessageEvent<{ type: string; payload?: unknown }>) => {
+        if (event.data.type === "AGENT_READY") {
+          window.clearTimeout(startupTimer);
+          this.workerReady.set(player.id, true);
+          const readyCount = [...this.workerReady.values()].filter(Boolean).length;
+          this.ui.onStatus(`Agent ready: ${player.id} (${readyCount}/${this.expectedWorkers})`);
+          if (
+            !this.networkLockActive &&
+            readyCount === this.expectedWorkers &&
+            this.expectedWorkers > 0
+          ) {
+            enableNetworkLockdown();
+            this.networkLockActive = true;
+            this.ui.onStatus("All agents ready. Network lockdown active.");
+          }
         }
-      }
-      if (event.data.type === "AGENT_ERROR") {
-        window.clearTimeout(startupTimer);
-        this.workerReady.set(player.id, false);
-        const payload = event.data.payload as { error?: string } | undefined;
-        this.ui.onStatus(`Agent ${player.id} failed: ${payload?.error ?? "Unknown worker error"}`);
-      }
-    });
+        if (event.data.type === "AGENT_ERROR") {
+          window.clearTimeout(startupTimer);
+          this.workerReady.set(player.id, false);
+          const payload = event.data.payload as { error?: string } | undefined;
+          this.ui.onStatus(
+            `Agent ${player.id} failed: ${payload?.error ?? "Unknown worker error"}`,
+          );
+        }
+      },
+    );
 
     worker.addEventListener("error", (event) => {
       window.clearTimeout(startupTimer);
@@ -349,8 +359,7 @@ export class GameOrchestrator {
       self.altitude,
       CONFIG.SENSOR_RANGE,
     );
-    const nearestWall =
-      nearbyWalls[0] ??
+    const nearestWall = nearbyWalls[0] ??
       this.world.getNearbyWalls(self.x, self.y, self.altitude, Number.POSITIVE_INFINITY)[0] ?? {
         distance: Number.POSITIVE_INFINITY,
         normalX: 0,
@@ -415,7 +424,5 @@ const hashReplay = async (frames: ReplayFrame[]): Promise<string> => {
   const json = JSON.stringify(frames);
   const encoded = new TextEncoder().encode(json);
   const digest = await crypto.subtle.digest("SHA-256", encoded);
-  return [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 };

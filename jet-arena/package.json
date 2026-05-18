@@ -6,22 +6,35 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
+    "typescript": "^6.0.3",
     "vite": "^8.0.13"
   },
   "dependencies": {
+    "@radix-ui/react-collapsible": "^1.1.12",
+    "@radix-ui/react-scroll-area": "^1.2.10",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@tailwindcss/vite": "^4.3.0",
+    "@tensorflow/tfjs": "^4.22.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.5",
-    "@tensorflow/tfjs": "^4.22.0"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.3.0"
   }
 }

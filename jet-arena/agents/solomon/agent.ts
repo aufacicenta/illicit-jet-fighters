@@ -100,8 +100,7 @@ globalThis.__agentExport = (() => {
     const towardCenter = (center - self.altitude) / Math.max(halfSpan, 0.04);
     const cautiousBias = state === "critical" ? 0.18 : 0.1;
     const insideBandTarget = towardCenter + (towardCenter >= 0 ? cautiousBias : -cautiousBias);
-    const edgePressure =
-      band.deltaToMin < margin ? 0.35 : band.deltaToMax < margin ? -0.35 : 0;
+    const edgePressure = band.deltaToMin < margin ? 0.35 : band.deltaToMax < margin ? -0.35 : 0;
 
     return clamp(insideBandTarget * 0.55 + edgePressure - self.vAlt * 0.35);
   };
@@ -192,7 +191,9 @@ globalThis.__agentExport = (() => {
       if (self.fuel < 90) thrust = Math.min(thrust, 0.7);
 
       let turn = clamp((leadBearing / Math.PI) * (state === "advantage" ? 1.18 : 0.98));
-      let climb = clamp(-target.relAltitude * (state === "advantage" ? 2.35 : 2.0) - self.vAlt * 0.33);
+      let climb = clamp(
+        -target.relAltitude * (state === "advantage" ? 2.35 : 2.0) - self.vAlt * 0.33,
+      );
 
       const collisionSpacing = 72 + memory.collisionFear * 56;
       const collisionImminent = target.distance < collisionSpacing;
@@ -242,7 +243,7 @@ globalThis.__agentExport = (() => {
       if (pickup) {
         const pickupBearing = normAngle(Math.atan2(pickup.relY, pickup.relX) - self.angle);
         turn = clamp(turn * 0.35 + (pickupBearing / Math.PI) * 0.65);
-        climb = clamp(climb * 0.3 + (-pickup.relAltitude * 2.5) * 0.7);
+        climb = clamp(climb * 0.3 + -pickup.relAltitude * 2.5 * 0.7);
         thrust = Math.max(0.72, thrust);
         shoot = false;
       }

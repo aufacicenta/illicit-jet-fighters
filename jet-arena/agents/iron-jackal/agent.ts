@@ -80,13 +80,17 @@ globalThis.__agentExport = (() => {
       );
     }
     if (state === "pressured") {
-      return distanceScore * 1.15 + alignmentScore * 1.45 + altitudeScore * 1.45 + velocityScore * 1.15;
+      return (
+        distanceScore * 1.15 + alignmentScore * 1.45 + altitudeScore * 1.45 + velocityScore * 1.15
+      );
     }
     if (state === "critical") {
       const safetyBias = enemy.distance > 95 ? 0.25 : 0;
       return distanceScore * 0.65 + alignmentScore * 1.05 + altitudeScore * 1.35 + safetyBias;
     }
-    return distanceScore * 1.45 + alignmentScore * 1.6 + altitudeScore * 1.15 + velocityScore * 0.95;
+    return (
+      distanceScore * 1.45 + alignmentScore * 1.6 + altitudeScore * 1.15 + velocityScore * 0.95
+    );
   };
 
   const patrolAction = (self) => {

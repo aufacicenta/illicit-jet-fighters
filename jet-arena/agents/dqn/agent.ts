@@ -86,8 +86,7 @@ globalThis.__agentExport = (() => {
             (right.relX * right.relX + right.relY * right.relY),
         )[0] ?? null;
     const nearestPickup =
-      observation.nearbyPickups
-        .sort((left, right) => left.distance - right.distance)[0] ?? null;
+      observation.nearbyPickups.sort((left, right) => left.distance - right.distance)[0] ?? null;
     const pickupAmmo = nearestPickup?.kind === "ammo" ? 1 : 0;
     const pickupFuel = nearestPickup?.kind === "fuel" ? 1 : 0;
     const pickupHealth = nearestPickup?.kind === "health" ? 1 : 0;
@@ -201,7 +200,9 @@ globalThis.__agentExport = (() => {
       if (!action.followPickup) {
         return action;
       }
-      const pickup = observation.nearbyPickups.sort((left, right) => left.distance - right.distance)[0];
+      const pickup = observation.nearbyPickups.sort(
+        (left, right) => left.distance - right.distance,
+      )[0];
       if (!pickup) {
         return action;
       }

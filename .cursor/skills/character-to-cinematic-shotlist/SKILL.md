@@ -22,13 +22,13 @@ A character profile (e.g. `jet-arena/agents/*/character-description.md`). Any ch
 
 Extract and map:
 
-| Field | Source Section | What to Pull |
-|-------|---------------|--------------|
-| Physical identity | Visual Anchors, Background | Age, build, ethnicity, defining facial features, demeanor |
-| Outfit & props | Visual Anchors, Living Context | Clothing, gear, weapons, signature objects |
-| Environment | Living Context → Environment | Primary setting, lighting, atmosphere, key props in scene |
-| Signature action | Personality Stack → Core Trait, Expressions | Combat style, signature motion, emotional rhythm |
-| Emotional arc | Expressions, Mood Words | Dominant emotion, vulnerability moment, resolution |
+| Field             | Source Section                              | What to Pull                                              |
+| ----------------- | ------------------------------------------- | --------------------------------------------------------- |
+| Physical identity | Visual Anchors, Background                  | Age, build, ethnicity, defining facial features, demeanor |
+| Outfit & props    | Visual Anchors, Living Context              | Clothing, gear, weapons, signature objects                |
+| Environment       | Living Context → Environment                | Primary setting, lighting, atmosphere, key props in scene |
+| Signature action  | Personality Stack → Core Trait, Expressions | Combat style, signature motion, emotional rhythm          |
+| Emotional arc     | Expressions, Mood Words                     | Dominant emotion, vulnerability moment, resolution        |
 
 ## Output Format
 
@@ -94,10 +94,10 @@ Close shot, Medium close shot, Close-up, Full-body medium shot, Extreme close-up
 
 Use 28mm, 35mm, or 50mm. Match to shot:
 
-| Lens | When |
-|------|------|
-| 28mm | Full-body or environmental context shots |
-| 35mm | Close shots, orbits, handheld — workhorse focal length |
+| Lens | When                                                               |
+| ---- | ------------------------------------------------------------------ |
+| 28mm | Full-body or environmental context shots                           |
+| 35mm | Close shots, orbits, handheld — workhorse focal length             |
 | 50mm | Medium close, extreme close-up, compression for intimacy/intensity |
 
 ### Camera Movements

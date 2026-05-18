@@ -208,7 +208,8 @@ globalThis.__agentExport = (() => {
 
       const sixShotDiscipline = self.ammo <= 6 ? aligned && inRange : true;
       const cycleGate = disciplineCycle % 6 !== 5 || state === "advantage";
-      let shoot = canShoot && aligned && altitudeAligned && inRange && sixShotDiscipline && cycleGate;
+      let shoot =
+        canShoot && aligned && altitudeAligned && inRange && sixShotDiscipline && cycleGate;
       if (state === "pressured") shoot = pressure <= 1 && shoot;
       if (collisionImminent) shoot = false;
 

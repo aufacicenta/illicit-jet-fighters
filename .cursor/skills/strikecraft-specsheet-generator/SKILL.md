@@ -12,19 +12,19 @@ Convert a character description into a single image-generation prompt that produ
 
 The output prompt describes a landscape reference sheet with these fixed sections:
 
-| Section | Position | Content |
-|---------|----------|---------|
-| Hero Profile | Large, left ~40% | Side-profile hero illustration of the strikecraft in flight or dramatic hover |
-| Name / Designation Block | Top-left overlay | Stylized craft name, class designation, pilot callsign |
-| Orthographic Views | Top center, row | 4 technical views (top / front / side / rear) |
-| Cockpit Interior | Top right | Cutaway or frontal view of cockpit instrument layout |
-| Weapons & Hardpoints | Right middle | 4-5 isolated weapon/system callouts with labels |
-| Flight Configurations | Center, row | 4 flight-mode thumbnails with labels |
-| Detail Close-Ups | Bottom left | 3 zoomed sections of hull texture, weathering, or unique features |
-| Pilot Connection | Bottom center-left | Small pilot silhouette in cockpit + personal touches on the craft |
-| Damage & History | Bottom center | 2 vignettes showing battle scars, field repairs, or mission wear |
-| Color Palette | Bottom right | 5 hex-value color swatches in a row |
-| Nose Art / Craft Emblem | Bottom right corner | Painted emblem or brand mark on the hull |
+| Section                  | Position            | Content                                                                       |
+| ------------------------ | ------------------- | ----------------------------------------------------------------------------- |
+| Hero Profile             | Large, left ~40%    | Side-profile hero illustration of the strikecraft in flight or dramatic hover |
+| Name / Designation Block | Top-left overlay    | Stylized craft name, class designation, pilot callsign                        |
+| Orthographic Views       | Top center, row     | 4 technical views (top / front / side / rear)                                 |
+| Cockpit Interior         | Top right           | Cutaway or frontal view of cockpit instrument layout                          |
+| Weapons & Hardpoints     | Right middle        | 4-5 isolated weapon/system callouts with labels                               |
+| Flight Configurations    | Center, row         | 4 flight-mode thumbnails with labels                                          |
+| Detail Close-Ups         | Bottom left         | 3 zoomed sections of hull texture, weathering, or unique features             |
+| Pilot Connection         | Bottom center-left  | Small pilot silhouette in cockpit + personal touches on the craft             |
+| Damage & History         | Bottom center       | 2 vignettes showing battle scars, field repairs, or mission wear              |
+| Color Palette            | Bottom right        | 5 hex-value color swatches in a row                                           |
+| Nose Art / Craft Emblem  | Bottom right corner | Painted emblem or brand mark on the hull                                      |
 
 ## Global Style Prefix
 

@@ -7,6 +7,7 @@ disable-model-invocation: true
 # Spritesheet Pose Boundary Mapper
 
 Use this skill when a user provides:
+
 - A `spritesheet.json` metadata file
 - The matching spritesheet image (`.png`, `.jpg`, or `.jpeg`)
 
@@ -15,6 +16,7 @@ This skill validates the geometry and returns a clean pose-boundary map.
 ## Required Pose Keys
 
 Always process poses in this exact order:
+
 1. `idle`
 2. `planning`
 3. `attacking`
@@ -60,6 +62,7 @@ python ".cursor/skills/spritesheet-pose-boundary-mapper/scripts/map_pose_boundar
 ```
 
 4. Return:
+
 - image size check (`sheetWidth/sheetHeight` vs actual image size)
 - per-pose rectangle (`x`, `y`, `w`, `h`)
 - derived edges (`x2`, `y2`)

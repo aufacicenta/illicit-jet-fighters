@@ -27,9 +27,7 @@ self.addEventListener("fetch", (event) => {
       event.respondWith(fetch(event.request));
       return;
     }
-    event.respondWith(
-      new Response("Network blocked during active match", { status: 403 }),
-    );
+    event.respondWith(new Response("Network blocked during active match", { status: 403 }));
     return;
   }
   event.respondWith(fetch(event.request));

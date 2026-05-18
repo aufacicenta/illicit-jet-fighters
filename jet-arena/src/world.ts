@@ -238,7 +238,10 @@ export class GameWorld {
 
       const weightDelta = jet.weight - CONFIG.BASE_WEIGHT;
       const effectiveDrag = Math.max(0.9, CONFIG.DRAG - weightDelta * CONFIG.WEIGHT_DRAG_FACTOR);
-      const effectiveTurnRate = Math.max(0.01, CONFIG.TURN_RATE - weightDelta * CONFIG.WEIGHT_TURN_PENALTY);
+      const effectiveTurnRate = Math.max(
+        0.01,
+        CONFIG.TURN_RATE - weightDelta * CONFIG.WEIGHT_TURN_PENALTY,
+      );
 
       jet.angle += action.turn * effectiveTurnRate;
 
@@ -272,12 +275,7 @@ export class GameWorld {
       jet.y += jet.vy;
       this.applyArenaBoundary(jet);
 
-      if (
-        action.shoot &&
-        jet.cooldown <= 0 &&
-        jet.ammo > 0 &&
-        jet.fuel >= CONFIG.SHOOT_FUEL_COST
-      ) {
+      if (action.shoot && jet.cooldown <= 0 && jet.ammo > 0 && jet.fuel >= CONFIG.SHOOT_FUEL_COST) {
         jet.ammo -= 1;
         jet.fuel -= CONFIG.SHOOT_FUEL_COST;
         jet.weight += CONFIG.SHOOT_WEIGHT_PENALTY;
@@ -397,8 +395,7 @@ export class GameWorld {
     const aliveJets = [...this.state.jets.values()].filter((jet) => jet.alive);
     if (aliveJets.length < 2) return;
 
-    const deathRadius =
-      CONFIG.JET_HIT_RADIUS * CONFIG.JET_COLLISION_DEATH_RADIUS_MULTIPLIER;
+    const deathRadius = CONFIG.JET_HIT_RADIUS * CONFIG.JET_COLLISION_DEATH_RADIUS_MULTIPLIER;
     const deathRadiusSq = deathRadius * deathRadius;
     const fatalCollisions: Array<{
       left: JetState;
@@ -546,7 +543,8 @@ export class GameWorld {
       }
       if (!location) continue;
       const kind = forcedKind ?? this.randomPickupKind();
-      const altitude = PICKUP_ALTITUDE_MIN + this.rng.next() * (PICKUP_ALTITUDE_MAX - PICKUP_ALTITUDE_MIN);
+      const altitude =
+        PICKUP_ALTITUDE_MIN + this.rng.next() * (PICKUP_ALTITUDE_MAX - PICKUP_ALTITUDE_MIN);
       const pickup: PickupState = {
         id: ++this.pickupIdCounter,
         kind,

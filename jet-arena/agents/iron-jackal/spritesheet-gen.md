@@ -9,13 +9,14 @@ Core visual anchors: tall jackal-eared flight helmet with one torn ear tip; sand
 Mood: predatory; methodical; severe; kinetic; disciplined; sardonic
 
 Frame acting direction:
-1) idle at x=0 y=0 w=64 h=64 — Hold a neutral prowling stance with head slightly tilted and thumb resting on the gauntlet clicker.
-2) planning at x=64 y=0 w=64 h=64 — Raise two fingers to the clicker and angle the muzzle down in a tactical dry-recount check.
-3) attacking at x=128 y=0 w=64 h=64 — Lunge forward into a committed kill dive with shoulders pitched and jaw bared in ledger fury.
-4) hit-target at x=192 y=0 w=64 h=64 — Keep follow-through with a sharp confirming grin and posture beginning to settle into contract-closed calm.
-5) got-hit at x=256 y=0 w=64 h=64 — Snap back in a stagger with torso twisted and trigger arm recoiling in a defensive flinch.
-6) low-fuel at x=320 y=0 w=64 h=64 — Hunch into a strained conserving posture, weapon lowered, as the last-burst hesitation shows in his muzzle.
-7) down at x=384 y=0 w=64 h=64 — Collapse into an incapacitated defeated sprawl with jackal ears drooped and chest rig splayed.
+
+1. idle at x=0 y=0 w=64 h=64 — Hold a neutral prowling stance with head slightly tilted and thumb resting on the gauntlet clicker.
+2. planning at x=64 y=0 w=64 h=64 — Raise two fingers to the clicker and angle the muzzle down in a tactical dry-recount check.
+3. attacking at x=128 y=0 w=64 h=64 — Lunge forward into a committed kill dive with shoulders pitched and jaw bared in ledger fury.
+4. hit-target at x=192 y=0 w=64 h=64 — Keep follow-through with a sharp confirming grin and posture beginning to settle into contract-closed calm.
+5. got-hit at x=256 y=0 w=64 h=64 — Snap back in a stagger with torso twisted and trigger arm recoiling in a defensive flinch.
+6. low-fuel at x=320 y=0 w=64 h=64 — Hunch into a strained conserving posture, weapon lowered, as the last-burst hesitation shows in his muzzle.
+7. down at x=384 y=0 w=64 h=64 — Collapse into an incapacitated defeated sprawl with jackal ears drooped and chest rig splayed.
 
 Do not add labels, borders, UI chrome, or extra frames.
 Keep silhouette readable at 64x64.

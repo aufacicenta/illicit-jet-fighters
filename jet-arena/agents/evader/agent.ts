@@ -47,7 +47,10 @@ globalThis.__agentExport = (() => {
       const pickup = nearestUsefulPickup(observation);
       if (pickup) {
         const pickupBearing = Math.atan2(pickup.relY, pickup.relX) - observation.self.angle;
-        const normalizedPickupBearing = Math.atan2(Math.sin(pickupBearing), Math.cos(pickupBearing));
+        const normalizedPickupBearing = Math.atan2(
+          Math.sin(pickupBearing),
+          Math.cos(pickupBearing),
+        );
         return {
           thrust: 0.9,
           turn: clamp((normalizedPickupBearing / Math.PI) * 0.95),
@@ -74,9 +77,8 @@ globalThis.__agentExport = (() => {
       const turn = clamp((nearestEnemy.bearingAngle / Math.PI) * 0.8);
       // Stay at a different altitude from the nearest enemy to be harder to hit
       const altDiff = nearestEnemy.relAltitude;
-      const climb = Math.abs(altDiff) < 0.15
-        ? clamp((observation.self.altitude < 0.5 ? 1 : -1) * 0.7)
-        : 0;
+      const climb =
+        Math.abs(altDiff) < 0.15 ? clamp((observation.self.altitude < 0.5 ? 1 : -1) * 0.7) : 0;
       const altitudeAligned = Math.abs(altDiff) < 0.2;
       const shouldShoot =
         nearestEnemy.distance < 150 &&

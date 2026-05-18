@@ -1,0 +1,31 @@
+{
+  "name": "@ijf/root",
+  "private": true,
+  "type": "module",
+  "workspaces": ["api", "jet-arena"],
+  "scripts": {
+    "lint": "bun run --workspaces lint:fix",
+    "format": "bun run --workspaces format",
+    "format:check": "bun run --workspaces format:check",
+    "eslint": "bun run --workspaces lint",
+    "prettier": "bun run --workspaces format:check",
+    "typecheck": "bun run --workspaces typecheck",
+    "check": "F=0; bun run lint || F=1; bun run format:check || F=1; bun run eslint || F=1; bun run prettier || F=1; bun run typecheck || F=1; exit $F",
+    "dev:api": "bun run --filter '@ijf/api' dev",
+    "dev:arena": "bun run --filter 'illicit-jet-fighters' dev"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/bun": "^1.3.14",
+    "eslint": "^10.4.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.3"
+  }
+}

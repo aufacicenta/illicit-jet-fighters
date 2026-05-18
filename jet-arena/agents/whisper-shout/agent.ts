@@ -39,12 +39,7 @@ globalThis.__agentExport = (() => {
     const velocityScore = 1 / (1 + Math.hypot(enemy.relVx, enemy.relVy) * 0.08);
 
     if (mode === "whisper") {
-      return (
-        distanceScore * 1.2 +
-        alignmentScore * 1.7 +
-        altitudeScore * 1.2 +
-        velocityScore * 0.9
-      );
+      return distanceScore * 1.2 + alignmentScore * 1.7 + altitudeScore * 1.2 + velocityScore * 0.9;
     }
 
     if (mode === "shout") {
@@ -147,8 +142,7 @@ globalThis.__agentExport = (() => {
         .sort((left, right) => right.score - left.score)[0].enemy;
       const collisionImminent = target.distance < COLLISION_SPACING;
 
-      const leadTicks =
-        effectiveMode === "whisper" ? 10 : effectiveMode === "synchronized" ? 8 : 5;
+      const leadTicks = effectiveMode === "whisper" ? 10 : effectiveMode === "synchronized" ? 8 : 5;
       const leadX = target.relX + target.relVx * leadTicks;
       const leadY = target.relY + target.relVy * leadTicks;
       const leadDistance = Math.hypot(leadX, leadY);
@@ -181,7 +175,7 @@ globalThis.__agentExport = (() => {
       }
 
       let turn = clamp((leadBearing / Math.PI) * turnGain);
-      let climb = clamp((-target.relAltitude * climbGain) - self.vAlt * 0.3);
+      let climb = clamp(-target.relAltitude * climbGain - self.vAlt * 0.3);
 
       if (distanceToWall < 70) {
         const wallTurn = clamp(self.angle > 0 ? -0.9 : 0.9);
@@ -207,7 +201,8 @@ globalThis.__agentExport = (() => {
       }
 
       const aligned = Math.abs(leadBearing) < (effectiveMode === "shout" ? 0.2 : 0.13);
-      const altitudeAligned = Math.abs(target.relAltitude) < (effectiveMode === "shout" ? 0.24 : 0.16);
+      const altitudeAligned =
+        Math.abs(target.relAltitude) < (effectiveMode === "shout" ? 0.24 : 0.16);
       const inRange = leadDistance < (effectiveMode === "shout" ? 245 : 205);
       const hasResources = self.ammo > 0 && self.fuel > 40;
       const canShoot = self.cooldown <= 0 && hasResources;

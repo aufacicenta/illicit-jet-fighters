@@ -24,9 +24,7 @@ globalThis.__agentExport = (() => {
     learn() {},
     act(observation) {
       const liveEnemies = observation.enemies.filter((enemy) => enemy.alive);
-      const target = liveEnemies.sort(
-        (left, right) => left.distance - right.distance,
-      )[0];
+      const target = liveEnemies.sort((left, right) => left.distance - right.distance)[0];
 
       if (!target) {
         return { thrust: 0.3, turn: 0, climb: 0, shoot: false };
@@ -63,7 +61,8 @@ globalThis.__agentExport = (() => {
       const climb = normalize(-target.relAltitude * 2.5);
       const aligned = Math.abs(target.bearingAngle) < 0.14;
       const altitudeAligned = Math.abs(target.relAltitude) < 0.2;
-      const shoot = aligned && altitudeAligned && target.distance < 210 && observation.self.cooldown <= 0;
+      const shoot =
+        aligned && altitudeAligned && target.distance < 210 && observation.self.cooldown <= 0;
 
       return {
         thrust: target.distance > 140 ? 0.9 : 0.2,

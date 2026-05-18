@@ -1,14 +1,20 @@
 import { Navigate, createBrowserRouter } from "react-router-dom";
 
+import { routes } from "./hooks/useRoutes";
 import { BroadcastPage } from "./pages/BroadcastPage";
+import { FighterWizardPage } from "./pages/wizard/FighterWizardPage";
 
 export const router = createBrowserRouter([
   {
-    path: "/broadcast/:id",
+    path: routes.broadcast(":id"),
     element: <BroadcastPage />,
   },
   {
+    path: routes.fighterWizard(":id"),
+    element: <FighterWizardPage />,
+  },
+  {
     path: "*",
-    element: <Navigate to="/broadcast/local" replace />,
+    element: <Navigate to={routes.broadcast("local")} replace />,
   },
 ]);

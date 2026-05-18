@@ -12,19 +12,19 @@ Convert a character description into a single image-generation prompt that produ
 
 The output prompt describes a landscape reference sheet with these fixed sections:
 
-| Section | Position | Content |
-|---------|----------|---------|
-| Hero Pose | Large, left ~40% | Full-body signature illustration establishing mood and identity |
-| Name / Title Block | Top-left overlay | Stylized name, epithet, short lore blurb |
-| Expressions | Top center, row | 4 head-and-shoulder busts with emotion labels |
-| Turnaround | Center, row | 4 full-body orthographic views (front / ¾ / side / back) |
-| Strikecraft or Companion | Top right | Side-profile study of jet, vehicle, or companion creature |
-| Strikecraft / Companion Actions | Below craft, row | 4 small action thumbnails with labels |
-| Weapons & Gear | Right middle | 4-5 isolated item callouts with labels |
-| Outfit Details | Bottom left | 3 zoomed close-ups of key design elements with labels |
-| Action Poses | Bottom center | 2 dynamic scenes showing character in motion |
-| Color Palette | Bottom right | 5 hex-value color swatches in a row |
-| Personal Symbol | Bottom right corner | Emblem or logo for the character |
+| Section                         | Position            | Content                                                         |
+| ------------------------------- | ------------------- | --------------------------------------------------------------- |
+| Hero Pose                       | Large, left ~40%    | Full-body signature illustration establishing mood and identity |
+| Name / Title Block              | Top-left overlay    | Stylized name, epithet, short lore blurb                        |
+| Expressions                     | Top center, row     | 4 head-and-shoulder busts with emotion labels                   |
+| Turnaround                      | Center, row         | 4 full-body orthographic views (front / ¾ / side / back)        |
+| Strikecraft or Companion        | Top right           | Side-profile study of jet, vehicle, or companion creature       |
+| Strikecraft / Companion Actions | Below craft, row    | 4 small action thumbnails with labels                           |
+| Weapons & Gear                  | Right middle        | 4-5 isolated item callouts with labels                          |
+| Outfit Details                  | Bottom left         | 3 zoomed close-ups of key design elements with labels           |
+| Action Poses                    | Bottom center       | 2 dynamic scenes showing character in motion                    |
+| Color Palette                   | Bottom right        | 5 hex-value color swatches in a row                             |
+| Personal Symbol                 | Bottom right corner | Emblem or logo for the character                                |
 
 ## Global Style Prefix
 

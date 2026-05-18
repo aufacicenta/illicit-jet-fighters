@@ -12,19 +12,19 @@ Convert a battlefield description into a single image-generation prompt that pro
 
 The output prompt describes a landscape reference sheet with these fixed sections:
 
-| Section | Position | Content |
-|---------|----------|---------|
-| Hero Vista | Large, left ~40% | Wide establishing shot of the full battlefield at peak drama |
-| Name / Theater Block | Top-left overlay | Stylized arena name, callsign designation, short lore blurb |
-| Atmospheric Layers | Top center, stacked row | 4 altitude-band cross-sections labeled with combat zone names |
-| Terrain Landmarks | Center, row | 4 point-of-interest vignettes with tactical labels |
-| Hazards & Threats | Top right | Primary environmental hazard study with danger indicators |
-| Hazard Variations | Below hazard, row | 4 small hazard-state thumbnails with labels |
-| Tactical Features | Right middle | 4-5 isolated map-feature callouts with labels |
-| Weather States | Bottom left | 3 atmosphere/weather condition panels with labels |
-| Time-of-Day Cycle | Bottom center | 3 lighting passes of the same vista (dawn / midday / night) |
-| Color Palette | Bottom right | 5 hex-value color swatches in a row |
-| Arena Emblem | Bottom right corner | Insignia or brand mark for the battlefield |
+| Section              | Position                | Content                                                       |
+| -------------------- | ----------------------- | ------------------------------------------------------------- |
+| Hero Vista           | Large, left ~40%        | Wide establishing shot of the full battlefield at peak drama  |
+| Name / Theater Block | Top-left overlay        | Stylized arena name, callsign designation, short lore blurb   |
+| Atmospheric Layers   | Top center, stacked row | 4 altitude-band cross-sections labeled with combat zone names |
+| Terrain Landmarks    | Center, row             | 4 point-of-interest vignettes with tactical labels            |
+| Hazards & Threats    | Top right               | Primary environmental hazard study with danger indicators     |
+| Hazard Variations    | Below hazard, row       | 4 small hazard-state thumbnails with labels                   |
+| Tactical Features    | Right middle            | 4-5 isolated map-feature callouts with labels                 |
+| Weather States       | Bottom left             | 3 atmosphere/weather condition panels with labels             |
+| Time-of-Day Cycle    | Bottom center           | 3 lighting passes of the same vista (dawn / midday / night)   |
+| Color Palette        | Bottom right            | 5 hex-value color swatches in a row                           |
+| Arena Emblem         | Bottom right corner     | Insignia or brand mark for the battlefield                    |
 
 ## Global Style Prefix
 

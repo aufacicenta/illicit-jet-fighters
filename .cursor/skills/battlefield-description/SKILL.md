@@ -5,6 +5,7 @@ disable-model-invocation: true
 ---
 
 # Setting
+
 Setting: 2187 — After the "Shattered Sky" event fractured Earth's atmosphere into layered combat zones, traditional law enforcement collapsed. The Bounty Exchange emerged — a semi-legal network where licensed hunters take contracts across aerial and ground theaters. Each hunter flies a personalized Strikecraft — part fighter jet, part expression of identity.
 
 Visual DNA: The battlefield art should blend Metal Gear's tactical grit and portrait-style realism with Star Fox's colorful, personality-driven cockpit energy and F-Zero's exaggerated silhouette design and speed-culture aesthetics. Think: sharp angular linework, muted military tones punctuated by neon accent colors, and environments that look like they belong on declassified mission dossiers.
@@ -26,11 +27,11 @@ Memorable battlefields come from **environmental storytelling**, not geometric c
 
 Every battlefield is built on exactly three layers with weighted prominence:
 
-| Layer | Weight | Purpose | Example |
-|-------|--------|---------|---------|
-| Terrain Identity | 40% | Primary geographic/structural character | Flooded megacity canyon, shattered orbital elevator base, volcanic rift with glass-floor lava shelves |
-| Tactical Modifier | 35% | The environmental mechanic that forces adaptation | Shifting fog banks that kill radar, magnetic anomalies from wreckage that pull missiles off-course, tidal surges that redraw the floor every 90 seconds |
-| Atmosphere Quirk | 25% | The memorable sensory detail that makes it stick | Sky is permanently orange from chemical burn-off, everything echoes twice, rain falls upward near the gravity fracture |
+| Layer             | Weight | Purpose                                           | Example                                                                                                                                                 |
+| ----------------- | ------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Terrain Identity  | 40%    | Primary geographic/structural character           | Flooded megacity canyon, shattered orbital elevator base, volcanic rift with glass-floor lava shelves                                                   |
+| Tactical Modifier | 35%    | The environmental mechanic that forces adaptation | Shifting fog banks that kill radar, magnetic anomalies from wreckage that pull missiles off-course, tidal surges that redraw the floor every 90 seconds |
+| Atmosphere Quirk  | 25%    | The memorable sensory detail that makes it stick  | Sky is permanently orange from chemical burn-off, everything echoes twice, rain falls upward near the gravity fracture                                  |
 
 The stack should make the battlefield summarizable in one sentence: "the [terrain identity] where [tactical modifier] and [atmosphere quirk]."
 
@@ -74,23 +75,23 @@ At least one feature should be high-risk/high-reward. At least one should favor 
 
 Define 2–3 environmental hazards that are **not static**. Each hazard should have a rhythm or trigger that pilots learn to predict but can't fully control.
 
-| Hazard | Behavior | Timing/Trigger | Counterplay |
-|--------|----------|----------------|-------------|
+| Hazard | Behavior                        | Timing/Trigger        | Counterplay                            |
+| ------ | ------------------------------- | --------------------- | -------------------------------------- |
 | [Name] | What it does to aircraft/pilots | When/why it activates | How skilled pilots exploit or avoid it |
 
 At least one hazard should be exploitable — something a smart pilot turns into a weapon rather than just avoiding.
 
 ## Sensory Profile
 
-Build the battlefield's atmosphere through five senses. Every entry should be specific to *this* place, not generic combat ambiance.
+Build the battlefield's atmosphere through five senses. Every entry should be specific to _this_ place, not generic combat ambiance.
 
-| Sense | Detail |
-|-------|--------|
-| **Sight** | The dominant visual — color palette, light quality, what the skyline looks like from the cockpit |
-| **Sound** | What the battlefield sounds like through the canopy and over comms — ambient noise, echoes, interference |
-| **Feel** | What the airframe does here — turbulence patterns, vibration, temperature shifts through the hull |
-| **Smell** | What leaks into the cockpit through vents or seals — chemical, organic, metallic |
-| **Radar/Instruments** | How the battlefield reads on sensors — clean, cluttered, deceptive, dead zones |
+| Sense                 | Detail                                                                                                   |
+| --------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Sight**             | The dominant visual — color palette, light quality, what the skyline looks like from the cockpit         |
+| **Sound**             | What the battlefield sounds like through the canopy and over comms — ambient noise, echoes, interference |
+| **Feel**              | What the airframe does here — turbulence patterns, vibration, temperature shifts through the hull        |
+| **Smell**             | What leaks into the cockpit through vents or seals — chemical, organic, metallic                         |
+| **Radar/Instruments** | How the battlefield reads on sensors — clean, cluttered, deceptive, dead zones                           |
 
 ## Engagement Zones
 
