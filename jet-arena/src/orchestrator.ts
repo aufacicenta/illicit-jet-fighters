@@ -74,6 +74,7 @@ export class GameOrchestrator {
     players: PlayerConfig[],
     seed: number,
     battlefield: BattlefieldConfig,
+    jetSprites?: Map<string, HTMLImageElement>,
     pickupConfigOverride?: PickupConfig,
   ): Promise<void> {
     this.stop();
@@ -85,7 +86,12 @@ export class GameOrchestrator {
       battlefield,
       pickupConfigOverride,
     );
-    this.renderer = new GameRenderer(this.canvas, this.world.getArenaShape(), battlefield.name);
+    this.renderer = new GameRenderer(
+      this.canvas,
+      this.world.getArenaShape(),
+      battlefield.name,
+      jetSprites,
+    );
     this.previousState = cloneState(this.world.state);
     this.lastResults.clear();
     this.expectedWorkers = players.length;

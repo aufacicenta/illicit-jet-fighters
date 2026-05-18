@@ -24,6 +24,7 @@ type AgentMeta = {
   code: string;
   sprites: Partial<Record<PoseKey, string>>;
   spriteSheet?: SpriteSheetMeta;
+  topView?: string;
 };
 type PoseState = { pose: PoseKey; untilTick: number };
 type JetSnapshot = {
@@ -71,6 +72,10 @@ const loadAgentRegistry = (): Record<string, AgentMeta> => {
     import: "default",
     eager: true,
   }) as Record<string, SpriteSheetManifest>;
+  const topViewSprites = import.meta.glob("../agents/*/strikecraft-sprite-top.png", {
+    import: "default",
+    eager: true,
+  }) as Record<string, string>;
 
   const spriteRegistry: Record<string, Partial<Record<PoseKey, string>>> = {};
   for (const [path, resolvedUrl] of Object.entries(spriteModules)) {
@@ -105,6 +110,14 @@ const loadAgentRegistry = (): Record<string, AgentMeta> => {
     };
   }
 
+  const topViewRegistry: Record<string, string> = {};
+  for (const [path, resolvedUrl] of Object.entries(topViewSprites)) {
+    const parts = path.split("/");
+    const agentKey = parts.at(-2);
+    if (!agentKey) continue;
+    topViewRegistry[agentKey] = resolvedUrl;
+  }
+
   const entries = Object.entries(modules).map(([path, code]) => {
     const parts = path.split("/");
     const directoryName = parts.at(-2) ?? "";
@@ -120,6 +133,7 @@ const loadAgentRegistry = (): Record<string, AgentMeta> => {
         code,
         sprites: spriteRegistry[key] ?? {},
         spriteSheet: spriteSheetRegistry[key],
+        topView: topViewRegistry[key],
       },
     ] as const;
   });
@@ -599,6 +613,14 @@ const buildPlayers = (): Array<{ id: string; code: string; agentKey: string }> =
   }));
 };
 
+const preloadImage = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Unable to preload sprite: ${url}`));
+    image.src = url;
+  });
+
 const toNonNegativeInteger = (value: string, fallback: number): number => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
@@ -644,6 +666,22 @@ const startMatch = async (): Promise<void> => {
   try {
     applyCanvasAspect(battlefield);
     const players = buildPlayers();
+    const jetSprites = new Map<string, HTMLImageElement>();
+    await Promise.all(
+      players.map(async (player) => {
+        const spriteUrl = AGENT_REGISTRY[player.agentKey]?.topView;
+        if (!spriteUrl) return;
+        try {
+          const image = await preloadImage(spriteUrl);
+          jetSprites.set(player.id, image);
+        } catch (error) {
+          console.warn(
+            `Unable to load top-view sprite for ${player.id}; using fallback jet shape.`,
+            error,
+          );
+        }
+      }),
+    );
     jetAgentKeyById.clear();
     jetPoseById.clear();
     previousStateSnapshot = null;
@@ -654,6 +692,7 @@ const startMatch = async (): Promise<void> => {
       players.map((player) => ({ id: player.id, code: player.code })),
       normalizedSeed,
       battlefield,
+      jetSprites,
       pickupConfig,
     );
   } catch (error) {
