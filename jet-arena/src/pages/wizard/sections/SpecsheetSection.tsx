@@ -1,171 +1,70 @@
-import { useEffect, useState } from "react";
-
-import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "../../../components/ui/collapsible";
 import { Skeleton } from "../../../components/ui/skeleton";
-import { Textarea } from "../../../components/ui/textarea";
 import { useWizardContext } from "../../../context/Wizard/useWizardContext";
-import { generatePipelineSpecsheet, generateSpecsheetImage } from "../../../lib/api";
-import { LockedSection } from "./LockedSection";
+
+const parseNameAndEpithet = (markdown: string | undefined) => {
+  if (!markdown) {
+    return { name: "Unnamed Pilot", epithet: null as string | null };
+  }
+
+  const nameMatch = markdown.match(/^#\s+(.+)$/m);
+  const quoteMatch = markdown.match(/^>\s+"?(.+?)"?$/m);
+
+  return {
+    name: nameMatch?.[1]?.trim() || "Unnamed Pilot",
+    epithet: quoteMatch?.[1]?.trim() || null,
+  };
+};
 
 export const SpecsheetSection = () => {
-  const {
-    fighterId,
-    outputs,
-    sectionStatuses,
-    activeSectionId,
-    setActiveSection,
-    saveEditedSection,
-  } = useWizardContext();
-  const [isEditingPrompt, setIsEditingPrompt] = useState(false);
-  const [draftPrompt, setDraftPrompt] = useState(outputs["specsheet-prompt"]?.content ?? "");
-  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
-  const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
-
-  useEffect(() => {
-    setDraftPrompt(outputs["specsheet-prompt"]?.content ?? "");
-  }, [outputs]);
-
-  if (sectionStatuses["specsheet-prompt"] === "locked") {
-    return <LockedSection title="Specsheet" />;
-  }
+  const { outputs, sectionStatuses, activeSectionId, setActiveSection } = useWizardContext();
 
   const imageOutput = outputs["specsheet-image"];
   const imageStatus = sectionStatuses["specsheet-image"];
-  const hasPrompt = Boolean(outputs["specsheet-prompt"]?.content || draftPrompt);
+  const { name, epithet } = parseNameAndEpithet(outputs["character-description"]?.content);
 
   return (
     <Card
-      className={activeSectionId === "specsheet-image" ? "border-sky-500" : undefined}
+      className={activeSectionId === "specsheet-image" ? "border-secondary" : undefined}
       onClick={() => setActiveSection("specsheet-image")}
     >
-      <CardHeader className="flex flex-row items-center justify-between gap-2">
-        <CardTitle>Specsheet</CardTitle>
-        <div className="flex gap-2">
-          <Badge variant="secondary">prompt: {sectionStatuses["specsheet-prompt"]}</Badge>
-          <Badge variant={imageStatus === "complete" ? "default" : "secondary"}>
-            image: {imageStatus}
-          </Badge>
+      <CardHeader className="space-y-2">
+        <CardTitle>Pilot Specsheet</CardTitle>
+        <div className="space-y-1">
+          <p className="text-base font-bold tracking-wide text-foreground uppercase">{name}</p>
+          {epithet ? (
+            <p className="text-xs tracking-wide text-muted-foreground uppercase">{epithet}</p>
+          ) : null}
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {imageStatus === "generating" || isRegeneratingImage ? (
+        {imageStatus === "generating" ? (
           <div className="space-y-2">
-            <Skeleton className="h-56 w-full" />
-            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-[420px] w-full" />
+            <Skeleton className="h-4 w-4/12" />
           </div>
         ) : imageOutput ? (
           <img
             alt="Generated specsheet"
-            className="max-h-[560px] w-full rounded-md border border-slate-800 object-contain"
+            className="max-h-[700px] w-full rounded-sm border border-border bg-background object-contain"
             src={imageOutput.content}
           />
         ) : (
-          <p className="text-sm text-slate-400">Specsheet image will appear here.</p>
+          <p className="text-sm text-muted-foreground">
+            Specsheet image will appear here after generation.
+          </p>
         )}
-
-        <Collapsible defaultOpen>
-          <CollapsibleTrigger asChild>
-            <Button size="sm" variant="outline">
-              Toggle prompt
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-3">
-            {isEditingPrompt ? (
-              <Textarea
-                className="min-h-[220px] font-mono text-xs"
-                value={draftPrompt}
-                onChange={(event) => setDraftPrompt(event.target.value)}
-              />
-            ) : (
-              <pre className="max-h-[300px] overflow-auto rounded-md bg-slate-900 p-3 text-xs whitespace-pre-wrap">
-                {outputs["specsheet-prompt"]?.content ?? "No prompt generated yet."}
-              </pre>
-            )}
-          </CollapsibleContent>
-        </Collapsible>
-
-        <div className="flex flex-wrap gap-2">
-          {!outputs["specsheet-prompt"]?.content ? (
-            <Button
-              size="sm"
-              onClick={async (event) => {
-                event.stopPropagation();
-                const characterDescription = outputs["character-description"]?.content;
-                if (!characterDescription) {
-                  return;
-                }
-                setIsGeneratingPrompt(true);
-                try {
-                  await generatePipelineSpecsheet(fighterId, characterDescription);
-                } finally {
-                  setIsGeneratingPrompt(false);
-                }
-              }}
-            >
-              {isGeneratingPrompt ? "Generating prompt..." : "Generate prompt"}
-            </Button>
-          ) : null}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={(event) => {
-              event.stopPropagation();
-              setIsEditingPrompt((value) => !value);
-            }}
-          >
-            {isEditingPrompt ? "Cancel edit" : "Edit prompt"}
-          </Button>
-          {isEditingPrompt ? (
-            <Button
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                saveEditedSection("specsheet-prompt", draftPrompt);
-                setIsEditingPrompt(false);
-              }}
-            >
-              Save prompt
-            </Button>
-          ) : null}
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={!hasPrompt}
-            onClick={async (event) => {
-              event.stopPropagation();
-              const prompt = outputs["specsheet-prompt"]?.content ?? draftPrompt;
-              if (!prompt) {
-                return;
-              }
-              setIsRegeneratingImage(true);
-              try {
-                const generated = await generateSpecsheetImage(prompt);
-                saveEditedSection("specsheet-image", generated.imageBase64);
-              } finally {
-                setIsRegeneratingImage(false);
-              }
-            }}
-          >
-            {imageOutput ? "Regenerate image" : "Generate image"}
-          </Button>
-          {imageOutput ? (
-            <a
-              className="inline-flex h-9 items-center rounded-md border border-slate-700 px-3 text-sm text-slate-100 hover:bg-slate-800"
-              download={`fighter-${imageOutput.sectionId}.jpeg`}
-              href={imageOutput.content}
-              onClick={(event) => event.stopPropagation()}
-            >
-              Download
-            </a>
-          ) : null}
-        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={(event) => {
+            event.stopPropagation();
+            setActiveSection("specsheet-image");
+          }}
+        >
+          Refine visual output
+        </Button>
       </CardContent>
     </Card>
   );

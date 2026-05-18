@@ -3,63 +3,70 @@ import { Navigate, useParams } from "react-router-dom";
 
 import { useWizardContext } from "../../context/Wizard/useWizardContext";
 import { WizardContextController } from "../../context/Wizard/WizardContextController";
-import { PreviewPanel } from "./PreviewPanel";
+import { ProgressHud } from "./ProgressHud";
 import { PromptBar } from "./PromptBar";
 import { DescriptionSection } from "./sections/DescriptionSection";
-import { LockedSection } from "./sections/LockedSection";
 import { SpecsheetSection } from "./sections/SpecsheetSection";
 
-const connectionLabels = {
-  connecting: "Connecting to pipeline…",
-  open: "Live",
-  closed: "Reconnecting…",
-} as const;
-
-const connectionStyles = {
-  connecting: "border-amber-600/40 bg-amber-950/30 text-amber-100",
-  open: "border-emerald-600/40 bg-emerald-950/30 text-emerald-100",
-  closed: "border-amber-600/40 bg-amber-950/30 text-amber-100",
-} as const;
+type WizardView = "briefing" | "generating" | "debrief";
+const logoClassName = "mx-auto w-full max-w-[420px] object-contain";
 
 const WizardLayout = () => {
-  const { fighterId, sectionStatuses, errorMessage, connectionStatus } = useWizardContext();
+  const { sectionStatuses, outputs, errorMessage, connectionStatus } = useWizardContext();
 
-  const completedCount = useMemo(
-    () => Object.values(sectionStatuses).filter((status) => status === "complete").length,
-    [sectionStatuses],
-  );
+  const view = useMemo<WizardView>(() => {
+    if (outputs["specsheet-image"]) {
+      return "debrief";
+    }
+    if (Object.values(sectionStatuses).some((status) => status === "generating")) {
+      return "generating";
+    }
+    if (Object.values(outputs).length > 0) {
+      return "generating";
+    }
+    return "briefing";
+  }, [outputs, sectionStatuses]);
+
+  const isGenerating = Object.values(sectionStatuses).some((status) => status === "generating");
+  const showConnectionHint = connectionStatus !== "open";
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-6 px-6 py-6">
-        <header className="space-y-1">
-          <h1 className="text-2xl font-semibold">Fighter Wizard</h1>
-          <p className="text-sm text-slate-400">
-            Fighter ID: <span className="font-mono text-slate-300">{fighterId}</span>
-          </p>
-          <p className="text-sm text-slate-400">Progress: {completedCount} / 3 sections complete</p>
-          <p
-            className={`inline-flex rounded-md border px-2 py-1 text-xs ${connectionStyles[connectionStatus]}`}
-          >
-            {connectionLabels[connectionStatus]}
-          </p>
-          {errorMessage ? (
-            <p className="rounded-md border border-rose-700 bg-rose-950/30 p-2 text-sm text-rose-200">
-              {errorMessage}
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 md:px-6">
+        {view === "briefing" ? (
+          <section className="flex min-h-[80vh] flex-col items-center justify-center gap-5">
+            <img src="/ijf-1.png" alt="Illicit Jet Fighters" className={logoClassName} />
+            <p className="text-xs tracking-widest text-muted-foreground uppercase">
+              Pilot Intake Terminal
             </p>
-          ) : null}
-        </header>
-
-        <div className="grid gap-6 lg:grid-cols-[1fr_minmax(320px,400px)]">
-          <div className="space-y-4">
-            <DescriptionSection />
+            <PromptBar mode="briefing" disabled={isGenerating} />
+          </section>
+        ) : (
+          <section className="space-y-4">
+            <header className="space-y-2 text-center">
+              <img src="/ijf-1.png" alt="Illicit Jet Fighters" className={logoClassName} />
+              <p className="text-xs tracking-widest text-muted-foreground uppercase">
+                Pilot Intake Terminal
+              </p>
+            </header>
+            <PromptBar mode="docked" disabled={isGenerating} />
+            <ProgressHud sectionStatuses={sectionStatuses} />
             <SpecsheetSection />
-            <LockedSection title="Spritesheet (coming next)" />
-            <LockedSection title="Strikecraft Sheets (coming next)" />
-            <PromptBar />
+            {view === "debrief" ? <DescriptionSection /> : null}
+          </section>
+        )}
+
+        {showConnectionHint ? (
+          <p className="text-xs tracking-wide text-muted-foreground uppercase">
+            Sync link {connectionStatus === "connecting" ? "initializing" : "reconnecting"}...
+          </p>
+        ) : null}
+
+        {errorMessage ? (
+          <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
+            {errorMessage}
           </div>
-          <PreviewPanel />
-        </div>
+        ) : null}
       </div>
     </div>
   );
