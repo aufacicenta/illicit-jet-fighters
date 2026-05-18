@@ -22,6 +22,7 @@
     "vite": "^8.0.13"
   },
   "dependencies": {
+    "@neondatabase/neon-js": "^0.6.1-beta",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-separator": "^1.1.8",

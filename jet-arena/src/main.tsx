@@ -3,6 +3,7 @@ import "./styles.css";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 
+import { AuthContextController } from "./context/Auth/AuthContextController";
 import { router } from "./router";
 
 const rootElement = document.getElementById("root");
@@ -11,4 +12,8 @@ if (!(rootElement instanceof HTMLElement)) {
   throw new Error("Missing root mount element.");
 }
 
-createRoot(rootElement).render(<RouterProvider router={router} />);
+createRoot(rootElement).render(
+  <AuthContextController>
+    <RouterProvider router={router} />
+  </AuthContextController>,
+);

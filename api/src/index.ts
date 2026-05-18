@@ -2,19 +2,33 @@ import { cors } from "@elysiajs/cors";
 import { Elysia } from "elysia";
 
 import { logServerStartup, withLogging } from "./plugins/logging";
+import { fighterSessionRoutes } from "./routes/fighters";
 import { generateRoutes } from "./routes/generate";
-import { pipelineRoute } from "./routes/pipeline";
+import { pipelineRoutes } from "./routes/pipeline";
+import { agentRoutes, assetRoutes } from "./routes/storage";
 import { wsHandler } from "./ws";
 
 const PORT = Number(process.env.PORT) || 4000;
 const HOST = process.env.HOST ?? "0.0.0.0";
 
+const guardedHttp = new Elysia({ name: "guarded-http" })
+  .use(fighterSessionRoutes)
+  .use(pipelineRoutes)
+  .use(assetRoutes)
+  .use(agentRoutes)
+  .use(generateRoutes);
+
 const app = withLogging(new Elysia())
-  .use(cors({ origin: "http://localhost:5174" }))
+  .use(
+    cors({
+      origin: "http://localhost:5174",
+      allowedHeaders: ["Content-Type", "Authorization"],
+      methods: ["GET", "POST", "OPTIONS"],
+    }),
+  )
+  .get("/health", () => ({ ok: true }))
   .use(wsHandler)
-  .use(generateRoutes)
-  .use(pipelineRoute)
-  .get("/health", () => ({ ok: true }));
+  .use(guardedHttp);
 
 app.listen(
   {

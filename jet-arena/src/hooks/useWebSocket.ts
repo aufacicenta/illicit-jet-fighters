@@ -8,7 +8,7 @@ type UseWebSocketOptions<TMessage> = {
 };
 
 export const useWebSocket = <TMessage>(
-  url: string,
+  url: string | null,
   { onMessage, onOpen }: UseWebSocketOptions<TMessage>,
 ) => {
   const socketRef = useRef<WebSocket | null>(null);
@@ -26,6 +26,14 @@ export const useWebSocket = <TMessage>(
   }, [onOpen]);
 
   useEffect(() => {
+    if (!url) {
+      setConnectionStatus("closed");
+      socketRef.current?.close();
+      socketRef.current = null;
+      pendingRef.current = [];
+      return;
+    }
+
     let cancelled = false;
     let reconnectTimeout: number | null = null;
 

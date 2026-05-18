@@ -48,7 +48,7 @@ export const SpecsheetSection = () => {
           <img
             alt="Generated specsheet"
             className="max-h-[700px] w-full rounded-sm border border-border bg-background object-contain"
-            src={imageOutput.content}
+            src={imageOutput.assetUrl ?? imageOutput.content}
           />
         ) : (
           <p className="text-sm text-muted-foreground">

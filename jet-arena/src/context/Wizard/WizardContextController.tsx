@@ -2,15 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { useRoutes } from "../../hooks/useRoutes";
+import { wsRoutes } from "../../hooks/useRoutes";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import type { ChatMessage } from "../../lib/api";
 import {
+  fetchPipelineState,
   generateSpecsheetImage,
   refineCharacterDescription,
   refineSpecsheetPrompt,
   startPipeline,
 } from "../../lib/api";
+import { useAuth } from "../Auth/useAuth";
 import { WizardContext } from "./WizardContext";
 import type {
   SectionId,
@@ -27,18 +29,14 @@ const baseStatuses = {
 } as const;
 
 const sectionOrder: SectionId[] = ["character-description", "specsheet-prompt", "specsheet-image"];
-const wizardStorageVersion = 1;
+const wizardBookmarkVersion = 1;
 
-type PersistedWizardState = {
+type WizardBookmark = {
   version: number;
-  sectionStatuses: WizardContextType["sectionStatuses"];
-  outputs: WizardContextType["outputs"];
-  sectionHistories: WizardContextType["sectionHistories"];
-  gateMessage: string | null;
   activeSectionId: SectionId | null;
 };
 
-const storageKeyForFighter = (fighterId: string) => `wizard:fighter:${fighterId}:pipeline`;
+const bookmarkKeyForFighter = (fighterId: string) => `wizard:fighter:${fighterId}:bookmark`;
 
 const sanitizeStatuses = (
   statuses: WizardContextType["sectionStatuses"],
@@ -159,7 +157,8 @@ const resolveActiveSection = (
 };
 
 export const WizardContextController = ({ fighterId, children }: WizardContextControllerProps) => {
-  const { wsRoutes } = useRoutes();
+  const { token } = useAuth();
+  const fighterNumericId = Number.parseInt(fighterId, 10);
   const [activeSectionId, setActiveSectionId] = useState<SectionId | null>(null);
   const [sectionStatuses, setSectionStatuses] =
     useState<WizardContextType["sectionStatuses"]>(baseStatuses);
@@ -182,55 +181,87 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
   }, [sectionHistories]);
 
   useEffect(() => {
-    const key = storageKeyForFighter(fighterId);
-    const raw = window.localStorage.getItem(key);
-    if (!raw) {
-      setActiveSectionId(null);
-      setSectionStatuses(baseStatuses);
-      setOutputs({});
-      setSectionHistories({});
-      setGateMessage(null);
-      setPromptInput("");
-      setErrorMessage(null);
-      return;
-    }
+    let cancelled = false;
 
-    try {
-      const parsed = JSON.parse(raw) as PersistedWizardState;
-      if (parsed.version !== wizardStorageVersion) {
-        window.localStorage.removeItem(key);
-        return;
+    const loadBookmark = (): SectionId | null => {
+      const raw = window.localStorage.getItem(bookmarkKeyForFighter(fighterId));
+      if (!raw) {
+        return null;
       }
 
-      const hydratedStatuses = sanitizeStatuses(parsed.sectionStatuses);
-      const hydratedOutputs = parsed.outputs ?? {};
+      try {
+        const parsed = JSON.parse(raw) as WizardBookmark;
+        if (parsed.version !== wizardBookmarkVersion) {
+          window.localStorage.removeItem(bookmarkKeyForFighter(fighterId));
+          return null;
+        }
+        return parsed.activeSectionId ?? null;
+      } catch {
+        window.localStorage.removeItem(bookmarkKeyForFighter(fighterId));
+        return null;
+      }
+    };
 
-      setActiveSectionId(
-        parsed.activeSectionId ?? resolveActiveSection(hydratedStatuses, hydratedOutputs),
-      );
-      setSectionStatuses(hydratedStatuses);
-      setOutputs(hydratedOutputs);
-      setSectionHistories(parsed.sectionHistories ?? {});
-      setGateMessage(parsed.gateMessage ?? null);
-      setPromptInput("");
+    void (async () => {
       setErrorMessage(null);
-    } catch {
-      window.localStorage.removeItem(key);
-    }
+      setPromptInput("");
+
+      const bookmarkActive = loadBookmark();
+
+      try {
+        const snapshot = await fetchPipelineState(fighterId);
+        if (cancelled) {
+          return;
+        }
+
+        if (snapshot) {
+          const mappedOutputs: Partial<Record<SectionId, SectionOutput>> = {};
+          for (const [key, value] of Object.entries(snapshot.outputs)) {
+            if (value) {
+              mappedOutputs[key as SectionId] = value as SectionOutput;
+            }
+          }
+
+          setSectionStatuses(snapshot.sectionStatuses as WizardContextType["sectionStatuses"]);
+          setOutputs(mappedOutputs);
+          setSectionHistories(snapshot.histories ?? {});
+          setGateMessage(snapshot.gateMessage ?? null);
+          setActiveSectionId(
+            bookmarkActive ?? resolveActiveSection(snapshot.sectionStatuses, mappedOutputs),
+          );
+          return;
+        }
+
+        setSectionStatuses(baseStatuses);
+        setOutputs({});
+        setSectionHistories({});
+        setGateMessage(null);
+        setActiveSectionId(bookmarkActive ?? null);
+      } catch {
+        if (!cancelled) {
+          setSectionStatuses(baseStatuses);
+          setOutputs({});
+          setSectionHistories({});
+          setGateMessage(null);
+          setActiveSectionId(bookmarkActive ?? null);
+          setErrorMessage("Unable to load pipeline state from server.");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [fighterId]);
 
   useEffect(() => {
-    const state: PersistedWizardState = {
-      version: wizardStorageVersion,
-      sectionStatuses: sanitizeStatuses(sectionStatuses),
-      outputs,
-      sectionHistories,
-      gateMessage,
+    const state: WizardBookmark = {
+      version: wizardBookmarkVersion,
       activeSectionId,
     };
 
-    window.localStorage.setItem(storageKeyForFighter(fighterId), JSON.stringify(state));
-  }, [activeSectionId, fighterId, gateMessage, outputs, sectionHistories, sectionStatuses]);
+    window.localStorage.setItem(bookmarkKeyForFighter(fighterId), JSON.stringify(state));
+  }, [activeSectionId, fighterId]);
 
   const resetDownstream = useCallback((sectionId: SectionId) => {
     const index = sectionOrder.indexOf(sectionId);
@@ -326,7 +357,15 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     }
   }, []);
 
-  const { send, connectionStatus } = useWebSocket<ServerMessage>(wsRoutes.fighter(fighterId), {
+  const wsUrl = useMemo(() => {
+    if (!token) {
+      return null;
+    }
+
+    return `${wsRoutes.fighter(fighterId)}?token=${encodeURIComponent(token)}`;
+  }, [fighterId, token]);
+
+  const { send, connectionStatus } = useWebSocket<ServerMessage>(wsUrl, {
     onMessage,
   });
 
@@ -348,7 +387,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
         setOutputs({});
         setSectionHistories({});
         setGateMessage(null);
-        await startPipeline(fighterId, trimmed);
+        await startPipeline(fighterNumericId, trimmed);
         setPromptInput("");
         return;
       }
@@ -414,9 +453,12 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
           "specsheet-image": "generating",
         }));
         const generated = await generateSpecsheetImage(trimmed);
+        const imagePayload = generated.imageBase64.startsWith("data:")
+          ? generated.imageBase64
+          : `data:${generated.mimeType};base64,${generated.imageBase64}`;
         const output: SectionOutput = {
           sectionId: "specsheet-image",
-          content: generated.imageBase64,
+          content: imagePayload,
           generatedAt: new Date().toISOString(),
           model: generated.model,
           mimeType: generated.mimeType,
@@ -432,7 +474,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Unable to process prompt.");
     }
-  }, [activeSectionId, fighterId, promptInput, resetDownstream, sectionHistories]);
+  }, [activeSectionId, fighterNumericId, promptInput, resetDownstream, sectionHistories]);
 
   const saveEditedSection = useCallback(
     (sectionId: SectionId, content: string) => {

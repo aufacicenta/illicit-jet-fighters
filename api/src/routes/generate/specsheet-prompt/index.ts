@@ -4,6 +4,7 @@ import { createCorrelationId } from "../../../lib/correlation-id";
 import { generateSpecsheetPrompt, generateSpecsheetPromptRefine } from "../../../lib/generate";
 import { withCorrelationContext } from "../../../lib/log-context";
 import { logger } from "../../../lib/logger";
+import { requireBearerAuth } from "../../../lib/require-bearer-auth";
 import type {
   SpecsheetPromptRefineRequest,
   SpecsheetPromptRequest,
@@ -11,7 +12,8 @@ import type {
 } from "./types";
 
 export const specsheetPromptRoute = new Elysia()
-  .post("/specsheet-prompt", async ({ body }) => {
+  .post("/specsheet-prompt", async ({ body, request, headers }) => {
+    await requireBearerAuth(request, headers);
     const startedAt = Date.now();
     const correlationId = createCorrelationId("generate-specsheet-prompt");
     const { characterDescription } = body as SpecsheetPromptRequest;
@@ -44,7 +46,8 @@ export const specsheetPromptRoute = new Elysia()
       throw error;
     }
   })
-  .post("/specsheet-prompt/refine", async ({ body }) => {
+  .post("/specsheet-prompt/refine", async ({ body, request, headers }) => {
+    await requireBearerAuth(request, headers);
     const startedAt = Date.now();
     const correlationId = createCorrelationId("generate-specsheet-prompt-refine");
     const { message, history } = body as SpecsheetPromptRefineRequest;

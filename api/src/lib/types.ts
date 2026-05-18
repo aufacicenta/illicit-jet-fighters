@@ -11,4 +11,5 @@ export type SectionOutput = {
   generatedAt: string;
   model: string;
   mimeType?: string;
+  assetUrl?: string;
 };

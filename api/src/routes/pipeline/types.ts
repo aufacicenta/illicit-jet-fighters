@@ -1,10 +1,10 @@
 export type PipelineStartRequest = {
-  fighterId: string;
+  id: number;
   prompt: string;
 };
 
 export type PipelineSpecsheetRequest = {
-  fighterId: string;
+  id: number;
   characterDescription: string;
 };
 

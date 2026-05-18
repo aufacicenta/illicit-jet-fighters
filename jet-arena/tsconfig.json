@@ -27,5 +27,6 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "agents/**/*.ts", "index.ts", "vite.config.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "index.ts", "vite.config.ts"],
+  "exclude": ["agents"]
 }

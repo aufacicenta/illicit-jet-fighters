@@ -4,10 +4,12 @@ import { createCorrelationId } from "../../../lib/correlation-id";
 import { generateSpecsheetImage } from "../../../lib/generate";
 import { withCorrelationContext } from "../../../lib/log-context";
 import { logger } from "../../../lib/logger";
+import { requireBearerAuth } from "../../../lib/require-bearer-auth";
 import type { SpecsheetImageRequest, SpecsheetImageResponse } from "./types";
 
 export const specsheetImageRoute = new Elysia()
-  .post("/specsheet-image", async ({ body }) => {
+  .post("/specsheet-image", async ({ body, request, headers }) => {
+    await requireBearerAuth(request, headers);
     const startedAt = Date.now();
     const correlationId = createCorrelationId("generate-specsheet-image");
     const { prompt } = body as SpecsheetImageRequest;
@@ -41,7 +43,8 @@ export const specsheetImageRoute = new Elysia()
       throw error;
     }
   })
-  .post("/specsheet-image/refine", async ({ body }) => {
+  .post("/specsheet-image/refine", async ({ body, request, headers }) => {
+    await requireBearerAuth(request, headers);
     const startedAt = Date.now();
     const correlationId = createCorrelationId("generate-specsheet-image-refine");
     const { prompt } = body as SpecsheetImageRequest;

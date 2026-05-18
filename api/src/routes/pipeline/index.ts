@@ -1,104 +1,139 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 
 import { createCorrelationId } from "../../lib/correlation-id";
+import { fighterKeyFromId, getOwnedFighter, parseFighterIdParam } from "../../lib/fighter-access";
 import { logger } from "../../lib/logger";
 import {
+  bindPipelineTenant,
   generateSpecsheetFromCharacterDescription,
+  serializeClientPipelineState,
   startPipeline,
 } from "../../lib/pipeline-runner";
+import { requireBearerAuth } from "../../lib/require-bearer-auth";
 import type {
   PipelineSpecsheetRequest,
   PipelineStartRequest,
   PipelineStartResponse,
 } from "./types";
 
-export const pipelineRoute = new Elysia({ prefix: "/pipeline" })
-  .post("/start", ({ body }) => {
-    const { fighterId, prompt } = body as PipelineStartRequest;
-    const correlationId = createCorrelationId("pipeline-start");
-    logger.info("pipeline start endpoint hit", {
-      path: "/pipeline/start",
-      fighterId,
-      correlationId,
-      promptLength: typeof prompt === "string" ? prompt.length : undefined,
-    });
+const resolveFighterAccess = async (authUserId: string, rawId: string) => {
+  const fighterId = parseFighterIdParam(rawId);
+  if (!fighterId) {
+    return { error: "Invalid fighter id." as const };
+  }
 
-    if (!fighterId || !prompt) {
-      logger.warn("pipeline start endpoint validation failed", {
-        path: "/pipeline/start",
-        fighterId,
-        correlationId,
-        hasPrompt: Boolean(prompt),
-      });
+  const owned = await getOwnedFighter(fighterId, authUserId);
+  if (!owned) {
+    return { error: "Fighter not found." as const };
+  }
+
+  const fighterKey = fighterKeyFromId(fighterId);
+  bindPipelineTenant(fighterKey, { userId: authUserId, fighterId });
+  return { fighterId, fighterKey };
+};
+
+export const pipelineRoutes = new Elysia({ prefix: "/pipeline" })
+  .get("/:id/state", async ({ params, request, headers, status }) => {
+    const auth = await requireBearerAuth(request, headers);
+    const resolution = await resolveFighterAccess(auth.userId, params.id);
+    if ("error" in resolution) {
+      return status(404, resolution.error);
     }
 
-    void startPipeline(fighterId, prompt, correlationId)
-      .then(() => {
-        logger.info("pipeline start endpoint async execution completed", {
-          path: "/pipeline/start",
-          fighterId,
-          correlationId,
-        });
-      })
-      .catch((error) => {
-        logger.error("pipeline start endpoint async execution failed", {
-          path: "/pipeline/start",
-          fighterId,
-          correlationId,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      });
-
-    logger.debug("pipeline start endpoint response sent", {
-      path: "/pipeline/start",
-      fighterId,
-      correlationId,
-      status: "started",
-    });
-    return { status: "started" } satisfies PipelineStartResponse;
+    return serializeClientPipelineState(resolution.fighterKey);
   })
-  .post("/specsheet", ({ body }) => {
-    const { fighterId, characterDescription } = body as PipelineSpecsheetRequest;
-    const correlationId = createCorrelationId("pipeline-specsheet");
-    logger.info("pipeline specsheet endpoint hit", {
-      path: "/pipeline/specsheet",
-      fighterId,
-      correlationId,
-      descriptionLength:
-        typeof characterDescription === "string" ? characterDescription.length : undefined,
-    });
+  .post(
+    "/start",
+    async ({ body, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const payload = body as PipelineStartRequest;
+      const resolution = await resolveFighterAccess(auth.userId, String(payload.id));
+      if ("error" in resolution) {
+        return status(404, resolution.error);
+      }
 
-    if (!fighterId || !characterDescription) {
-      logger.warn("pipeline specsheet endpoint validation failed", {
-        path: "/pipeline/specsheet",
-        fighterId,
+      const correlationId = createCorrelationId("pipeline-start");
+      logger.info("pipeline start endpoint hit", {
+        path: "/pipeline/start",
+        fighterId: resolution.fighterId,
         correlationId,
-        hasCharacterDescription: Boolean(characterDescription),
-      });
-    }
-
-    void generateSpecsheetFromCharacterDescription(fighterId, characterDescription, correlationId)
-      .then(() => {
-        logger.info("pipeline specsheet endpoint async execution completed", {
-          path: "/pipeline/specsheet",
-          fighterId,
-          correlationId,
-        });
-      })
-      .catch((error) => {
-        logger.error("pipeline specsheet endpoint async execution failed", {
-          path: "/pipeline/specsheet",
-          fighterId,
-          correlationId,
-          error: error instanceof Error ? error.message : String(error),
-        });
+        promptLength: typeof payload.prompt === "string" ? payload.prompt.length : undefined,
       });
 
-    logger.debug("pipeline specsheet endpoint response sent", {
-      path: "/pipeline/specsheet",
-      fighterId,
-      correlationId,
-      status: "started",
-    });
-    return { status: "started" } satisfies PipelineStartResponse;
-  });
+      void startPipeline(resolution.fighterKey, payload.prompt, correlationId)
+        .then(() => {
+          logger.info("pipeline start endpoint async execution completed", {
+            path: "/pipeline/start",
+            fighterId: resolution.fighterId,
+            correlationId,
+          });
+        })
+        .catch((error) => {
+          logger.error("pipeline start endpoint async execution failed", {
+            path: "/pipeline/start",
+            fighterId: resolution.fighterId,
+            correlationId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+
+      return { status: "started" } satisfies PipelineStartResponse;
+    },
+    {
+      body: t.Object({
+        id: t.Number(),
+        prompt: t.String(),
+      }),
+    },
+  )
+  .post(
+    "/specsheet",
+    async ({ body, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const payload = body as PipelineSpecsheetRequest;
+      const resolution = await resolveFighterAccess(auth.userId, String(payload.id));
+      if ("error" in resolution) {
+        return status(404, resolution.error);
+      }
+
+      const correlationId = createCorrelationId("pipeline-specsheet");
+      logger.info("pipeline specsheet endpoint hit", {
+        path: "/pipeline/specsheet",
+        fighterId: resolution.fighterId,
+        correlationId,
+        descriptionLength:
+          typeof payload.characterDescription === "string"
+            ? payload.characterDescription.length
+            : undefined,
+      });
+
+      void generateSpecsheetFromCharacterDescription(
+        resolution.fighterKey,
+        payload.characterDescription,
+        correlationId,
+      )
+        .then(() => {
+          logger.info("pipeline specsheet endpoint async execution completed", {
+            path: "/pipeline/specsheet",
+            fighterId: resolution.fighterId,
+            correlationId,
+          });
+        })
+        .catch((error) => {
+          logger.error("pipeline specsheet endpoint async execution failed", {
+            path: "/pipeline/specsheet",
+            fighterId: resolution.fighterId,
+            correlationId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+
+      return { status: "started" } satisfies PipelineStartResponse;
+    },
+    {
+      body: t.Object({
+        id: t.Number(),
+        characterDescription: t.String(),
+      }),
+    },
+  );

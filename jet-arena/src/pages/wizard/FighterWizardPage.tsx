@@ -3,6 +3,7 @@ import { Navigate, useParams } from "react-router-dom";
 
 import { useWizardContext } from "../../context/Wizard/useWizardContext";
 import { WizardContextController } from "../../context/Wizard/WizardContextController";
+import { routes } from "../../hooks/useRoutes";
 import { ProgressHud } from "./ProgressHud";
 import { PromptBar } from "./PromptBar";
 import { DescriptionSection } from "./sections/DescriptionSection";
@@ -74,13 +75,18 @@ const WizardLayout = () => {
 
 export const FighterWizardPage = () => {
   const { id } = useParams();
+  const parsedId = id ? Number.parseInt(id, 10) : Number.NaN;
+  const fighterId =
+    typeof id === "string" && id.trim().length > 0 && Number.isInteger(parsedId) && parsedId > 0
+      ? String(parsedId)
+      : null;
 
-  if (!id) {
-    return <Navigate replace to="/broadcast/local" />;
+  if (!fighterId) {
+    return <Navigate replace to={routes.login()} />;
   }
 
   return (
-    <WizardContextController key={id} fighterId={id}>
+    <WizardContextController fighterId={fighterId} key={fighterId}>
       <WizardLayout />
     </WizardContextController>
   );

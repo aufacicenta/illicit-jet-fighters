@@ -7,6 +7,7 @@ import {
 } from "../../../lib/generate";
 import { withCorrelationContext } from "../../../lib/log-context";
 import { logger } from "../../../lib/logger";
+import { requireBearerAuth } from "../../../lib/require-bearer-auth";
 import type {
   CharacterDescriptionRefineRequest,
   CharacterDescriptionRequest,
@@ -14,7 +15,8 @@ import type {
 } from "./types";
 
 export const characterDescriptionRoute = new Elysia()
-  .post("/character-description", async ({ body }) => {
+  .post("/character-description", async ({ body, request, headers }) => {
+    await requireBearerAuth(request, headers);
     const startedAt = Date.now();
     const correlationId = createCorrelationId("generate-character-description");
     const { prompt } = body as CharacterDescriptionRequest;
@@ -47,7 +49,8 @@ export const characterDescriptionRoute = new Elysia()
       throw error;
     }
   })
-  .post("/character-description/refine", async ({ body }) => {
+  .post("/character-description/refine", async ({ body, request, headers }) => {
+    await requireBearerAuth(request, headers);
     const startedAt = Date.now();
     const correlationId = createCorrelationId("generate-character-description-refine");
     const { message, history } = body as CharacterDescriptionRefineRequest;

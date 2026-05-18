@@ -1,10 +1,14 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 
+import { verifyJwt } from "../lib/auth";
 import { createCorrelationId } from "../lib/correlation-id";
+import { fighterKeyFromId, getOwnedFighter, parseFighterIdParam } from "../lib/fighter-access";
 import { logger } from "../lib/logger";
 import {
+  bindPipelineTenant,
   continuePipeline,
   editSection,
+  hydratePipelineFromBucket,
   refineSection,
   syncPipelineState,
 } from "../lib/pipeline-runner";
@@ -12,26 +16,87 @@ import { registerSocket, unregisterSocket } from "./store";
 import type { ClientMessage } from "./types";
 
 export const wsHandler = new Elysia().ws("/ws/:fighterId", {
-  open(socket) {
-    const fighterId = socket.data.params.fighterId;
-    registerSocket(fighterId, socket);
-    syncPipelineState(fighterId);
-    logger.info("websocket connected", {
-      fighterId,
-      path: `/ws/${fighterId}`,
-    });
+  query: t.Object({
+    token: t.String(),
+  }),
+  async open(ws) {
+    const fighterParam = ws.data.params.fighterId;
+    const token = ws.data.query.token;
+    const path = `/ws/${fighterParam}`;
+
+    try {
+      const auth = await verifyJwt(token);
+      const fighterId = parseFighterIdParam(fighterParam);
+
+      if (!fighterId) {
+        ws.send(
+          JSON.stringify({
+            type: "section:error",
+            sectionId: "character-description",
+            error: "Invalid fighter identifier.",
+          }),
+        );
+        ws.close();
+        return;
+      }
+
+      const owned = await getOwnedFighter(fighterId, auth.userId);
+
+      if (!owned) {
+        ws.send(
+          JSON.stringify({
+            type: "section:error",
+            sectionId: "character-description",
+            error: "Fighter unavailable for this pilot.",
+          }),
+        );
+        ws.close();
+        return;
+      }
+
+      const fighterKey = fighterKeyFromId(fighterId);
+      bindPipelineTenant(fighterKey, { fighterId, userId: auth.userId });
+      registerSocket(fighterKey, ws);
+      logger.info("websocket connected", { fighterKey, path });
+
+      await hydratePipelineFromBucket(fighterKey, { fighterId, userId: auth.userId });
+
+      await syncPipelineState(fighterKey);
+    } catch {
+      ws.send(
+        JSON.stringify({
+          type: "section:error",
+          sectionId: "character-description",
+          error: "Unauthorized websocket connection.",
+        }),
+      );
+      ws.close();
+    }
   },
-  close(socket) {
-    const fighterId = socket.data.params.fighterId;
-    unregisterSocket(fighterId, socket);
+  close(ws) {
+    const parsedId = parseFighterIdParam(ws.data.params.fighterId);
+    if (!parsedId) {
+      logger.warn("websocket disconnected with invalid fighter id", {
+        path: `/ws/${ws.data.params.fighterId}`,
+      });
+      return;
+    }
+
+    const fighterKey = String(parsedId);
+    unregisterSocket(fighterKey, ws);
     logger.info("websocket disconnected", {
-      fighterId,
-      path: `/ws/${fighterId}`,
+      fighterId: fighterKey,
+      path: `/ws/${fighterKey}`,
     });
   },
-  async message(socket, rawMessage) {
-    const fighterId = socket.data.params.fighterId;
-    const path = `/ws/${fighterId}`;
+  async message(ws, rawMessage) {
+    const parsedId = parseFighterIdParam(ws.data.params.fighterId);
+    if (!parsedId) {
+      return;
+    }
+
+    const fighterKey = String(parsedId);
+    const path = `/ws/${fighterKey}`;
 
     let message: ClientMessage;
     try {
@@ -41,11 +106,11 @@ export const wsHandler = new Elysia().ws("/ws/:fighterId", {
           : (rawMessage as ClientMessage);
     } catch {
       logger.warn("websocket message rejected", {
-        fighterId,
+        fighterId: fighterKey,
         path,
         reason: "invalid payload",
       });
-      socket.send(
+      ws.send(
         JSON.stringify({
           type: "section:error",
           sectionId: "character-description",
@@ -58,7 +123,7 @@ export const wsHandler = new Elysia().ws("/ws/:fighterId", {
     const correlationId = createCorrelationId(`pipeline-${message.type}`);
 
     logger.info("websocket message received", {
-      fighterId,
+      fighterId: fighterKey,
       path,
       correlationId,
       type: message.type,
@@ -68,13 +133,14 @@ export const wsHandler = new Elysia().ws("/ws/:fighterId", {
 
     try {
       if (message.type === "pipeline:continue") {
-        continuePipeline(fighterId, correlationId);
+        await continuePipeline(fighterKey, correlationId);
+        await syncPipelineState(fighterKey);
         return;
       }
 
       if (message.type === "refine") {
         await refineSection(
-          fighterId,
+          fighterKey,
           message.sectionId,
           message.message,
           message.history,
@@ -84,17 +150,17 @@ export const wsHandler = new Elysia().ws("/ws/:fighterId", {
       }
 
       if (message.type === "edit") {
-        await editSection(fighterId, message.sectionId, message.content, correlationId);
+        await editSection(fighterKey, message.sectionId, message.content, correlationId);
       }
     } catch (error) {
       logger.error("websocket handler failed", {
-        fighterId,
+        fighterId: fighterKey,
         path,
         correlationId,
         type: message.type,
         error: error instanceof Error ? error.message : String(error),
       });
-      socket.send(
+      ws.send(
         JSON.stringify({
           type: "section:error",
           sectionId:

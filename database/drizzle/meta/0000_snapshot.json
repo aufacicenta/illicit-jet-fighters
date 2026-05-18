@@ -79,12 +79,8 @@
           "tableFrom": "fighters",
           "tableTo": "user",
           "schemaTo": "neon_auth",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }

@@ -17,11 +17,16 @@ const WS_BASE = resolveWsBase();
 export const routes = {
   broadcast: (id: string) => `/broadcast/${id}`,
   fighterWizard: (id: string) => `/wizard/fighter/${id}`,
+  login: () => `/login`,
+  signup: () => `/signup`,
 };
 
 export const apiRoutes = {
+  fighterSession: `${API_BASE}/fighters/session`,
   pipelineStart: `${API_BASE}/pipeline/start`,
   pipelineSpecsheet: `${API_BASE}/pipeline/specsheet`,
+  pipelineState: (fighterId: string) =>
+    `${API_BASE}/pipeline/${encodeURIComponent(fighterId)}/state`,
   generateCharacterDescription: `${API_BASE}/generate/character-description`,
   refineCharacterDescription: `${API_BASE}/generate/character-description/refine`,
   generateSpecsheetPrompt: `${API_BASE}/generate/specsheet-prompt`,
