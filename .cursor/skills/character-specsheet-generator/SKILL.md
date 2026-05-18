@@ -1,5 +1,5 @@
 ---
-name: agent-character-sheet
+name: character-specsheet-generator
 description: Generate an image-generation prompt for a full character reference sheet from a character description. Use when the user asks to create a character sheet, reference sheet, concept sheet, or character design sheet for a jet-arena agent or any character.
 disable-model-invocation: true
 ---

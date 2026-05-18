@@ -1,5 +1,5 @@
 ---
-name: agent-spritesheet-mapper
+name: character-spritesheet-generator
 description: Convert character descriptions into a fixed 7-frame pixel-art spritesheet generation prompt with strict canvas, frame coordinates, and pose-acting mapping. Use when the user asks to map a character description to a spritesheet prompt.
 disable-model-invocation: true
 ---

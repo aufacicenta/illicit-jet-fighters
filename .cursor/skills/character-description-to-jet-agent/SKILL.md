@@ -1,5 +1,5 @@
 ---
-name: agent-character-to-jet
+name: character-description-to-jet-agent
 description: Generate Jet Arena agent code from character descriptions. Use when the user asks to create or refactor an agent personality/lore into `jet-arena/agents/<agent>/agent.ts` behavior compatible with `jet-arena/src/types.ts`.
 disable-model-invocation: true
 ---
