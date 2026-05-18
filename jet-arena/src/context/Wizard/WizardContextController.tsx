@@ -166,6 +166,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
   const [sectionHistories, setSectionHistories] = useState<WizardContextType["sectionHistories"]>(
     {},
   );
+  const [originalBriefing, setOriginalBriefing] = useState<string | null>(null);
   const [gateMessage, setGateMessage] = useState<string | null>(null);
   const [promptInput, setPromptInput] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -205,6 +206,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     void (async () => {
       setErrorMessage(null);
       setPromptInput("");
+      setOriginalBriefing(null);
 
       const bookmarkActive = loadBookmark();
 
@@ -225,6 +227,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
           setSectionStatuses(snapshot.sectionStatuses as WizardContextType["sectionStatuses"]);
           setOutputs(mappedOutputs);
           setSectionHistories(snapshot.histories ?? {});
+          setOriginalBriefing(snapshot.briefing ?? null);
           setGateMessage(snapshot.gateMessage ?? null);
           setActiveSectionId(
             bookmarkActive ?? resolveActiveSection(snapshot.sectionStatuses, mappedOutputs),
@@ -235,6 +238,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
         setSectionStatuses(baseStatuses);
         setOutputs({});
         setSectionHistories({});
+        setOriginalBriefing(null);
         setGateMessage(null);
         setActiveSectionId(bookmarkActive ?? null);
       } catch {
@@ -242,6 +246,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
           setSectionStatuses(baseStatuses);
           setOutputs({});
           setSectionHistories({});
+          setOriginalBriefing(null);
           setGateMessage(null);
           setActiveSectionId(bookmarkActive ?? null);
           setErrorMessage("Unable to load pipeline state from server.");
@@ -519,6 +524,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
   const props = useMemo<WizardContextType>(
     () => ({
       fighterId,
+      originalBriefing,
       activeSectionId,
       sectionStatuses,
       outputs,
@@ -535,6 +541,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     }),
     [
       fighterId,
+      originalBriefing,
       activeSectionId,
       sectionStatuses,
       outputs,

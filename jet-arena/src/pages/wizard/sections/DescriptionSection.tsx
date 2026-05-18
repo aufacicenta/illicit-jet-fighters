@@ -20,16 +20,6 @@ export const DescriptionSection = () => {
     >
       <CardHeader className="flex flex-row items-center justify-between gap-2">
         <CardTitle>Full Briefing</CardTitle>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={(event) => {
-            event.stopPropagation();
-            setActiveSection("character-description");
-          }}
-        >
-          Refine Briefing
-        </Button>
       </CardHeader>
       <CardContent className="space-y-3">
         {status === "generating" ? (

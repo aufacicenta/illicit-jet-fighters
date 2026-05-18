@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Navigate, useParams } from "react-router-dom";
 
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { useWizardContext } from "../../context/Wizard/useWizardContext";
 import { WizardContextController } from "../../context/Wizard/WizardContextController";
 import { routes } from "../../hooks/useRoutes";
@@ -13,7 +14,8 @@ type WizardView = "briefing" | "generating" | "debrief";
 const logoClassName = "mx-auto w-full max-w-[420px] object-contain";
 
 const WizardLayout = () => {
-  const { sectionStatuses, outputs, errorMessage, connectionStatus } = useWizardContext();
+  const { sectionStatuses, outputs, errorMessage, connectionStatus, originalBriefing } =
+    useWizardContext();
 
   const view = useMemo<WizardView>(() => {
     if (outputs["specsheet-image"]) {
@@ -50,10 +52,24 @@ const WizardLayout = () => {
                 Pilot Intake Terminal
               </p>
             </header>
-            <PromptBar mode="docked" disabled={isGenerating} />
             <ProgressHud sectionStatuses={sectionStatuses} />
-            <SpecsheetSection />
+            {originalBriefing ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl tracking-wide uppercase">
+                    Original Briefing
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <pre className="max-h-[260px] overflow-auto rounded-sm border border-primary/40 bg-primary/5 p-4 text-base leading-relaxed whitespace-pre-wrap text-primary">
+                    {originalBriefing}
+                  </pre>
+                </CardContent>
+              </Card>
+            ) : null}
+
             {view === "debrief" ? <DescriptionSection /> : null}
+            <SpecsheetSection />
           </section>
         )}
 

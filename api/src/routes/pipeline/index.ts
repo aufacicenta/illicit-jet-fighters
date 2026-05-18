@@ -31,7 +31,7 @@ const resolveFighterAccess = async (authUserId: string, rawId: string) => {
 
   const fighterKey = fighterKeyFromId(fighterId);
   bindPipelineTenant(fighterKey, { userId: authUserId, fighterId });
-  return { fighterId, fighterKey };
+  return { fighterId, fighterKey, briefing: owned.briefing ?? null };
 };
 
 export const pipelineRoutes = new Elysia({ prefix: "/pipeline" })
@@ -42,7 +42,15 @@ export const pipelineRoutes = new Elysia({ prefix: "/pipeline" })
       return status(404, resolution.error);
     }
 
-    return serializeClientPipelineState(resolution.fighterKey);
+    const snapshot = await serializeClientPipelineState(resolution.fighterKey);
+    if (!snapshot) {
+      return status(500, "Unable to load pipeline state.");
+    }
+
+    return {
+      ...snapshot,
+      briefing: resolution.briefing,
+    };
   })
   .post("/start", async ({ body, request, headers, status }) => {
     let payload;

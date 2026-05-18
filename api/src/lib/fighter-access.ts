@@ -14,9 +14,9 @@ export const fighterKeyFromId = (fighterId: number) => String(fighterId);
 export const getOwnedFighter = async (
   fighterId: number,
   userId: string,
-): Promise<{ id: number; slug: string } | undefined> => {
+): Promise<{ id: number; slug: string; briefing: string | null } | undefined> => {
   const rows = await db
-    .select({ id: fighters.id, slug: fighters.slug })
+    .select({ id: fighters.id, slug: fighters.slug, briefing: fighters.briefing })
     .from(fighters)
     .where(and(eq(fighters.id, fighterId), eq(fighters.userId, userId)))
     .limit(1);

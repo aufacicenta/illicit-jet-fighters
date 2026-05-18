@@ -25,6 +25,7 @@ export type PipelineStateSnapshot = {
   outputs: Partial<Record<ApiSectionId, ApiSectionOutput>>;
   histories: Partial<Record<ApiSectionId, ChatMessage[]>>;
   gateMessage: string | null;
+  briefing: string | null;
 };
 
 let accessToken: string | undefined;

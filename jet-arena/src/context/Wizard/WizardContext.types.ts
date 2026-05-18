@@ -38,6 +38,7 @@ export type WebSocketConnectionStatus = "connecting" | "open" | "closed";
 
 export type WizardContextType = {
   fighterId: string;
+  originalBriefing: string | null;
   activeSectionId: SectionId | null;
   sectionStatuses: Record<SectionId, SectionStatus>;
   outputs: Partial<Record<SectionId, SectionOutput>>;
