@@ -1,7 +1,13 @@
 import { Elysia } from "elysia";
 
+import { createCorrelationId } from "../lib/correlation-id";
 import { logger } from "../lib/logger";
-import { continuePipeline, editSection, refineSection } from "../lib/pipeline-runner";
+import {
+  continuePipeline,
+  editSection,
+  refineSection,
+  syncPipelineState,
+} from "../lib/pipeline-runner";
 import { registerSocket, unregisterSocket } from "./store";
 import type { ClientMessage } from "./types";
 
@@ -9,6 +15,7 @@ export const wsHandler = new Elysia().ws("/ws/:fighterId", {
   open(socket) {
     const fighterId = socket.data.params.fighterId;
     registerSocket(fighterId, socket);
+    syncPipelineState(fighterId);
     logger.info("websocket connected", {
       fighterId,
       path: `/ws/${fighterId}`,
@@ -24,6 +31,7 @@ export const wsHandler = new Elysia().ws("/ws/:fighterId", {
   },
   async message(socket, rawMessage) {
     const fighterId = socket.data.params.fighterId;
+    const path = `/ws/${fighterId}`;
 
     let message: ClientMessage;
     try {
@@ -34,7 +42,7 @@ export const wsHandler = new Elysia().ws("/ws/:fighterId", {
     } catch {
       logger.warn("websocket message rejected", {
         fighterId,
-        path: `/ws/${fighterId}`,
+        path,
         reason: "invalid payload",
       });
       socket.send(
@@ -47,9 +55,12 @@ export const wsHandler = new Elysia().ws("/ws/:fighterId", {
       return;
     }
 
+    const correlationId = createCorrelationId(`pipeline-${message.type}`);
+
     logger.info("websocket message received", {
       fighterId,
-      path: `/ws/${fighterId}`,
+      path,
+      correlationId,
       type: message.type,
       sectionId:
         message.type === "refine" || message.type === "edit" ? message.sectionId : undefined,
@@ -57,22 +68,29 @@ export const wsHandler = new Elysia().ws("/ws/:fighterId", {
 
     try {
       if (message.type === "pipeline:continue") {
-        continuePipeline(fighterId);
+        continuePipeline(fighterId, correlationId);
         return;
       }
 
       if (message.type === "refine") {
-        await refineSection(fighterId, message.sectionId, message.message, message.history);
+        await refineSection(
+          fighterId,
+          message.sectionId,
+          message.message,
+          message.history,
+          correlationId,
+        );
         return;
       }
 
       if (message.type === "edit") {
-        await editSection(fighterId, message.sectionId, message.content);
+        await editSection(fighterId, message.sectionId, message.content, correlationId);
       }
     } catch (error) {
       logger.error("websocket handler failed", {
         fighterId,
-        path: `/ws/${fighterId}`,
+        path,
+        correlationId,
         type: message.type,
         error: error instanceof Error ? error.message : String(error),
       });

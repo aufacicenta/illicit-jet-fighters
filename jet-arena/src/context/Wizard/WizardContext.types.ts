@@ -24,7 +24,16 @@ export type ServerMessage =
   | { type: "section:complete"; sectionId: SectionId; output: SectionOutput }
   | { type: "section:error"; sectionId: SectionId; error: string }
   | { type: "pipeline:complete" }
-  | { type: "pipeline:gate"; sectionId: SectionId; message: string };
+  | { type: "pipeline:gate"; sectionId: SectionId; message: string }
+  | {
+      type: "pipeline:sync";
+      sectionStatuses: Record<SectionId, SectionStatus>;
+      outputs: Partial<Record<SectionId, SectionOutput>>;
+      histories: Partial<Record<SectionId, ChatMessage[]>>;
+      gateMessage: string | null;
+    };
+
+export type WebSocketConnectionStatus = "connecting" | "open" | "closed";
 
 export type WizardContextType = {
   fighterId: string;
@@ -35,6 +44,7 @@ export type WizardContextType = {
   gateMessage: string | null;
   promptInput: string;
   errorMessage: string | null;
+  connectionStatus: WebSocketConnectionStatus;
   setPromptInput: (value: string) => void;
   setActiveSection: (sectionId: SectionId) => void;
   submitPrompt: () => Promise<void>;

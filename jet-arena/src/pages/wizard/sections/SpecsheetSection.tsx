@@ -11,14 +11,21 @@ import {
 import { Skeleton } from "../../../components/ui/skeleton";
 import { Textarea } from "../../../components/ui/textarea";
 import { useWizardContext } from "../../../context/Wizard/useWizardContext";
-import { generateSpecsheetImage } from "../../../lib/api";
+import { generatePipelineSpecsheet, generateSpecsheetImage } from "../../../lib/api";
 import { LockedSection } from "./LockedSection";
 
 export const SpecsheetSection = () => {
-  const { outputs, sectionStatuses, activeSectionId, setActiveSection, saveEditedSection } =
-    useWizardContext();
+  const {
+    fighterId,
+    outputs,
+    sectionStatuses,
+    activeSectionId,
+    setActiveSection,
+    saveEditedSection,
+  } = useWizardContext();
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
   const [draftPrompt, setDraftPrompt] = useState(outputs["specsheet-prompt"]?.content ?? "");
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
 
   useEffect(() => {
@@ -31,6 +38,7 @@ export const SpecsheetSection = () => {
 
   const imageOutput = outputs["specsheet-image"];
   const imageStatus = sectionStatuses["specsheet-image"];
+  const hasPrompt = Boolean(outputs["specsheet-prompt"]?.content || draftPrompt);
 
   return (
     <Card
@@ -84,6 +92,26 @@ export const SpecsheetSection = () => {
         </Collapsible>
 
         <div className="flex flex-wrap gap-2">
+          {!outputs["specsheet-prompt"]?.content ? (
+            <Button
+              size="sm"
+              onClick={async (event) => {
+                event.stopPropagation();
+                const characterDescription = outputs["character-description"]?.content;
+                if (!characterDescription) {
+                  return;
+                }
+                setIsGeneratingPrompt(true);
+                try {
+                  await generatePipelineSpecsheet(fighterId, characterDescription);
+                } finally {
+                  setIsGeneratingPrompt(false);
+                }
+              }}
+            >
+              {isGeneratingPrompt ? "Generating prompt..." : "Generate prompt"}
+            </Button>
+          ) : null}
           <Button
             size="sm"
             variant="outline"
@@ -109,6 +137,7 @@ export const SpecsheetSection = () => {
           <Button
             size="sm"
             variant="secondary"
+            disabled={!hasPrompt}
             onClick={async (event) => {
               event.stopPropagation();
               const prompt = outputs["specsheet-prompt"]?.content ?? draftPrompt;
@@ -124,7 +153,7 @@ export const SpecsheetSection = () => {
               }
             }}
           >
-            Regenerate image
+            {imageOutput ? "Regenerate image" : "Generate image"}
           </Button>
           {imageOutput ? (
             <a

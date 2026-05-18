@@ -3,6 +3,11 @@ export type PipelineStartRequest = {
   prompt: string;
 };
 
+export type PipelineSpecsheetRequest = {
+  fighterId: string;
+  characterDescription: string;
+};
+
 export type PipelineStartResponse = {
   status: "started";
 };

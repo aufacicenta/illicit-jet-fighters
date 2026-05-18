@@ -25,6 +25,12 @@ const post = async <TResponse>(url: string, body: Record<string, unknown>): Prom
 export const startPipeline = (fighterId: string, prompt: string) =>
   post<{ status: "started" }>(apiRoutes.pipelineStart, { fighterId, prompt });
 
+export const generatePipelineSpecsheet = (fighterId: string, characterDescription: string) =>
+  post<{ status: "started" }>(apiRoutes.pipelineSpecsheet, {
+    fighterId,
+    characterDescription,
+  });
+
 export const generateCharacterDescription = (prompt: string) =>
   post<{ markdown: string; model: string }>(apiRoutes.generateCharacterDescription, {
     prompt,

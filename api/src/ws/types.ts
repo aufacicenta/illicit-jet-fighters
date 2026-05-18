@@ -1,3 +1,4 @@
+import type { SectionStatus } from "../lib/pipeline-status";
 import type { ChatMessage, SectionId, SectionOutput } from "../lib/types";
 
 export type ServerMessage =
@@ -5,7 +6,14 @@ export type ServerMessage =
   | { type: "section:complete"; sectionId: SectionId; output: SectionOutput }
   | { type: "section:error"; sectionId: SectionId; error: string }
   | { type: "pipeline:complete" }
-  | { type: "pipeline:gate"; sectionId: SectionId; message: string };
+  | { type: "pipeline:gate"; sectionId: SectionId; message: string }
+  | {
+      type: "pipeline:sync";
+      sectionStatuses: Record<SectionId, SectionStatus>;
+      outputs: Partial<Record<SectionId, SectionOutput>>;
+      histories: Partial<Record<SectionId, ChatMessage[]>>;
+      gateMessage: string | null;
+    };
 
 export type ClientMessage =
   | { type: "pipeline:continue" }

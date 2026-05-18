@@ -137,6 +137,58 @@ const emitSectionError = (
   });
 };
 
+const runSpecsheetImageStep = async (
+  fighterId: string,
+  prompt: string,
+  correlationId?: string,
+  startedAt?: number,
+) => {
+  const state = getState(fighterId, correlationId);
+  const imageStartedAt = Date.now();
+  state.activeSectionId = "specsheet-image";
+  sendToFighter(fighterId, { type: "section:start", sectionId: "specsheet-image" });
+
+  const image = await generateSpecsheetImage(prompt);
+  setOutput(
+    fighterId,
+    "specsheet-image",
+    image.imageBase64,
+    image.model,
+    image.mimeType,
+    correlationId,
+  );
+  sendToFighter(fighterId, {
+    type: "section:complete",
+    sectionId: "specsheet-image",
+    output: state.outputs["specsheet-image"]!,
+  });
+  logger.info("pipeline section completed", {
+    ...withContext(fighterId, correlationId),
+    ...{
+      sectionId: "specsheet-image",
+      durationMs: Date.now() - imageStartedAt,
+      model: image.model,
+      mimeType: image.mimeType,
+    },
+  });
+
+  state.activeSectionId = null;
+  state.gateMessage =
+    "Character description and specsheet are ready. Continue generating remaining assets?";
+  sendToFighter(fighterId, {
+    type: "pipeline:gate",
+    sectionId: "specsheet-image",
+    message: state.gateMessage,
+  });
+  logger.info("pipeline gate emitted", {
+    ...withContext(fighterId, correlationId),
+    ...{
+      sectionId: "specsheet-image",
+      totalDurationMs: startedAt ? Date.now() - startedAt : Date.now() - imageStartedAt,
+    },
+  });
+};
+
 export const startPipeline = async (fighterId: string, prompt: string, correlationId?: string) => {
   const startedAt = Date.now();
   logger.info("pipeline start requested", {
@@ -233,48 +285,7 @@ export const startPipeline = async (fighterId: string, prompt: string, correlati
 
     state.activeSectionId = null;
 
-    const imageStartedAt = Date.now();
-    state.activeSectionId = "specsheet-image";
-    sendToFighter(fighterId, { type: "section:start", sectionId: "specsheet-image" });
-    const image = await generateSpecsheetImage(specPrompt.prompt);
-    setOutput(
-      fighterId,
-      "specsheet-image",
-      image.imageBase64,
-      image.model,
-      image.mimeType,
-      correlationId,
-    );
-    sendToFighter(fighterId, {
-      type: "section:complete",
-      sectionId: "specsheet-image",
-      output: state.outputs["specsheet-image"]!,
-    });
-    logger.info("pipeline section completed", {
-      ...withContext(fighterId, correlationId),
-      ...{
-        sectionId: "specsheet-image",
-        durationMs: Date.now() - imageStartedAt,
-        model: image.model,
-        mimeType: image.mimeType,
-      },
-    });
-
-    state.activeSectionId = null;
-    state.gateMessage =
-      "Character description and specsheet are ready. Continue generating remaining assets?";
-    sendToFighter(fighterId, {
-      type: "pipeline:gate",
-      sectionId: "specsheet-image",
-      message: state.gateMessage,
-    });
-    logger.info("pipeline gate emitted", {
-      ...withContext(fighterId, correlationId),
-      ...{
-        sectionId: "specsheet-image",
-        totalDurationMs: Date.now() - startedAt,
-      },
-    });
+    await runSpecsheetImageStep(fighterId, specPrompt.prompt, correlationId, startedAt);
   } catch (error) {
     logger.error("pipeline start failed", {
       ...withContext(fighterId, correlationId),
@@ -283,6 +294,73 @@ export const startPipeline = async (fighterId: string, prompt: string, correlati
     emitSectionError(
       fighterId,
       getState(fighterId, correlationId).activeSectionId ?? "character-description",
+      error,
+      correlationId,
+    );
+  }
+};
+
+export const generateSpecsheetFromCharacterDescription = async (
+  fighterId: string,
+  characterDescription: string,
+  correlationId?: string,
+) => {
+  const startedAt = Date.now();
+  logger.info("pipeline specsheet generation requested", {
+    ...withContext(fighterId, correlationId),
+    ...{ descriptionLength: characterDescription.length },
+  });
+
+  const state = getState(fighterId, correlationId);
+  state.gateMessage = null;
+  state.lastErrorSectionId = null;
+
+  try {
+    const promptStartedAt = Date.now();
+    state.activeSectionId = "specsheet-prompt";
+    sendToFighter(fighterId, { type: "section:start", sectionId: "specsheet-prompt" });
+
+    const specPrompt = await generateSpecsheetPrompt(characterDescription);
+    setOutput(
+      fighterId,
+      "specsheet-prompt",
+      specPrompt.prompt,
+      specPrompt.model,
+      undefined,
+      correlationId,
+    );
+    setHistory(
+      fighterId,
+      "specsheet-prompt",
+      [
+        { role: "user", content: characterDescription },
+        { role: "assistant", content: specPrompt.prompt },
+      ],
+      correlationId,
+    );
+    sendToFighter(fighterId, {
+      type: "section:complete",
+      sectionId: "specsheet-prompt",
+      output: state.outputs["specsheet-prompt"]!,
+    });
+    logger.info("pipeline section completed", {
+      ...withContext(fighterId, correlationId),
+      ...{
+        sectionId: "specsheet-prompt",
+        durationMs: Date.now() - promptStartedAt,
+        model: specPrompt.model,
+      },
+    });
+
+    await runSpecsheetImageStep(fighterId, specPrompt.prompt, correlationId, startedAt);
+  } catch (error) {
+    logger.error("pipeline specsheet generation failed", {
+      ...withContext(fighterId, correlationId),
+      ...{ durationMs: Date.now() - startedAt, error: getErrorMessage(error) },
+    });
+    emitSectionError(
+      fighterId,
+      getState(fighterId, correlationId).activeSectionId ?? "specsheet-prompt",
       error,
       correlationId,
     );
@@ -374,6 +452,23 @@ export const refineSection = async (
 
     state.activeSectionId = null;
     sendToFighter(fighterId, { type: "section:complete", sectionId, output });
+
+    if (sectionId === "specsheet-prompt") {
+      try {
+        await runSpecsheetImageStep(fighterId, output.content, correlationId);
+      } catch (imageError) {
+        logger.error("pipeline auto image generation failed after refine", {
+          ...withContext(fighterId, correlationId),
+          ...{
+            sectionId: "specsheet-image",
+            durationMs: Date.now() - startedAt,
+            error: getErrorMessage(imageError),
+          },
+        });
+        emitSectionError(fighterId, "specsheet-image", imageError, correlationId);
+      }
+    }
+
     logger.info("pipeline refine completed", {
       ...withContext(fighterId, correlationId),
       ...{ sectionId, durationMs: Date.now() - startedAt },
@@ -412,6 +507,23 @@ export const editSection = async (
     }
 
     sendToFighter(fighterId, { type: "section:complete", sectionId, output });
+
+    if (sectionId === "specsheet-prompt") {
+      try {
+        await runSpecsheetImageStep(fighterId, output.content, correlationId);
+      } catch (imageError) {
+        logger.error("pipeline auto image generation failed after edit", {
+          ...withContext(fighterId, correlationId),
+          ...{
+            sectionId: "specsheet-image",
+            durationMs: Date.now() - startedAt,
+            error: getErrorMessage(imageError),
+          },
+        });
+        emitSectionError(fighterId, "specsheet-image", imageError, correlationId);
+      }
+    }
+
     logger.info("pipeline edit completed", {
       ...withContext(fighterId, correlationId),
       ...{ sectionId, durationMs: Date.now() - startedAt, model, mimeType },

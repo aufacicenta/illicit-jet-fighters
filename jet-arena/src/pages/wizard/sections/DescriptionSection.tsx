@@ -9,8 +9,14 @@ import { useWizardContext } from "../../../context/Wizard/useWizardContext";
 import { LockedSection } from "./LockedSection";
 
 export const DescriptionSection = () => {
-  const { outputs, sectionStatuses, setActiveSection, activeSectionId, saveEditedSection } =
-    useWizardContext();
+  const {
+    outputs,
+    sectionStatuses,
+    setActiveSection,
+    activeSectionId,
+    saveEditedSection,
+    submitPrompt,
+  } = useWizardContext();
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(outputs["character-description"]?.content ?? "");
 
@@ -41,6 +47,23 @@ export const DescriptionSection = () => {
           </div>
         ) : (
           <>
+            {!outputs["character-description"] ? (
+              <div className="rounded-md border border-slate-800 bg-slate-900/50 p-3">
+                <p className="text-xs text-slate-300">
+                  Run this step using the current text in the prompt bar.
+                </p>
+                <Button
+                  className="mt-2"
+                  size="sm"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void submitPrompt();
+                  }}
+                >
+                  Run character step
+                </Button>
+              </div>
+            ) : null}
             {isEditing ? (
               <Textarea
                 className="min-h-[240px] font-mono text-xs"

@@ -1,20 +1,65 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-export const useWebSocket = <TMessage>(url: string, onMessage: (message: TMessage) => void) => {
+export type WebSocketConnectionStatus = "connecting" | "open" | "closed";
+
+type UseWebSocketOptions<TMessage> = {
+  onMessage: (message: TMessage) => void;
+  onOpen?: () => void;
+};
+
+export const useWebSocket = <TMessage>(
+  url: string,
+  { onMessage, onOpen }: UseWebSocketOptions<TMessage>,
+) => {
   const socketRef = useRef<WebSocket | null>(null);
+  const pendingRef = useRef<unknown[]>([]);
   const onMessageRef = useRef(onMessage);
+  const onOpenRef = useRef(onOpen);
+  const [connectionStatus, setConnectionStatus] = useState<WebSocketConnectionStatus>("connecting");
 
   useEffect(() => {
     onMessageRef.current = onMessage;
   }, [onMessage]);
 
   useEffect(() => {
+    onOpenRef.current = onOpen;
+  }, [onOpen]);
+
+  useEffect(() => {
     let cancelled = false;
     let reconnectTimeout: number | null = null;
 
+    const flushPending = () => {
+      const socket = socketRef.current;
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        return;
+      }
+
+      for (const payload of pendingRef.current) {
+        socket.send(JSON.stringify(payload));
+      }
+
+      pendingRef.current = [];
+    };
+
     const connect = () => {
+      if (cancelled) {
+        return;
+      }
+
+      setConnectionStatus("connecting");
       const socket = new WebSocket(url);
       socketRef.current = socket;
+
+      socket.onopen = () => {
+        if (cancelled) {
+          return;
+        }
+
+        setConnectionStatus("open");
+        flushPending();
+        onOpenRef.current?.();
+      };
 
       socket.onmessage = (event) => {
         try {
@@ -29,6 +74,7 @@ export const useWebSocket = <TMessage>(url: string, onMessage: (message: TMessag
           return;
         }
 
+        setConnectionStatus("closed");
         reconnectTimeout = window.setTimeout(connect, 1000);
       };
     };
@@ -41,17 +87,25 @@ export const useWebSocket = <TMessage>(url: string, onMessage: (message: TMessag
         window.clearTimeout(reconnectTimeout);
       }
       socketRef.current?.close();
+      socketRef.current = null;
+      pendingRef.current = [];
     };
   }, [url]);
 
-  const send = (payload: unknown) => {
+  const send = useCallback((payload: unknown) => {
     const socket = socketRef.current;
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-      return;
+    if (socket?.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(payload));
+      return true;
     }
 
-    socket.send(JSON.stringify(payload));
-  };
+    pendingRef.current.push(payload);
+    return false;
+  }, []);
 
-  return { send };
+  return {
+    send,
+    connectionStatus,
+    isConnected: connectionStatus === "open",
+  };
 };

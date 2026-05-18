@@ -1,5 +1,18 @@
-export const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
-const WS_BASE = API_BASE.replace(/^http/, "ws");
+/** Same-origin in dev (Vite proxy); override with VITE_API_URL for direct API access. */
+export const API_BASE = import.meta.env.VITE_API_URL ?? "";
+
+const resolveWsBase = (): string => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/^http/, "ws");
+  }
+  if (typeof window !== "undefined") {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//${window.location.host}`;
+  }
+  return "ws://localhost:4000";
+};
+
+const WS_BASE = resolveWsBase();
 
 export const routes = {
   broadcast: (id: string) => `/broadcast/${id}`,
@@ -8,6 +21,7 @@ export const routes = {
 
 export const apiRoutes = {
   pipelineStart: `${API_BASE}/pipeline/start`,
+  pipelineSpecsheet: `${API_BASE}/pipeline/specsheet`,
   generateCharacterDescription: `${API_BASE}/generate/character-description`,
   refineCharacterDescription: `${API_BASE}/generate/character-description/refine`,
   generateSpecsheetPrompt: `${API_BASE}/generate/specsheet-prompt`,

@@ -9,8 +9,20 @@ import { DescriptionSection } from "./sections/DescriptionSection";
 import { LockedSection } from "./sections/LockedSection";
 import { SpecsheetSection } from "./sections/SpecsheetSection";
 
+const connectionLabels = {
+  connecting: "Connecting to pipeline…",
+  open: "Live",
+  closed: "Reconnecting…",
+} as const;
+
+const connectionStyles = {
+  connecting: "border-amber-600/40 bg-amber-950/30 text-amber-100",
+  open: "border-emerald-600/40 bg-emerald-950/30 text-emerald-100",
+  closed: "border-amber-600/40 bg-amber-950/30 text-amber-100",
+} as const;
+
 const WizardLayout = () => {
-  const { fighterId, sectionStatuses, errorMessage } = useWizardContext();
+  const { fighterId, sectionStatuses, errorMessage, connectionStatus } = useWizardContext();
 
   const completedCount = useMemo(
     () => Object.values(sectionStatuses).filter((status) => status === "complete").length,
@@ -26,6 +38,11 @@ const WizardLayout = () => {
             Fighter ID: <span className="font-mono text-slate-300">{fighterId}</span>
           </p>
           <p className="text-sm text-slate-400">Progress: {completedCount} / 3 sections complete</p>
+          <p
+            className={`inline-flex rounded-md border px-2 py-1 text-xs ${connectionStyles[connectionStatus]}`}
+          >
+            {connectionLabels[connectionStatus]}
+          </p>
           {errorMessage ? (
             <p className="rounded-md border border-rose-700 bg-rose-950/30 p-2 text-sm text-rose-200">
               {errorMessage}
@@ -56,7 +73,7 @@ export const FighterWizardPage = () => {
   }
 
   return (
-    <WizardContextController fighterId={id}>
+    <WizardContextController key={id} fighterId={id}>
       <WizardLayout />
     </WizardContextController>
   );

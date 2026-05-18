@@ -1,4 +1,5 @@
 import { aiModels } from "./ai-models";
+import { logger } from "./logger";
 import { openrouter } from "./openrouter";
 import { skills } from "./skills";
 import type { ChatMessage } from "./types";
@@ -32,7 +33,95 @@ const getText = (content: unknown): string => {
 
 type SpecsheetImagePart = {
   type?: string;
-  image_url: { url: string };
+  imageUrl: string;
+};
+
+const getImageUrl = (image: Record<string, unknown>): string | undefined => {
+  if ("image_url" in image) {
+    const imageUrlValue = image.image_url;
+    if (
+      imageUrlValue &&
+      typeof imageUrlValue === "object" &&
+      "url" in imageUrlValue &&
+      typeof imageUrlValue.url === "string"
+    ) {
+      return imageUrlValue.url;
+    }
+  }
+
+  if ("imageUrl" in image) {
+    const imageUrlValue = image.imageUrl;
+    if (
+      imageUrlValue &&
+      typeof imageUrlValue === "object" &&
+      "url" in imageUrlValue &&
+      typeof imageUrlValue.url === "string"
+    ) {
+      return imageUrlValue.url;
+    }
+  }
+
+  if ("url" in image && typeof image.url === "string") {
+    return image.url;
+  }
+
+  return undefined;
+};
+
+const buildSpecsheetImageDiagnostic = (completion: unknown) => {
+  if (!completion || typeof completion !== "object") {
+    return {
+      completionType: typeof completion,
+      hasChoices: false,
+    };
+  }
+
+  const withChoices = completion as { choices?: unknown; usage?: unknown };
+  const choices = withChoices.choices;
+  const firstChoice = Array.isArray(choices) && choices.length > 0 ? choices[0] : undefined;
+  const firstMessage =
+    firstChoice && typeof firstChoice === "object" && "message" in firstChoice
+      ? firstChoice.message
+      : undefined;
+  const images =
+    firstMessage && typeof firstMessage === "object" && "images" in firstMessage
+      ? firstMessage.images
+      : undefined;
+  const content =
+    firstMessage && typeof firstMessage === "object" && "content" in firstMessage
+      ? firstMessage.content
+      : undefined;
+  const finishReason =
+    firstChoice && typeof firstChoice === "object"
+      ? "finishReason" in firstChoice
+        ? firstChoice.finishReason
+        : "finish_reason" in firstChoice
+          ? firstChoice.finish_reason
+          : undefined
+      : undefined;
+
+  return {
+    completionKeys: Object.keys(completion),
+    hasChoices: Array.isArray(choices),
+    choicesCount: Array.isArray(choices) ? choices.length : 0,
+    firstChoiceKeys: firstChoice && typeof firstChoice === "object" ? Object.keys(firstChoice) : [],
+    finishReason,
+    hasMessage: Boolean(firstMessage && typeof firstMessage === "object"),
+    messageKeys:
+      firstMessage && typeof firstMessage === "object" ? Object.keys(firstMessage) : undefined,
+    imagesCount: Array.isArray(images) ? images.length : 0,
+    firstImageKeys:
+      Array.isArray(images) &&
+      images[0] &&
+      typeof images[0] === "object" &&
+      !Array.isArray(images[0])
+        ? Object.keys(images[0] as Record<string, unknown>)
+        : [],
+    contentType: typeof content,
+    contentPreview:
+      typeof content === "string" ? content.slice(0, 180) : Array.isArray(content) ? "array" : "",
+    usage: withChoices.usage,
+  };
 };
 
 const getSpecsheetImage = (completion: unknown): SpecsheetImagePart | undefined => {
@@ -61,21 +150,18 @@ const getSpecsheetImage = (completion: unknown): SpecsheetImagePart | undefined 
   }
 
   const image = images[0];
-  if (
-    !image ||
-    typeof image !== "object" ||
-    !("image_url" in image) ||
-    typeof image.image_url !== "object" ||
-    image.image_url === null ||
-    !("url" in image.image_url) ||
-    typeof image.image_url.url !== "string"
-  ) {
+  if (!image || typeof image !== "object") {
+    return undefined;
+  }
+
+  const imageUrl = getImageUrl(image as Record<string, unknown>);
+  if (!imageUrl) {
     return undefined;
   }
 
   return {
     type: "type" in image && typeof image.type === "string" ? image.type : undefined,
-    image_url: { url: image.image_url.url },
+    imageUrl,
   };
 };
 
@@ -185,11 +271,17 @@ export const generateSpecsheetImage = async (prompt: string) => {
 
   const image = getSpecsheetImage(completion);
   if (!image) {
+    const diagnostics = buildSpecsheetImageDiagnostic(completion);
+    logger.warn("specsheet image response had no image payload", {
+      model: aiModels.specsheetImage,
+      promptLength: prompt.length,
+      ...diagnostics,
+    });
     throw new Error("Specsheet image generation returned no image.");
   }
 
   const mimeType = image.type || "image/png";
-  const imageBase64 = image.image_url.url;
+  const imageBase64 = image.imageUrl;
 
   return {
     imageBase64,
