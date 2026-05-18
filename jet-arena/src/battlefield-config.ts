@@ -1,6 +1,6 @@
 import { validateBattlefieldConfig } from "./arena-validator";
-import { CONFIG } from "./types";
 import type { BattlefieldConfig } from "./types";
+import { CONFIG } from "./types";
 
 const asTuplePair = (value: unknown): [number, number] | null => {
   if (!Array.isArray(value) || value.length !== 2) return null;

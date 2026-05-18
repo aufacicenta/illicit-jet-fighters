@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck -- Runtime-loaded agent bundle without static types
 globalThis.__agentExport = (() => {
   const clamp = (value) => {
     if (!Number.isFinite(value)) return 0;
@@ -176,7 +176,7 @@ globalThis.__agentExport = (() => {
       const overBudget = self.fuel < fuelFloor;
       const collisionImminent = target.distance < COLLISION_SPACING;
 
-      let thrust = 0.58;
+      let thrust: number;
       let turnGain = 1.05;
       let climbGain = 2.05;
       let climbDamp = 0.32;

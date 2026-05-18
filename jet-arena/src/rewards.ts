@@ -1,5 +1,5 @@
-import { CONFIG } from "./types";
 import type { AgentAction, GameState } from "./types";
+import { CONFIG } from "./types";
 
 export const computeReward = (
   jetId: string,

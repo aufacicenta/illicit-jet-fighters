@@ -2,7 +2,6 @@ import { disableNetworkLockdown, enableNetworkLockdown } from "./network-lockdow
 import { GameRenderer } from "./renderer";
 import { computeReward } from "./rewards";
 import { submitResult } from "./settlement";
-import { CONFIG, IDLE_ACTION } from "./types";
 import type {
   AgentAction,
   BattlefieldConfig,
@@ -11,6 +10,7 @@ import type {
   PickupConfig,
   ReplayFrame,
 } from "./types";
+import { CONFIG, IDLE_ACTION } from "./types";
 import { GameWorld } from "./world";
 
 interface PlayerConfig {

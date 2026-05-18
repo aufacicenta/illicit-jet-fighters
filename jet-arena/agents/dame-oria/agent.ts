@@ -146,7 +146,7 @@ globalThis.__agentExport = (() => {
       const leadDistance = Math.hypot(leadX, leadY);
       const leadBearing = normAngle(Math.atan2(leadY, leadX) - self.angle);
 
-      let thrust = 0.64;
+      let thrust: number;
       let turnGain = 1.03;
       let climbGain = 2.2;
       let climbDamp = 0.32;

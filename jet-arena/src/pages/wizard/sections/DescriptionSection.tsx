@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 
-import { useWizardContext } from "../../../context/Wizard/useWizardContext";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { Textarea } from "../../../components/ui/textarea";
+import { useWizardContext } from "../../../context/Wizard/useWizardContext";
 import { LockedSection } from "./LockedSection";
 
 export const DescriptionSection = () => {

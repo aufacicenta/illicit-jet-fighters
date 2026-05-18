@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 
-import { useWizardContext } from "../../context/Wizard/useWizardContext";
 import { Button } from "../../components/ui/button";
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { Textarea } from "../../components/ui/textarea";
+import { useWizardContext } from "../../context/Wizard/useWizardContext";
 
 const sectionLabels = {
   "character-description": "Character Description",

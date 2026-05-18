@@ -1,8 +1,8 @@
-import { useWizardContext } from "../../context/Wizard/useWizardContext";
 import { Badge } from "../../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { Separator } from "../../components/ui/separator";
+import { useWizardContext } from "../../context/Wizard/useWizardContext";
 
 type FileDescriptor = {
   fileName: string;

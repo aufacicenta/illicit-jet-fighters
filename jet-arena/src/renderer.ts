@@ -1,5 +1,5 @@
-import { ArenaShape } from "./arena-shape";
 import type { DrawableArena } from "./arena-shape";
+import { ArenaShape } from "./arena-shape";
 import type { BulletState, GameState, JetState, PickupState } from "./types";
 
 export class GameRenderer {

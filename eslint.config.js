@@ -15,6 +15,7 @@ export default tseslint.config(
       "**/.venv/**",
       "**/coverage/**",
       "jet-arena/public/**",
+      "jet-arena/agents/**/agent.ts",
     ],
   },
   eslint.configs.recommended,
@@ -38,6 +39,13 @@ export default tseslint.config(
           varsIgnorePattern: "^_",
           args: "after-used",
           argsIgnorePattern: "^_",
+        },
+      ],
+      "@typescript-eslint/ban-ts-comment": [
+        "error",
+        {
+          "ts-nocheck": "allow-with-description",
+          minimumDescriptionLength: 10,
         },
       ],
     },

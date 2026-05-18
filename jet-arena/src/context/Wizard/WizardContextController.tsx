@@ -2,6 +2,15 @@
 
 import { useCallback, useMemo, useState } from "react";
 
+import { useRoutes } from "../../hooks/useRoutes";
+import { useWebSocket } from "../../hooks/useWebSocket";
+import type { ChatMessage } from "../../lib/api";
+import {
+  generateSpecsheetImage,
+  refineCharacterDescription,
+  refineSpecsheetPrompt,
+  startPipeline,
+} from "../../lib/api";
 import { WizardContext } from "./WizardContext";
 import type {
   SectionId,
@@ -10,15 +19,6 @@ import type {
   WizardContextControllerProps,
   WizardContextType,
 } from "./WizardContext.types";
-import type { ChatMessage } from "../../lib/api";
-import {
-  generateSpecsheetImage,
-  refineCharacterDescription,
-  refineSpecsheetPrompt,
-  startPipeline,
-} from "../../lib/api";
-import { useRoutes } from "../../hooks/useRoutes";
-import { useWebSocket } from "../../hooks/useWebSocket";
 
 const baseStatuses = {
   "character-description": "ready",

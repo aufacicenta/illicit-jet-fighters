@@ -1,6 +1,6 @@
 import { ArenaShape } from "./arena-shape";
-import { CONFIG } from "./types";
 import type { BattlefieldConfig } from "./types";
+import { CONFIG } from "./types";
 
 type GridCell = {
   col: number;

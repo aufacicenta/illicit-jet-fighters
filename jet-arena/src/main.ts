@@ -1,9 +1,10 @@
-import { resolveDefaultAgentKey, resolveDefaultBattlefieldKey, APP_DEFAULTS } from "./app-defaults";
+import "./styles.css";
+
+import { APP_DEFAULTS,resolveDefaultAgentKey, resolveDefaultBattlefieldKey } from "./app-defaults";
 import { loadBattlefieldRegistry } from "./battlefield-config";
 import { registerServiceWorker } from "./network-lockdown";
 import { GameOrchestrator } from "./orchestrator";
 import type { BattlefieldConfig, GameState, PickupConfig } from "./types";
-import "./styles.css";
 
 type PoseKey = "idle" | "planning" | "attacking" | "hit-target" | "got-hit" | "low-fuel" | "down";
 type SpriteFrame = { x: number; y: number; w: number; h: number };

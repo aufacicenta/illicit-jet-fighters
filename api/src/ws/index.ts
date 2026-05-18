@@ -1,12 +1,8 @@
 import { Elysia } from "elysia";
 
 import { continuePipeline, editSection, refineSection } from "../lib/pipeline-runner";
-import type { ClientMessage } from "./types";
 import { registerSocket, unregisterSocket } from "./store";
-
-type WsData = {
-  fighterId: string;
-};
+import type { ClientMessage } from "./types";
 
 export const wsHandler = new Elysia().ws("/ws/:fighterId", {
   open(socket) {

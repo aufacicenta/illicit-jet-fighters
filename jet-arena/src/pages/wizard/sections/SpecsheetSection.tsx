@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 
-import { useWizardContext } from "../../../context/Wizard/useWizardContext";
-import { generateSpecsheetImage } from "../../../lib/api";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
@@ -12,6 +10,8 @@ import {
 } from "../../../components/ui/collapsible";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { Textarea } from "../../../components/ui/textarea";
+import { useWizardContext } from "../../../context/Wizard/useWizardContext";
+import { generateSpecsheetImage } from "../../../lib/api";
 import { LockedSection } from "./LockedSection";
 
 export const SpecsheetSection = () => {

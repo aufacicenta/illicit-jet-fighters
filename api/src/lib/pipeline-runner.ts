@@ -1,3 +1,4 @@
+import { sendToFighter } from "../ws/store";
 import {
   generateCharacterDescription,
   generateCharacterDescriptionRefine,
@@ -6,7 +7,6 @@ import {
   generateSpecsheetPromptRefine,
 } from "./generate";
 import type { ChatMessage, SectionId, SectionOutput } from "./types";
-import { sendToFighter } from "../ws/store";
 
 type FighterPipelineState = {
   outputs: Partial<Record<SectionId, SectionOutput>>;

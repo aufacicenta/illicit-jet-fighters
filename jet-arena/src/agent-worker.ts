@@ -1,6 +1,6 @@
 import { lockdownWorkerNetwork } from "./network-lockdown";
-import { CONFIG, IDLE_ACTION } from "./types";
 import type { AgentAction, AgentModule, Observation } from "./types";
+import { CONFIG, IDLE_ACTION } from "./types";
 
 type WorkerMessage =
   | {

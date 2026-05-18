@@ -1,17 +1,17 @@
 import { ArenaShape } from "./arena-shape";
-import { CONFIG, IDLE_ACTION } from "./types";
 import type {
   AgentAction,
   BattlefieldConfig,
   GameState,
+  JetState,
   PickupConfig,
   PickupKind,
   PickupState,
   PickupTally,
   ReplayFrame,
-  JetState,
   WallContact,
 } from "./types";
+import { CONFIG, IDLE_ACTION } from "./types";
 
 class SeededRandom {
   private seed: number;

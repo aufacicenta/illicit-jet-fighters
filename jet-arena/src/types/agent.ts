@@ -1,5 +1,5 @@
-import type { RuntimeConfig } from "./config";
 import type { WallContact } from "./arena";
+import type { RuntimeConfig } from "./config";
 import type { CollisionEvent, PickupKind } from "./state";
 
 export interface AgentAction {

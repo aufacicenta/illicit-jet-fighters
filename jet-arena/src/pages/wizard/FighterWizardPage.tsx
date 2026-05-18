@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import { Navigate, useParams } from "react-router-dom";
 
-import { WizardContextController } from "../../context/Wizard/WizardContextController";
 import { useWizardContext } from "../../context/Wizard/useWizardContext";
-import { PromptBar } from "./PromptBar";
+import { WizardContextController } from "../../context/Wizard/WizardContextController";
 import { PreviewPanel } from "./PreviewPanel";
+import { PromptBar } from "./PromptBar";
 import { DescriptionSection } from "./sections/DescriptionSection";
 import { LockedSection } from "./sections/LockedSection";
 import { SpecsheetSection } from "./sections/SpecsheetSection";
