@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import type { SectionId, SectionStatus } from "../../context/Wizard/WizardContext.types";
 
 const phaseOneSections: Array<{ id: SectionId; label: string }> = [
@@ -16,6 +17,11 @@ const phaseTwoSections: Array<{ id: SectionId; label: string }> = [
   { id: "strikecraft-sprite-image", label: "craft top render" },
 ];
 
+const getCompletedCount = (
+  sections: Array<{ id: SectionId; label: string }>,
+  sectionStatuses: Record<SectionId, SectionStatus>,
+) => sections.filter((section) => sectionStatuses[section.id] === "complete").length;
+
 const getStepClassName = (status: SectionStatus) => {
   if (status === "complete") {
     return "border-primary bg-primary";
@@ -31,43 +37,81 @@ const getStepClassName = (status: SectionStatus) => {
 
 export const ProgressHud = ({
   sectionStatuses,
+  gateMessage,
+  onContinuePhaseOne,
+  onContinuePhaseTwo,
 }: {
   sectionStatuses: Record<SectionId, SectionStatus>;
-}) => (
-  <div className="rounded-sm border border-border bg-card p-4">
-    <p className="text-xs tracking-widest text-muted-foreground uppercase">pilot intake progress</p>
-    <div className="mt-4 space-y-4">
-      <div className="space-y-2">
-        <p className="text-[10px] tracking-widest text-muted-foreground uppercase">phase 1</p>
-        <div className="grid grid-cols-3 gap-3">
-          {phaseOneSections.map((section) => (
-            <div key={section.id} className="space-y-2">
-              <div
-                className={`h-1.5 w-full rounded-sm border ${getStepClassName(sectionStatuses[section.id])}`}
-              />
-              <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
-                {section.label}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
+  gateMessage: string | null;
+  onContinuePhaseOne: () => void;
+  onContinuePhaseTwo: () => void;
+}) => {
+  const phaseOneCompleted = getCompletedCount(phaseOneSections, sectionStatuses);
+  const phaseTwoCompleted = getCompletedCount(phaseTwoSections, sectionStatuses);
+  const phaseTwoUnlocked = phaseTwoSections.some(
+    (section) => sectionStatuses[section.id] !== "locked",
+  );
 
-      <div className="space-y-2 border-t border-border pt-3">
-        <p className="text-[10px] tracking-widest text-muted-foreground uppercase">phase 2</p>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {phaseTwoSections.map((section) => (
-            <div key={section.id} className="space-y-2">
+  return (
+    <div className="space-y-2">
+      <p className="text-[10px] tracking-widest text-muted-foreground uppercase">
+        pilot intake progress
+      </p>
+      <div className="grid gap-2 md:grid-cols-2">
+        <div className="rounded-sm border border-border/70 bg-card/60 p-2">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[10px] tracking-widest text-muted-foreground uppercase">
+              Phase 1 · {phaseOneCompleted}/{phaseOneSections.length}
+            </p>
+            <Button
+              className="h-7 px-2.5 text-[10px] tracking-wide uppercase"
+              disabled={!gateMessage}
+              onClick={onContinuePhaseOne}
+              size="sm"
+              type="button"
+              variant={gateMessage ? "default" : "outline"}
+            >
+              Continue
+            </Button>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            {phaseOneSections.map((section) => (
               <div
-                className={`h-1.5 w-full rounded-sm border ${getStepClassName(sectionStatuses[section.id])}`}
+                key={section.id}
+                className={`h-1.5 rounded-sm border ${getStepClassName(sectionStatuses[section.id])}`}
+                title={`Phase 1: ${section.label}`}
               />
-              <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
-                {section.label}
-              </p>
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-sm border border-border/70 bg-card/60 p-2">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[10px] tracking-widest text-muted-foreground uppercase">
+              Phase 2 · {phaseTwoCompleted}/{phaseTwoSections.length}
+            </p>
+            <Button
+              className="h-7 px-2.5 text-[10px] tracking-wide uppercase"
+              disabled={!phaseTwoUnlocked}
+              onClick={onContinuePhaseTwo}
+              size="sm"
+              type="button"
+              variant={phaseTwoUnlocked ? "default" : "outline"}
+            >
+              Continue
+            </Button>
+          </div>
+          <div className="grid grid-cols-7 gap-1.5">
+            {phaseTwoSections.map((section) => (
+              <div
+                key={section.id}
+                className={`h-1.5 rounded-sm border ${getStepClassName(sectionStatuses[section.id])}`}
+                title={`Phase 2: ${section.label}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};

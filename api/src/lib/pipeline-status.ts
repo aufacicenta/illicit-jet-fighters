@@ -17,13 +17,13 @@ const sectionOrder: SectionId[] = [
 
 export type PipelineSnapshot = {
   outputs: Partial<Record<SectionId, SectionOutput>>;
-  activeSectionId: SectionId | null;
+  activeSectionIds: SectionId[];
   lastErrorSectionId: SectionId | null;
 };
 
 export const deriveSectionStatuses = ({
   outputs,
-  activeSectionId,
+  activeSectionIds,
   lastErrorSectionId,
 }: PipelineSnapshot): Record<SectionId, SectionStatus> => {
   const statuses: Record<SectionId, SectionStatus> = {
@@ -53,7 +53,7 @@ export const deriveSectionStatuses = ({
     }
   }
 
-  if (activeSectionId) {
+  for (const activeSectionId of activeSectionIds) {
     statuses[activeSectionId] = "generating";
   }
 

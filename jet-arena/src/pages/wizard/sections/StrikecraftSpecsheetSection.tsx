@@ -1,6 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { useWizardContext } from "../../../context/Wizard/useWizardContext";
+import { SectionStatusBadge, wizardCardHeaderClassName } from "./SectionStatusBadge";
+import { WizardCardTitle } from "./WizardCardTitle";
 
 export const StrikecraftSpecsheetSection = () => {
   const { outputs, sectionStatuses, activeSectionId, setActiveSection } = useWizardContext();
@@ -12,8 +14,11 @@ export const StrikecraftSpecsheetSection = () => {
       className={activeSectionId === "strikecraft-specsheet-image" ? "border-secondary" : undefined}
       onClick={() => setActiveSection("strikecraft-specsheet-image")}
     >
-      <CardHeader>
-        <CardTitle>Strikecraft Specsheet</CardTitle>
+      <CardHeader
+        className={`flex flex-row items-center justify-between gap-2 ${wizardCardHeaderClassName}`}
+      >
+        <WizardCardTitle>Strikecraft Specsheet</WizardCardTitle>
+        <SectionStatusBadge status={imageStatus} />
       </CardHeader>
       <CardContent className="space-y-3">
         {imageStatus === "generating" ? (
