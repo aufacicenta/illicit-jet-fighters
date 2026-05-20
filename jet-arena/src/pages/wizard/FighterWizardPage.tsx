@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../components/ui/card";
 import { useNavbarBreadcrumbContext } from "../../context/NavbarBreadcrumb/useNavbarBreadcrumbContext";
 import { useWizardContext } from "../../context/Wizard/useWizardContext";
 import type { SectionId, SectionStatus } from "../../context/Wizard/WizardContext.types";
@@ -11,10 +11,12 @@ import { ProgressHud } from "./ProgressHud";
 import { PromptBar } from "./PromptBar";
 import { AgentCodeSection } from "./sections/AgentCodeSection";
 import { DescriptionSection } from "./sections/DescriptionSection";
+import { wizardCardHeaderClassName } from "./sections/SectionStatusBadge";
 import { SpecsheetSection } from "./sections/SpecsheetSection";
 import { SpritesheetSection } from "./sections/SpritesheetSection";
 import { StrikecraftSpecsheetSection } from "./sections/StrikecraftSpecsheetSection";
 import { StrikecraftSpriteSection } from "./sections/StrikecraftSpriteSection";
+import { WizardCardTitle } from "./sections/WizardCardTitle";
 
 type WizardView = "briefing" | "generating" | "debrief";
 type WizardPhase = "phase-one" | "phase-two";
@@ -95,13 +97,27 @@ const getSectionStatusClassName = (status: SectionStatus | null) => {
 const isSectionId = (sectionId: SectionAnchorId): sectionId is SectionId =>
   sectionId !== "original-briefing";
 
+const parseNameAndEpithet = (markdown: string | undefined) => {
+  if (!markdown) {
+    return { name: "Unnamed Pilot", epithet: null as string | null };
+  }
+
+  const nameMatch = markdown.match(/^#\s+(.+)$/m);
+  const quoteMatch = markdown.match(/^>\s+"?(.+?)"?$/m);
+
+  return {
+    name: nameMatch?.[1]?.trim() || "Unnamed Pilot",
+    epithet: quoteMatch?.[1]?.trim() || null,
+  };
+};
+
 const OriginalBriefingCard = ({ originalBriefing }: { originalBriefing: string | null }) => (
   <Card>
-    <CardHeader>
-      <CardTitle className="text-xl tracking-wide uppercase">Original Briefing</CardTitle>
+    <CardHeader className={wizardCardHeaderClassName}>
+      <WizardCardTitle>Original Briefing</WizardCardTitle>
     </CardHeader>
     <CardContent>
-      <pre className="max-h-[260px] overflow-auto rounded-sm border border-primary/40 bg-primary/5 p-4 text-base leading-relaxed whitespace-pre-wrap text-primary">
+      <pre className="max-h-[260px] overflow-auto rounded-sm border border-primary/40 bg-primary/5 p-4 text-base leading-relaxed whitespace-pre-wrap">
         {originalBriefing?.trim() || "No original briefing yet. Submit intake to create one."}
       </pre>
     </CardContent>
@@ -167,6 +183,10 @@ const WizardLayout = () => {
 
     return "Original Briefing";
   }, [activeSectionId, view]);
+  const { name, epithet } = useMemo(
+    () => parseNameAndEpithet(outputs["character-description"]?.content),
+    [outputs],
+  );
 
   useEffect(() => {
     setCurrentSectionLabel(activeBreadcrumbSectionLabel);
@@ -249,70 +269,80 @@ const WizardLayout = () => {
             <PromptBar mode="briefing" disabled={isGenerating} />
           </section>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start lg:gap-8">
-            <section className="w-full space-y-4">
-              <section className="scroll-mt-6" id="wizard-section-original-briefing">
-                <OriginalBriefingCard originalBriefing={originalBriefing} />
-              </section>
-
-              <section className="scroll-mt-6" id="wizard-section-character-description">
-                <DescriptionSection />
-              </section>
-              <section className="scroll-mt-6" id="wizard-section-specsheet-image">
-                <SpecsheetSection />
-              </section>
-              {showPhaseTwo ? (
-                <>
-                  <section className="scroll-mt-6" id="wizard-section-spritesheet-image">
-                    <SpritesheetSection />
-                  </section>
-                  <section className="scroll-mt-6" id="wizard-section-agent-code">
-                    <AgentCodeSection />
-                  </section>
-                  <section className="scroll-mt-6" id="wizard-section-strikecraft-specsheet-image">
-                    <StrikecraftSpecsheetSection />
-                  </section>
-                  <section className="scroll-mt-6" id="wizard-section-strikecraft-sprite-image">
-                    <StrikecraftSpriteSection />
-                  </section>
-                </>
+          <div className="space-y-6">
+            <header className="space-y-1 rounded-sm border border-primary/40 bg-primary/5 px-4 py-3 md:px-5">
+              <h1 className="text-2xl font-black tracking-wide text-foreground uppercase md:text-3xl">
+                {name}
+              </h1>
+              {epithet ? (
+                <p className="text-sm tracking-wide text-muted-foreground uppercase md:text-base">
+                  {epithet}
+                </p>
               ) : null}
-            </section>
-            <aside className="w-full lg:sticky lg:top-6">
-              <Card className="border-border/80 bg-card/70">
-                <CardHeader className="space-y-1 pb-2">
-                  <CardTitle className="text-sm tracking-wide uppercase">
-                    Table of Contents
-                  </CardTitle>
-                  <p className="text-xs text-muted-foreground">Jump to each wizard section</p>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    {sectionNavItems.map((item) => {
-                      const status = isSectionId(item.id) ? sectionStatuses[item.id] : null;
-                      const isActive = isSectionId(item.id) && activeSectionId === item.id;
-                      return (
-                        <button
-                          key={item.id}
-                          className={`flex w-full items-center gap-2 rounded-sm border px-2.5 py-2 text-left text-xs tracking-wide uppercase transition-colors ${
-                            isActive
-                              ? "border-secondary bg-secondary/10 text-foreground"
-                              : "border-border/70 bg-background hover:border-border hover:bg-muted/60"
-                          }`}
-                          onClick={() => navigateToSection(item.id)}
-                          type="button"
-                        >
-                          <span
-                            className={`size-1.5 shrink-0 rounded-full ${getSectionStatusClassName(status)}`}
-                          />
-                          <span className="truncate">{item.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            </aside>
+            </header>
+
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start lg:gap-8">
+              <section className="w-full space-y-4">
+                <section className="scroll-mt-6" id="wizard-section-original-briefing">
+                  <OriginalBriefingCard originalBriefing={originalBriefing} />
+                </section>
+
+                <section className="scroll-mt-6" id="wizard-section-character-description">
+                  <DescriptionSection />
+                </section>
+                <section className="scroll-mt-6" id="wizard-section-specsheet-image">
+                  <SpecsheetSection />
+                </section>
+                {showPhaseTwo ? (
+                  <>
+                    <section className="scroll-mt-6" id="wizard-section-spritesheet-image">
+                      <SpritesheetSection />
+                    </section>
+                    <section className="scroll-mt-6" id="wizard-section-agent-code">
+                      <AgentCodeSection />
+                    </section>
+                    <section
+                      className="scroll-mt-6"
+                      id="wizard-section-strikecraft-specsheet-image"
+                    >
+                      <StrikecraftSpecsheetSection />
+                    </section>
+                    <section className="scroll-mt-6" id="wizard-section-strikecraft-sprite-image">
+                      <StrikecraftSpriteSection />
+                    </section>
+                  </>
+                ) : null}
+              </section>
+              <aside className="w-full lg:sticky lg:top-6">
+                <Card className="border-border/80 bg-card/70">
+                  <CardContent className="space-y-3">
+                    <div className="space-y-2">
+                      {sectionNavItems.map((item) => {
+                        const status = isSectionId(item.id) ? sectionStatuses[item.id] : null;
+                        const isActive = isSectionId(item.id) && activeSectionId === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            className={`flex w-full items-center gap-2 rounded-sm border px-2.5 py-2 text-left text-xs tracking-wide uppercase transition-colors ${
+                              isActive
+                                ? "border-secondary bg-secondary/10 text-foreground"
+                                : "border-border/70 bg-background hover:border-border hover:bg-muted/60"
+                            }`}
+                            onClick={() => navigateToSection(item.id)}
+                            type="button"
+                          >
+                            <span
+                              className={`size-1.5 shrink-0 rounded-full ${getSectionStatusClassName(status)}`}
+                            />
+                            <span className="truncate">{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </aside>
+            </div>
           </div>
         )}
 

@@ -1,21 +1,12 @@
-import { Button } from "../../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { useWizardContext } from "../../../context/Wizard/useWizardContext";
-
-const parseNameAndEpithet = (markdown: string | undefined) => {
-  if (!markdown) {
-    return { name: "Unnamed Pilot", epithet: null as string | null };
-  }
-
-  const nameMatch = markdown.match(/^#\s+(.+)$/m);
-  const quoteMatch = markdown.match(/^>\s+"?(.+?)"?$/m);
-
-  return {
-    name: nameMatch?.[1]?.trim() || "Unnamed Pilot",
-    epithet: quoteMatch?.[1]?.trim() || null,
-  };
-};
+import {
+  resolveSectionStatus,
+  SectionStatusBadge,
+  wizardCardHeaderClassName,
+} from "./SectionStatusBadge";
+import { WizardCardTitle } from "./WizardCardTitle";
 
 export const SpecsheetSection = () => {
   const { outputs, sectionStatuses, activeSectionId, setActiveSection } = useWizardContext();
@@ -24,20 +15,16 @@ export const SpecsheetSection = () => {
   const imageStatus = sectionStatuses["specsheet-image"];
   const promptStatus = sectionStatuses["specsheet-prompt"];
   const isGeneratingSpecsheet = imageStatus === "generating" || promptStatus === "generating";
-  const { name, epithet } = parseNameAndEpithet(outputs["character-description"]?.content);
-
+  const headerStatus = resolveSectionStatus([promptStatus, imageStatus]);
   return (
     <Card
       className={activeSectionId === "specsheet-image" ? "border-secondary" : undefined}
       onClick={() => setActiveSection("specsheet-image")}
     >
-      <CardHeader className="space-y-2">
-        <CardTitle>Pilot Specsheet</CardTitle>
-        <div className="space-y-1">
-          <p className="text-base font-bold tracking-wide text-foreground uppercase">{name}</p>
-          {epithet ? (
-            <p className="text-xs tracking-wide text-muted-foreground uppercase">{epithet}</p>
-          ) : null}
+      <CardHeader className={`space-y-2 ${wizardCardHeaderClassName}`}>
+        <div className="flex items-center justify-between gap-2">
+          <WizardCardTitle>Pilot Specsheet</WizardCardTitle>
+          <SectionStatusBadge status={headerStatus} />
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -57,16 +44,6 @@ export const SpecsheetSection = () => {
             Specsheet image will appear here after generation.
           </p>
         )}
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={(event) => {
-            event.stopPropagation();
-            setActiveSection("specsheet-image");
-          }}
-        >
-          Refine visual output
-        </Button>
       </CardContent>
     </Card>
   );
