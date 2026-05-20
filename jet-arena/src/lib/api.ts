@@ -1,7 +1,9 @@
 import {
+  type BroadcastMessage,
   type MyFightersResponse,
   myFightersResponseSchema,
   pipelineStartSchema,
+  type ReplayFrame,
 } from "@ijf/shared";
 
 import { apiRoutes } from "../hooks/useRoutes";
@@ -42,6 +44,11 @@ export type PipelineStateSnapshot = {
   briefing: string | null;
 };
 
+export type SimulationStartResponse = {
+  broadcastId: string;
+  status: "queued" | "running" | "ended" | "error";
+};
+
 let accessToken: string | undefined;
 
 export const setApiAccessToken = (token: string | undefined) => {
@@ -73,6 +80,34 @@ const post = async <TResponse>(url: string, body: Record<string, unknown>): Prom
 
 export const fighterSessionPost = async () => post<{ id: number }>(apiRoutes.fighterSession, {});
 export const fighterCreatePost = async () => post<{ id: number }>(apiRoutes.fighters, {});
+export const simulationStartPost = async (
+  fighterId: number,
+  seed?: number,
+): Promise<SimulationStartResponse> =>
+  post<SimulationStartResponse>(apiRoutes.simulations, {
+    fighterId,
+    seed,
+  });
+
+export const fetchSimulationReplay = async (
+  simulationId: string,
+): Promise<{ frames: ReplayFrame[] }> => {
+  const response = await fetch(apiRoutes.simulationReplay(simulationId), {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      ...authHeadersJson(),
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorText(response));
+  }
+
+  return (await response.json()) as { frames: ReplayFrame[] };
+};
+
+export type BroadcastSocketMessage = BroadcastMessage;
 
 export const fetchMyFighters = async (): Promise<MyFightersResponse> => {
   const response = await fetch(apiRoutes.fighters, {

@@ -1,11 +1,12 @@
-import { useMemo } from "react";
-import { Navigate, useParams } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { useWizardContext } from "../../context/Wizard/useWizardContext";
 import { WizardContextController } from "../../context/Wizard/WizardContextController";
 import { routes } from "../../hooks/useRoutes";
+import { simulationStartPost } from "../../lib/api";
 import { ProgressHud } from "./ProgressHud";
 import { PromptBar } from "./PromptBar";
 import { AgentCodeSection } from "./sections/AgentCodeSection";
@@ -19,6 +20,7 @@ type WizardView = "briefing" | "generating" | "debrief";
 
 const WizardLayout = () => {
   const {
+    fighterId,
     sectionStatuses,
     outputs,
     errorMessage,
@@ -27,6 +29,33 @@ const WizardLayout = () => {
     gateMessage,
     requestContinuePipeline,
   } = useWizardContext();
+  const navigate = useNavigate();
+  const [isStartingSimulation, setIsStartingSimulation] = useState(false);
+  const [simulationError, setSimulationError] = useState<string | null>(null);
+
+  const isPipelineComplete = Boolean(outputs["strikecraft-sprite-image"]);
+
+  const startSimulationBroadcast = () => {
+    if (isStartingSimulation) {
+      return;
+    }
+
+    setIsStartingSimulation(true);
+    setSimulationError(null);
+
+    void simulationStartPost(Number(fighterId))
+      .then((response) => {
+        navigate(routes.broadcast(response.broadcastId), { replace: true });
+      })
+      .catch((error: unknown) => {
+        setSimulationError(
+          error instanceof Error ? error.message : "Unable to start simulation broadcast.",
+        );
+      })
+      .finally(() => {
+        setIsStartingSimulation(false);
+      });
+  };
 
   const view = useMemo<WizardView>(() => {
     if (outputs["specsheet-image"]) {
@@ -116,6 +145,28 @@ const WizardLayout = () => {
               <StrikecraftSpriteSection />
             </>
           ) : null}
+          {isPipelineComplete ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg tracking-wide uppercase">Launch Simulation</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Generation is complete. Start a broadcast when you are ready to watch this fighter
+                  in the arena.
+                </p>
+                <Button
+                  className="h-14 w-full text-base font-semibold tracking-wide uppercase"
+                  disabled={isStartingSimulation}
+                  onClick={startSimulationBroadcast}
+                  type="button"
+                  variant="default"
+                >
+                  {isStartingSimulation ? "Starting broadcast..." : "Watch broadcast"}
+                </Button>
+              </CardContent>
+            </Card>
+          ) : null}
         </section>
       )}
 
@@ -128,6 +179,11 @@ const WizardLayout = () => {
       {errorMessage ? (
         <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
           {errorMessage}
+        </div>
+      ) : null}
+      {simulationError ? (
+        <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
+          {simulationError}
         </div>
       ) : null}
     </div>

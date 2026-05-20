@@ -6,8 +6,10 @@ import { logServerStartup, withLogging } from "./plugins/logging";
 import { fighterSessionRoutes } from "./routes/fighters";
 import { generateRoutes } from "./routes/generate";
 import { pipelineRoutes } from "./routes/pipeline";
+import { simulationRoutes } from "./routes/simulations";
 import { agentRoutes, assetRoutes } from "./routes/storage";
 import { wsHandler } from "./ws";
+import { broadcastWsHandler } from "./ws/broadcast";
 
 const PORT = env.PORT;
 const HOST = env.HOST;
@@ -15,6 +17,7 @@ const HOST = env.HOST;
 const guardedHttp = new Elysia({ name: "guarded-http" })
   .use(fighterSessionRoutes)
   .use(pipelineRoutes)
+  .use(simulationRoutes)
   .use(assetRoutes)
   .use(agentRoutes)
   .use(generateRoutes);
@@ -28,6 +31,7 @@ const app = withLogging(new Elysia())
     }),
   )
   .get("/health", () => ({ ok: true }))
+  .use(broadcastWsHandler)
   .use(wsHandler)
   .use(guardedHttp);
 

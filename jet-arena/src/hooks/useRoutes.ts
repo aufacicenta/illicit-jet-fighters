@@ -37,6 +37,9 @@ export const routes = {
 export const apiRoutes = {
   fighters: `${API_BASE}/fighters`,
   fighterSession: `${API_BASE}/fighters/session`,
+  simulations: `${API_BASE}/simulations`,
+  simulationStatus: (id: string) => `${API_BASE}/simulations/${encodeURIComponent(id)}/status`,
+  simulationReplay: (id: string) => `${API_BASE}/simulations/${encodeURIComponent(id)}/replay`,
   pipelineStart: `${API_BASE}/pipeline/start`,
   pipelineSpecsheet: `${API_BASE}/pipeline/specsheet`,
   pipelineState: (fighterId: string) =>
@@ -51,6 +54,7 @@ export const apiRoutes = {
 
 export const wsRoutes = {
   fighter: (id: string) => `${WS_BASE}/ws/${id}`,
+  broadcast: (id: string) => `${WS_BASE}/broadcast/${id}`,
 };
 
 export const useRoutes = () => ({ routes, apiRoutes, wsRoutes });

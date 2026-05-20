@@ -6,7 +6,8 @@
     "api",
     "jet-arena",
     "database",
-    "shared"
+    "shared",
+    "simulator"
   ],
   "scripts": {
     "lint": "bun run --workspaces lint:fix",
@@ -17,7 +18,8 @@
     "typecheck": "bun run --workspaces typecheck",
     "check": "F=0; bun run lint || F=1; bun run format || F=1; bun run typecheck || F=1; exit $F",
     "dev:api": "bun run --filter '@ijf/api' dev",
-    "dev:arena": "bun run --filter 'illicit-jet-fighters' dev"
+    "dev:arena": "bun run --filter 'illicit-jet-fighters' dev",
+    "dev:simulator": "bun run --filter '@ijf/simulator' dev"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -5,3 +5,4 @@ export type {
   MyFightersResponse,
   PipelineStartPayload,
 } from "./fighters";
+export * from "./simulation";
