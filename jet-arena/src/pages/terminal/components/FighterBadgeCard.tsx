@@ -1,6 +1,8 @@
 import type { MyFighter } from "@ijf/shared";
+import { Circle, CircleCheckBig, FileUser } from "lucide-react";
 
 import { Badge } from "../../../components/ui/badge";
+import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { cn } from "../../../lib/utils";
 import { WizardCardTitle } from "../../wizard/sections/WizardCardTitle";
@@ -35,21 +37,62 @@ const statusClassByCode: Record<MyFighter["status"], string> = {
 
 type FighterBadgeCardProps = {
   fighter: MyFighter;
-  onClick: (fighterId: number) => void;
+  isSelected: boolean;
+  onDetails: (fighterId: number) => void;
+  onToggleSelected: (fighterId: number) => void;
 };
 
-export const FighterBadgeCard = ({ fighter, onClick }: FighterBadgeCardProps) => {
+export const FighterBadgeCard = ({
+  fighter,
+  isSelected,
+  onDetails,
+  onToggleSelected,
+}: FighterBadgeCardProps) => {
   const displayName = parseDisplayName(fighter.characterDescription, fighter.slug, fighter.id);
   const briefing = fighter.briefing?.trim() || "No briefing captured yet.";
   const hasSpecsheetImage = Boolean(fighter.specsheetImageUrl);
 
   return (
-    <button className="text-left" onClick={() => onClick(fighter.id)} type="button">
-      <Card className="border-border/90 bg-card/95 hover:border-secondary/60">
-        <CardHeader className="p-2">
-          <WizardCardTitle>{displayName}</WizardCardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+    <Card
+      className={cn(
+        "border-border/90 bg-card/95 hover:border-secondary/60",
+        isSelected && "border-secondary ring-1 ring-secondary/50",
+      )}
+    >
+      <CardHeader className="p-2">
+        <div className="flex items-center justify-between gap-2">
+          <WizardCardTitle className="min-w-0 truncate">{displayName}</WizardCardTitle>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              aria-label={isSelected ? "Unselect fighter" : "Select fighter"}
+              className="px-2"
+              onClick={() => onToggleSelected(fighter.id)}
+              size="sm"
+              type="button"
+              variant={isSelected ? "default" : "outline"}
+            >
+              {isSelected ? <CircleCheckBig className="size-4" /> : <Circle className="size-4" />}
+            </Button>
+            <Button
+              aria-label="View fighter details"
+              className="px-2"
+              onClick={() => onDetails(fighter.id)}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              <FileUser className="size-4" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <button
+          aria-label={`Open details for ${displayName}`}
+          className="w-full text-left"
+          onClick={() => onDetails(fighter.id)}
+          type="button"
+        >
           <div className="grid min-h-44 grid-cols-[210px_1fr]">
             <div
               aria-label={
@@ -91,8 +134,8 @@ export const FighterBadgeCard = ({ fighter, onClick }: FighterBadgeCardProps) =>
           <div className="sr-only">
             {hasSpecsheetImage ? `${displayName} specsheet image` : "Specsheet pending"}
           </div>
-        </CardContent>
-      </Card>
-    </button>
+        </button>
+      </CardContent>
+    </Card>
   );
 };

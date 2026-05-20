@@ -5,13 +5,15 @@ import { authHeadersJson, post, readErrorText } from "./client";
 import { type SimulationStartResponse } from "./types";
 
 export const simulationStartPost = async (
-  fighterId: number,
+  fighterIdOrIds: number | number[],
   seed?: number,
-): Promise<SimulationStartResponse> =>
-  post<SimulationStartResponse>(apiRoutes.simulations, {
-    fighterId,
+): Promise<SimulationStartResponse> => {
+  const fighterIds = Array.isArray(fighterIdOrIds) ? fighterIdOrIds : [fighterIdOrIds];
+  return post<SimulationStartResponse>(apiRoutes.simulations, {
+    fighterIds,
     seed,
   });
+};
 
 export const fetchSimulationReplay = async (
   simulationId: string,

@@ -5,6 +5,7 @@ import { simulationManager } from "./simulation-manager";
 import { registerBroadcastSocket, unregisterBroadcastSocket } from "./ws/broadcast-hub";
 
 export { simulationManager } from "./simulation-manager";
+export type { SimulationLifecycleHandlers, StartSimulationArgs } from "./simulation-manager";
 export { registerBroadcastSocket, unregisterBroadcastSocket } from "./ws/broadcast-hub";
 
 export const simulatorApp = new Elysia()

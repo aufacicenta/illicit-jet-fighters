@@ -7,6 +7,7 @@ import { wsRoutes } from "../hooks/useRoutes";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { GameRenderer } from "../renderer";
 import type { GameState, PickupTally } from "../types";
+import { BroadcastJetCard } from "./BroadcastJetCard";
 
 type EndSummary = {
   winnerId: string | null;
@@ -76,9 +77,9 @@ export const BroadcastPage = () => {
     if (!initMessage || !canvasRef.current) return;
 
     const [aspectW, aspectH] = initMessage.data.battlefieldConfig.canvasAspect ?? [4, 3];
-    const maxWidth = 1200;
+    const maxWidth = 1600;
     const width = maxWidth;
-    const height = Math.max(480, Math.round((maxWidth * aspectH) / Math.max(1, aspectW)));
+    const height = Math.max(560, Math.round((maxWidth * aspectH) / Math.max(1, aspectW)));
     canvasRef.current.width = width;
     canvasRef.current.height = height;
 
@@ -148,10 +149,10 @@ export const BroadcastPage = () => {
   };
 
   return (
-    <div id="app">
+    <div id="app" style={{ gridTemplateColumns: "1fr" }}>
       <main id="stage">
-        <canvas id="arena" ref={canvasRef} />
-        <div id="status">
+        <canvas id="arena" ref={canvasRef} style={{ maxWidth: "1600px" }} />
+        <div id="status" style={{ width: "min(1600px, 100%)" }}>
           {errorMessage
             ? `error=${errorMessage}`
             : `broadcast=${id ?? "unknown"} tick=${currentFrame?.tick ?? 0} jets=${currentJets.length} bullets=${currentBullets} pickups=${currentPickups}`}
@@ -159,40 +160,48 @@ export const BroadcastPage = () => {
             ? ` | winner=${endSummary.winnerId ?? "draw"} replay=${endSummary.replayHashHex.slice(0, 16)}...`
             : ""}
         </div>
-        <section id="jet-stats" aria-label="Jet stats panel">
+        <section id="jet-stats" aria-label="Jet stats panel" style={{ width: "min(1600px, 100%)" }}>
           {currentJets
             .slice()
             .sort((left, right) => left.id.localeCompare(right.id))
             .map((jet) => (
-              <article key={jet.id}>
-                <strong>{jet.id}</strong>{" "}
-                <span>
-                  {jet.alive ? "ALIVE" : "DOWN"} HP {Math.max(0, Math.round(jet.health))} FUEL{" "}
-                  {Math.max(0, Math.round(jet.fuel))} AMMO {Math.max(0, jet.ammo)}
-                </span>
-              </article>
+              <BroadcastJetCard key={jet.id} jet={jet} />
             ))}
         </section>
+        <section
+          aria-label="Replay controls"
+          className="w-full max-w-[1600px] self-center rounded-[10px] border border-slate-800 bg-[#0b1220] p-3"
+        >
+          <div className="mb-2.5">
+            <label htmlFor="frame-index" className="mb-1 block text-xs text-sky-300">
+              Replay tick
+            </label>
+            <input
+              id="frame-index"
+              type="range"
+              min={0}
+              max={Math.max(0, frames.length - 1)}
+              value={Math.min(frameIndex, Math.max(0, frames.length - 1))}
+              onChange={(event) => onSliderChange(Number(event.target.value))}
+              className="w-full rounded-md border border-slate-700 bg-slate-900 p-2 text-slate-200"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <button
+              onClick={() => setIsPlayingReplay((value) => !value)}
+              className="w-full cursor-pointer rounded-md border border-sky-500 bg-sky-700 p-2 text-slate-200"
+            >
+              {isPlayingReplay ? "Pause replay" : "Play replay"}
+            </button>
+            <button
+              onClick={jumpToLive}
+              className="w-full cursor-pointer rounded-md border border-slate-700 bg-slate-900 p-2 text-slate-200"
+            >
+              Jump to live
+            </button>
+          </div>
+        </section>
       </main>
-      <section id="controls" aria-label="Replay controls">
-        <div className="row">
-          <label htmlFor="frame-index">Replay tick</label>
-          <input
-            id="frame-index"
-            type="range"
-            min={0}
-            max={Math.max(0, frames.length - 1)}
-            value={Math.min(frameIndex, Math.max(0, frames.length - 1))}
-            onChange={(event) => onSliderChange(Number(event.target.value))}
-          />
-        </div>
-        <div className="row">
-          <button className="primary" onClick={() => setIsPlayingReplay((value) => !value)}>
-            {isPlayingReplay ? "Pause replay" : "Play replay"}
-          </button>
-          <button onClick={jumpToLive}>Jump to live</button>
-        </div>
-      </section>
     </div>
   );
 };

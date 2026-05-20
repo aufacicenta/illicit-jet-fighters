@@ -82,6 +82,15 @@ export const pipelineStateObjectKey = (userId: string, fighterId: number) =>
 export const agentZipObjectKey = (userId: string, fighterId: number) =>
   path.posix.join(`users/${userId}/fighters/${String(fighterId)}`, `agent.zip`);
 
+export const fighterAgentScriptObjectKey = (userId: string, fighterId: number) =>
+  path.posix.join(`users/${userId}/fighters/${String(fighterId)}`, `agent.ts`);
+
+export const simulationReplayObjectKey = (userId: string, simulationId: string) =>
+  path.posix.join(`users/${userId}/simulations/${simulationId}`, `replay.json.gz`);
+
+export const simulationBroadcastEventsObjectKey = (userId: string, simulationId: string) =>
+  path.posix.join(`users/${userId}/simulations/${simulationId}`, `broadcast-events.ndjson.gz`);
+
 export const putObject = async (key: string, body: Buffer, contentType?: string) => {
   const client = getClient();
   const bucket = getBucket();

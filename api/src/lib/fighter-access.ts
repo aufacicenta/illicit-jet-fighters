@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "@ijf/database";
+import { and, asc, desc, eq, inArray } from "@ijf/database";
 import { db, fighters, generateUniqueFighterSlug } from "@ijf/database";
 
 export const parseFighterIdParam = (value: string): number | null => {
@@ -22,6 +22,29 @@ export const getOwnedFighter = async (
     .limit(1);
 
   return rows[0];
+};
+
+export type FighterByIdRecord = {
+  id: number;
+  slug: string;
+  briefing: string | null;
+  userId: string;
+};
+
+export const getFightersByIds = async (fighterIds: number[]): Promise<FighterByIdRecord[]> => {
+  if (fighterIds.length === 0) {
+    return [];
+  }
+
+  return db
+    .select({
+      id: fighters.id,
+      slug: fighters.slug,
+      briefing: fighters.briefing,
+      userId: fighters.userId,
+    })
+    .from(fighters)
+    .where(inArray(fighters.id, fighterIds));
 };
 
 export const createFighterForUser = async (userId: string): Promise<number> => {

@@ -13,10 +13,27 @@ import type {
 } from "./simulation.types";
 import { publishBroadcastMessage } from "./ws/broadcast-hub";
 
+export type SimulationLifecycleHandlers = {
+  onStart?: (summary: SimulationSummary) => void | Promise<void>;
+  onInit?: (
+    message: Extract<SimulationWorkerResponseMessage, { type: "INIT" }>,
+  ) => void | Promise<void>;
+  onFrame?: (
+    message: Extract<SimulationWorkerResponseMessage, { type: "FRAME" }>,
+  ) => void | Promise<void>;
+  onEnd?: (
+    message: Extract<SimulationWorkerResponseMessage, { type: "END" }>,
+  ) => void | Promise<void>;
+  onError?: (
+    message: Extract<SimulationWorkerResponseMessage, { type: "ERROR" }>,
+  ) => void | Promise<void>;
+};
+
 type SimulationRecord = {
   worker: Worker;
   summary: SimulationSummary;
   frames: ReplayFrame[];
+  lifecycle?: SimulationLifecycleHandlers;
 };
 
 export type StartSimulationArgs = {
@@ -25,6 +42,7 @@ export type StartSimulationArgs = {
   seed: number;
   battlefield?: BattlefieldConfig;
   pickupConfig?: PickupConfig;
+  lifecycle?: SimulationLifecycleHandlers;
 };
 
 const FALLBACK_AGENT_CODE = `
@@ -80,8 +98,10 @@ class SimulationManager {
       worker,
       summary,
       frames: [],
+      lifecycle: args.lifecycle,
     };
     this.simulations.set(args.broadcastId, record);
+    this.fire(record.lifecycle?.onStart, summary);
 
     worker.addEventListener("message", (event: MessageEvent<SimulationWorkerResponseMessage>) => {
       this.handleWorkerMessage(event.data);
@@ -119,6 +139,7 @@ class SimulationManager {
     if (!record) return;
 
     if (message.type === "INIT") {
+      this.fire(record.lifecycle?.onInit, message);
       publishBroadcastMessage(message.broadcastId, {
         type: "init",
         data: message.data,
@@ -127,6 +148,7 @@ class SimulationManager {
     }
 
     if (message.type === "FRAME") {
+      this.fire(record.lifecycle?.onFrame, message);
       record.frames.push(message.data);
       record.summary.replayLength = record.frames.length;
       publishBroadcastMessage(message.broadcastId, {
@@ -137,6 +159,7 @@ class SimulationManager {
     }
 
     if (message.type === "END") {
+      this.fire(record.lifecycle?.onEnd, message);
       record.summary.status = "ended";
       record.summary.endedAt = Date.now();
       record.summary.winnerId = message.data.winnerId;
@@ -162,6 +185,11 @@ class SimulationManager {
   private markErrored(broadcastId: string, message: string): void {
     const record = this.simulations.get(broadcastId);
     if (!record) return;
+    this.fire(record.lifecycle?.onError, {
+      type: "ERROR",
+      broadcastId,
+      data: { message },
+    });
     record.summary.status = "error";
     record.summary.errorMessage = message;
     record.summary.endedAt = Date.now();
@@ -178,6 +206,24 @@ class SimulationManager {
       if (summary.status === "running") count += 1;
     }
     return count;
+  }
+
+  private fire<TPayload>(
+    callback: ((payload: TPayload) => void | Promise<void>) | undefined,
+    payload: TPayload,
+  ): void {
+    if (!callback) {
+      return;
+    }
+
+    try {
+      const result = callback(payload);
+      if (result && typeof result === "object" && "catch" in result) {
+        void (result as Promise<void>).catch(() => {});
+      }
+    } catch {
+      // Lifecycle handlers are best-effort and should not crash simulations.
+    }
   }
 }
 

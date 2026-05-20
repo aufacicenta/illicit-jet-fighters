@@ -37,6 +37,7 @@ export type PipelineStateSnapshot = {
 };
 
 export type SimulationStartResponse = {
+  simulationId: string;
   broadcastId: string;
   status: "queued" | "running" | "ended" | "error";
 };

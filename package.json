@@ -39,6 +39,7 @@
     "@openrouter/sdk@0.12.35": "patches/@openrouter%2Fsdk@0.12.35.patch"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.15",
     "dotenv": "^17.4.2",
     "zod": "^4.4.3"
   }
