@@ -41,6 +41,8 @@ const summarizePayload = (payload: unknown): string => {
   switch (type) {
     case "section:start":
       return `${type} → ${obj.sectionId}`;
+    case "section:delta":
+      return `${type} → ${obj.sectionId} (+${(obj.delta as string)?.length ?? 0})`;
     case "section:complete":
       return `${type} → ${obj.sectionId}`;
     case "section:error":

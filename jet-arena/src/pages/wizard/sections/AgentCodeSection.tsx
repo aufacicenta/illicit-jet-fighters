@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import {
@@ -12,6 +14,23 @@ export const AgentCodeSection = () => {
   const { outputs, sectionStatuses, setActiveSection, activeSectionId } = useWizardContext();
   const status = sectionStatuses["agent-code"];
   const code = outputs["agent-code"]?.content;
+  const codeContainerRef = useRef<HTMLPreElement | null>(null);
+
+  useEffect(() => {
+    if (!code) {
+      return;
+    }
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      if (codeContainerRef.current) {
+        codeContainerRef.current.scrollTop = codeContainerRef.current.scrollHeight;
+      }
+    });
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+    };
+  }, [code]);
 
   return (
     <Card
@@ -22,7 +41,7 @@ export const AgentCodeSection = () => {
         <CardTitle>Agent Source</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {status === "generating" ? (
+        {status === "generating" && !code ? (
           <div className="space-y-2">
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-11/12" />
@@ -32,11 +51,14 @@ export const AgentCodeSection = () => {
           <Collapsible>
             <CollapsibleTrigger asChild>
               <Button size="sm" variant="outline">
-                Toggle generated agent code
+                {status === "generating" ? "Live agent code stream" : "Toggle generated agent code"}
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-3">
-              <pre className="max-h-[420px] overflow-auto rounded-sm border border-border bg-background p-3 text-xs whitespace-pre-wrap">
+              <pre
+                className="max-h-[420px] overflow-auto rounded-sm border border-border bg-background p-3 text-xs whitespace-pre-wrap"
+                ref={codeContainerRef}
+              >
                 {code}
               </pre>
             </CollapsibleContent>

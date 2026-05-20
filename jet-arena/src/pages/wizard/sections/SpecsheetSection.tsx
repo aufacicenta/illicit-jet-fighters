@@ -22,6 +22,8 @@ export const SpecsheetSection = () => {
 
   const imageOutput = outputs["specsheet-image"];
   const imageStatus = sectionStatuses["specsheet-image"];
+  const promptStatus = sectionStatuses["specsheet-prompt"];
+  const isGeneratingSpecsheet = imageStatus === "generating" || promptStatus === "generating";
   const { name, epithet } = parseNameAndEpithet(outputs["character-description"]?.content);
 
   return (
@@ -39,7 +41,7 @@ export const SpecsheetSection = () => {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {imageStatus === "generating" ? (
+        {isGeneratingSpecsheet ? (
           <div className="space-y-2">
             <Skeleton className="h-[420px] w-full" />
             <Skeleton className="h-4 w-4/12" />

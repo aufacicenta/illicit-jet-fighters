@@ -48,12 +48,10 @@ export const PromptBar = ({ mode, disabled }: { mode: PromptBarMode; disabled?: 
         ) : null}
 
         <div className="text-xs tracking-widest text-muted-foreground uppercase">
-          {isRefining && activeSectionId ? (
+          {isRefining && activeSectionId && (
             <>
               Refining: <span className="text-foreground">{sectionLabels[activeSectionId]}</span>
             </>
-          ) : (
-            "Pilot intake terminal"
           )}
         </div>
 

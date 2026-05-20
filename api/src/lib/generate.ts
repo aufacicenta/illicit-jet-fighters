@@ -4,6 +4,9 @@ import { openrouter } from "./openrouter";
 import { skills } from "./skills";
 import type { ChatMessage } from "./types";
 
+type StreamDeltaHandler = (delta: string) => void;
+type OpenRouterResult<T> = { ok: true; value: T } | { ok: false; error: unknown };
+
 const getText = (content: unknown): string => {
   if (typeof content === "string") {
     return content;
@@ -195,22 +198,98 @@ const generateImageWithModel = async (
   return { imageBase64, mimeType, model };
 };
 
-export const generateCharacterDescription = async (prompt: string) => {
-  const completion = await openrouter.chat.send({
+const unwrapOpenRouterResult = <T>(result: T | OpenRouterResult<T>): T => {
+  if (
+    typeof result === "object" &&
+    result !== null &&
+    "ok" in result &&
+    typeof result.ok === "boolean"
+  ) {
+    const typedResult = result as OpenRouterResult<T>;
+    if (!typedResult.ok) {
+      const message =
+        typedResult.error instanceof Error
+          ? typedResult.error.message
+          : "OpenRouter request failed.";
+      throw new Error(message);
+    }
+    return typedResult.value;
+  }
+
+  return result;
+};
+
+const generateTextWithModel = async ({
+  model,
+  messages,
+  emptyErrorMessage,
+  onDelta,
+}: {
+  model: string;
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+  emptyErrorMessage: string;
+  onDelta?: StreamDeltaHandler;
+}) => {
+  if (onDelta) {
+    const streamResponse = await openrouter.chat.send({
+      chatRequest: {
+        model,
+        stream: true,
+        messages,
+      },
+    });
+    const stream = unwrapOpenRouterResult(streamResponse);
+    let streamedText = "";
+
+    for await (const chunk of stream as AsyncIterable<{
+      choices?: Array<{ delta?: { content?: string | null } }>;
+    }>) {
+      const delta = chunk.choices?.[0]?.delta?.content;
+      if (typeof delta !== "string" || delta.length === 0) {
+        continue;
+      }
+      streamedText += delta;
+      onDelta(delta);
+    }
+
+    if (!streamedText.trim()) {
+      throw new Error(emptyErrorMessage);
+    }
+
+    return streamedText;
+  }
+
+  const completionResponse = await openrouter.chat.send({
     chatRequest: {
-      model: aiModels.characterDescription,
-      messages: [
-        { role: "system", content: skills.characterDescription },
-        { role: "user", content: prompt },
-      ],
+      model,
+      messages,
     },
   });
+  const completion = unwrapOpenRouterResult(completionResponse) as {
+    choices?: Array<{ message?: { content?: unknown } }>;
+  };
+  const text = getText(completion.choices?.[0]?.message?.content);
 
-  const markdown = getText(completion.choices[0]?.message?.content);
-
-  if (!markdown) {
-    throw new Error("Character description generation returned empty output.");
+  if (!text) {
+    throw new Error(emptyErrorMessage);
   }
+
+  return text;
+};
+
+export const generateCharacterDescription = async (
+  prompt: string,
+  onDelta?: StreamDeltaHandler,
+) => {
+  const markdown = await generateTextWithModel({
+    model: aiModels.characterDescription,
+    messages: [
+      { role: "system", content: skills.characterDescription },
+      { role: "user", content: prompt },
+    ],
+    emptyErrorMessage: "Character description generation returned empty output.",
+    onDelta,
+  });
 
   return {
     markdown,
@@ -222,21 +301,15 @@ export const generateCharacterDescriptionRefine = async (
   history: ChatMessage[],
   message: string,
 ) => {
-  const completion = await openrouter.chat.send({
-    chatRequest: {
-      model: aiModels.characterDescription,
-      messages: [
-        { role: "system", content: skills.characterDescription },
-        ...history,
-        { role: "user", content: message },
-      ],
-    },
+  const markdown = await generateTextWithModel({
+    model: aiModels.characterDescription,
+    messages: [
+      { role: "system", content: skills.characterDescription },
+      ...history,
+      { role: "user", content: message },
+    ],
+    emptyErrorMessage: "Character description refinement returned empty output.",
   });
-
-  const markdown = getText(completion.choices[0]?.message?.content);
-  if (!markdown) {
-    throw new Error("Character description refinement returned empty output.");
-  }
 
   return {
     markdown,
@@ -244,22 +317,19 @@ export const generateCharacterDescriptionRefine = async (
   };
 };
 
-export const generateSpecsheetPrompt = async (characterDescription: string) => {
-  const completion = await openrouter.chat.send({
-    chatRequest: {
-      model: aiModels.specsheetPrompt,
-      messages: [
-        { role: "system", content: skills.specsheetPrompt },
-        { role: "user", content: characterDescription },
-      ],
-    },
+export const generateSpecsheetPrompt = async (
+  characterDescription: string,
+  onDelta?: StreamDeltaHandler,
+) => {
+  const prompt = await generateTextWithModel({
+    model: aiModels.specsheetPrompt,
+    messages: [
+      { role: "system", content: skills.specsheetPrompt },
+      { role: "user", content: characterDescription },
+    ],
+    emptyErrorMessage: "Specsheet prompt generation returned empty output.",
+    onDelta,
   });
-
-  const prompt = getText(completion.choices[0]?.message?.content);
-
-  if (!prompt) {
-    throw new Error("Specsheet prompt generation returned empty output.");
-  }
 
   return {
     prompt,
@@ -268,21 +338,15 @@ export const generateSpecsheetPrompt = async (characterDescription: string) => {
 };
 
 export const generateSpecsheetPromptRefine = async (history: ChatMessage[], message: string) => {
-  const completion = await openrouter.chat.send({
-    chatRequest: {
-      model: aiModels.specsheetPrompt,
-      messages: [
-        { role: "system", content: skills.specsheetPrompt },
-        ...history,
-        { role: "user", content: message },
-      ],
-    },
+  const prompt = await generateTextWithModel({
+    model: aiModels.specsheetPrompt,
+    messages: [
+      { role: "system", content: skills.specsheetPrompt },
+      ...history,
+      { role: "user", content: message },
+    ],
+    emptyErrorMessage: "Specsheet prompt refinement returned empty output.",
   });
-
-  const prompt = getText(completion.choices[0]?.message?.content);
-  if (!prompt) {
-    throw new Error("Specsheet prompt refinement returned empty output.");
-  }
 
   return {
     prompt,
@@ -294,21 +358,19 @@ export const generateSpecsheetImage = async (prompt: string) => {
   return generateImageWithModel(aiModels.specsheetImage, prompt, "Specsheet image generation");
 };
 
-export const generateSpritesheetPrompt = async (characterDescription: string) => {
-  const completion = await openrouter.chat.send({
-    chatRequest: {
-      model: aiModels.spritesheetPrompt,
-      messages: [
-        { role: "system", content: skills.spritesheetPrompt },
-        { role: "user", content: characterDescription },
-      ],
-    },
+export const generateSpritesheetPrompt = async (
+  characterDescription: string,
+  onDelta?: StreamDeltaHandler,
+) => {
+  const prompt = await generateTextWithModel({
+    model: aiModels.spritesheetPrompt,
+    messages: [
+      { role: "system", content: skills.spritesheetPrompt },
+      { role: "user", content: characterDescription },
+    ],
+    emptyErrorMessage: "Spritesheet prompt generation returned empty output.",
+    onDelta,
   });
-
-  const prompt = getText(completion.choices[0]?.message?.content);
-  if (!prompt) {
-    throw new Error("Spritesheet prompt generation returned empty output.");
-  }
 
   return {
     prompt,
@@ -320,21 +382,19 @@ export const generateSpritesheetImage = async (prompt: string) => {
   return generateImageWithModel(aiModels.spritesheetImage, prompt, "Spritesheet image generation");
 };
 
-export const generateAgentCode = async (characterDescription: string) => {
-  const completion = await openrouter.chat.send({
-    chatRequest: {
-      model: aiModels.agentCode,
-      messages: [
-        { role: "system", content: skills.agentCode },
-        { role: "user", content: characterDescription },
-      ],
-    },
+export const generateAgentCode = async (
+  characterDescription: string,
+  onDelta?: StreamDeltaHandler,
+) => {
+  const code = await generateTextWithModel({
+    model: aiModels.agentCode,
+    messages: [
+      { role: "system", content: skills.agentCode },
+      { role: "user", content: characterDescription },
+    ],
+    emptyErrorMessage: "Agent code generation returned empty output.",
+    onDelta,
   });
-
-  const code = getText(completion.choices[0]?.message?.content);
-  if (!code) {
-    throw new Error("Agent code generation returned empty output.");
-  }
 
   return {
     code,
@@ -342,21 +402,19 @@ export const generateAgentCode = async (characterDescription: string) => {
   };
 };
 
-export const generateStrikecraftSpecsheetPrompt = async (characterDescription: string) => {
-  const completion = await openrouter.chat.send({
-    chatRequest: {
-      model: aiModels.strikecraftSpecsheetPrompt,
-      messages: [
-        { role: "system", content: skills.strikecraftSpecsheetPrompt },
-        { role: "user", content: characterDescription },
-      ],
-    },
+export const generateStrikecraftSpecsheetPrompt = async (
+  characterDescription: string,
+  onDelta?: StreamDeltaHandler,
+) => {
+  const prompt = await generateTextWithModel({
+    model: aiModels.strikecraftSpecsheetPrompt,
+    messages: [
+      { role: "system", content: skills.strikecraftSpecsheetPrompt },
+      { role: "user", content: characterDescription },
+    ],
+    emptyErrorMessage: "Strikecraft specsheet prompt generation returned empty output.",
+    onDelta,
   });
-
-  const prompt = getText(completion.choices[0]?.message?.content);
-  if (!prompt) {
-    throw new Error("Strikecraft specsheet prompt generation returned empty output.");
-  }
 
   return {
     prompt,
@@ -372,21 +430,19 @@ export const generateStrikecraftSpecsheetImage = async (prompt: string) => {
   );
 };
 
-export const generateStrikecraftSpritePrompt = async (strikecraftSpecsheet: string) => {
-  const completion = await openrouter.chat.send({
-    chatRequest: {
-      model: aiModels.strikecraftSpritePrompt,
-      messages: [
-        { role: "system", content: skills.strikecraftSpritePrompt },
-        { role: "user", content: strikecraftSpecsheet },
-      ],
-    },
+export const generateStrikecraftSpritePrompt = async (
+  strikecraftSpecsheet: string,
+  onDelta?: StreamDeltaHandler,
+) => {
+  const prompt = await generateTextWithModel({
+    model: aiModels.strikecraftSpritePrompt,
+    messages: [
+      { role: "system", content: skills.strikecraftSpritePrompt },
+      { role: "user", content: strikecraftSpecsheet },
+    ],
+    emptyErrorMessage: "Strikecraft sprite prompt generation returned empty output.",
+    onDelta,
   });
-
-  const prompt = getText(completion.choices[0]?.message?.content);
-  if (!prompt) {
-    throw new Error("Strikecraft sprite prompt generation returned empty output.");
-  }
 
   return {
     prompt,

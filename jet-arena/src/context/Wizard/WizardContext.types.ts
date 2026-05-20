@@ -32,6 +32,7 @@ export type SectionOutput = {
 
 export type ServerMessage =
   | { type: "section:start"; sectionId: SectionId }
+  | { type: "section:delta"; sectionId: SectionId; delta: string }
   | { type: "section:complete"; sectionId: SectionId; output: SectionOutput }
   | { type: "section:error"; sectionId: SectionId; error: string }
   | { type: "pipeline:complete" }

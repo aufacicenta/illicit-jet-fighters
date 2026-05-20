@@ -47,6 +47,15 @@ const sectionOrder: SectionId[] = [
   "strikecraft-sprite-prompt",
   "strikecraft-sprite-image",
 ];
+
+const streamableSectionIds = new Set<SectionId>([
+  "character-description",
+  "specsheet-prompt",
+  "spritesheet-prompt",
+  "agent-code",
+  "strikecraft-specsheet-prompt",
+  "strikecraft-sprite-prompt",
+]);
 const wizardBookmarkVersion = 1;
 
 type WizardBookmark = {
@@ -343,7 +352,38 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
         ...current,
         [message.sectionId]: "generating",
       }));
+      if (streamableSectionIds.has(message.sectionId)) {
+        setOutputs((current) => ({
+          ...current,
+          [message.sectionId]: {
+            sectionId: message.sectionId,
+            content: "",
+            generatedAt: new Date().toISOString(),
+            model: current[message.sectionId]?.model ?? "streaming",
+          },
+        }));
+      }
       setErrorMessage(null);
+      return;
+    }
+
+    if (message.type === "section:delta") {
+      if (streamableSectionIds.has(message.sectionId) && message.delta.length > 0) {
+        setOutputs((current) => {
+          const previous = current[message.sectionId];
+          return {
+            ...current,
+            [message.sectionId]: {
+              sectionId: message.sectionId,
+              content: `${previous?.content ?? ""}${message.delta}`,
+              generatedAt: previous?.generatedAt ?? new Date().toISOString(),
+              model: previous?.model ?? "streaming",
+              mimeType: previous?.mimeType,
+              assetUrl: previous?.assetUrl,
+            },
+          };
+        });
+      }
       return;
     }
 
@@ -423,6 +463,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
         setOutputs({});
         setSectionHistories({});
         setGateMessage(null);
+        setOriginalBriefing(trimmed);
         await startPipeline(fighterNumericId, trimmed);
         setPromptInput("");
         return;
