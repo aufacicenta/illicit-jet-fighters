@@ -39,7 +39,7 @@ type FighterBadgeCardProps = {
   fighter: MyFighter;
   isSelected: boolean;
   onDetails: (fighterId: number) => void;
-  onToggleSelected: (fighterId: number) => void;
+  onToggleSelected?: (fighterId: number) => void;
 };
 
 export const FighterBadgeCard = ({
@@ -63,16 +63,18 @@ export const FighterBadgeCard = ({
         <div className="flex items-center justify-between gap-2">
           <WizardCardTitle className="min-w-0 truncate">{displayName}</WizardCardTitle>
           <div className="flex shrink-0 items-center gap-1">
-            <Button
-              aria-label={isSelected ? "Unselect fighter" : "Select fighter"}
-              className="px-2"
-              onClick={() => onToggleSelected(fighter.id)}
-              size="sm"
-              type="button"
-              variant={isSelected ? "default" : "outline"}
-            >
-              {isSelected ? <CircleCheckBig className="size-4" /> : <Circle className="size-4" />}
-            </Button>
+            {onToggleSelected ? (
+              <Button
+                aria-label={isSelected ? "Unselect fighter" : "Select fighter"}
+                className="px-2"
+                onClick={() => onToggleSelected(fighter.id)}
+                size="sm"
+                type="button"
+                variant={isSelected ? "default" : "outline"}
+              >
+                {isSelected ? <CircleCheckBig className="size-4" /> : <Circle className="size-4" />}
+              </Button>
+            ) : null}
             <Button
               aria-label="View fighter details"
               className="px-2"

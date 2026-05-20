@@ -11,6 +11,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { fighterAgentVersions } from "./fighter-agent-versions";
 import { fighters } from "./fighters";
 
 const neonAuthSchema = pgSchema("neon_auth");
@@ -97,11 +98,15 @@ export const simulationParticipants = pgTable(
     agentSource: simulationAgentSourceEnum("agent_source").notNull(),
     agentObjectKey: text("agent_object_key"),
     agentHash: text("agent_hash"),
+    agentVersionId: uuid("agent_version_id").references(() => fighterAgentVersions.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex("simulation_participants_sim_slot_key").on(table.simulationId, table.playerSlot),
     uniqueIndex("simulation_participants_sim_player_key").on(table.simulationId, table.playerId),
     index("simulation_participants_fighter_id_idx").on(table.fighterId),
+    index("simulation_participants_agent_version_id_idx").on(table.agentVersionId),
   ],
 );

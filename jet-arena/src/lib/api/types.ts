@@ -42,4 +42,18 @@ export type SimulationStartResponse = {
   status: "queued" | "running" | "ended" | "error";
 };
 
+export type SimulationParticipantInput = {
+  fighterId: number;
+  /**
+   * Reserved for phase 2 per-slot agent version selection.
+   * Null/undefined means "latest resolved agent".
+   */
+  agentVersionId?: string | null;
+};
+
+export type SimulationStartRequest = {
+  participants: SimulationParticipantInput[];
+  seed?: number;
+};
+
 export type BroadcastSocketMessage = BroadcastMessage;

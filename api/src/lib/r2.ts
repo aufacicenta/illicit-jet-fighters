@@ -85,6 +85,18 @@ export const agentZipObjectKey = (userId: string, fighterId: number) =>
 export const fighterAgentScriptObjectKey = (userId: string, fighterId: number) =>
   path.posix.join(`users/${userId}/fighters/${String(fighterId)}`, `agent.ts`);
 
+export const fighterAgentVersionScriptObjectKey = (
+  userId: string,
+  fighterId: number,
+  versionNumber: number,
+) =>
+  path.posix.join(
+    `users/${userId}/fighters/${String(fighterId)}`,
+    "agents",
+    String(versionNumber),
+    "agent.ts",
+  );
+
 export const simulationReplayObjectKey = (userId: string, simulationId: string) =>
   path.posix.join(`users/${userId}/simulations/${simulationId}`, `replay.json.gz`);
 

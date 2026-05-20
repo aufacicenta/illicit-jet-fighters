@@ -13,7 +13,7 @@ import {
 } from "../../components/ui/sheet";
 import { WizardContextController } from "../../context/Wizard/WizardContextController";
 import { routes } from "../../hooks/useRoutes";
-import { fetchMyFighters, simulationStartPost } from "../../lib/api";
+import { fetchMyFighters } from "../../lib/api";
 import { cn } from "../../lib/utils";
 import { AgentCodeSection } from "../wizard/sections/AgentCodeSection";
 import { SpritesheetSection } from "../wizard/sections/SpritesheetSection";
@@ -58,11 +58,8 @@ export const MyFightersPage = () => {
   const [fighters, setFighters] = useState<MyFighter[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedFighterIds, setSelectedFighterIds] = useState<number[]>([]);
   const [activeFighterId, setActiveFighterId] = useState<number | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isStartingSimulation, setIsStartingSimulation] = useState(false);
-  const [simulationError, setSimulationError] = useState<string | null>(null);
 
   const loadFighters = useCallback(async () => {
     setIsLoading(true);
@@ -82,60 +79,24 @@ export const MyFightersPage = () => {
     void loadFighters();
   }, [loadFighters]);
 
-  useEffect(() => {
-    setSelectedFighterIds((current) => {
-      const availableIds = new Set(fighters.map((fighter) => fighter.id));
-      return current.filter((fighterId) => availableIds.has(fighterId));
-    });
-  }, [fighters]);
-
   const openFighterDetails = (fighterId: number) => {
     setActiveFighterId(fighterId);
     setIsDetailsOpen(true);
   };
 
-  const toggleSelectedFighter = (fighterId: number) => {
-    setSelectedFighterIds((current) =>
-      current.includes(fighterId)
-        ? current.filter((currentId) => currentId !== fighterId)
-        : [...current, fighterId],
-    );
-  };
-
   const activeFighter = fighters.find((fighter) => fighter.id === activeFighterId) ?? null;
-  const selectedCount = selectedFighterIds.length;
-
-  const startSimulation = () => {
-    if (isStartingSimulation || selectedCount === 0) {
-      return;
-    }
-
-    setIsStartingSimulation(true);
-    setSimulationError(null);
-
-    void simulationStartPost(selectedFighterIds)
-      .then((response) => {
-        navigate(routes.broadcast(response.broadcastId), { replace: true });
-      })
-      .catch((error: unknown) => {
-        setSimulationError(
-          error instanceof Error ? error.message : "Unable to start simulation broadcast.",
-        );
-      })
-      .finally(() => {
-        setIsStartingSimulation(false);
-      });
-  };
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          {selectedCount > 0 ? (
-            <Button onClick={startSimulation} type="button" variant="secondary">
-              {isStartingSimulation ? "Launching..." : `Start Simulation (${selectedCount})`}
-            </Button>
-          ) : null}
+          <Button
+            onClick={() => navigate(routes.terminalSimulation())}
+            type="button"
+            variant="secondary"
+          >
+            Configure Simulation
+          </Button>
         </div>
         <div>
           <Button asChild className="tracking-[0.12em]">
@@ -151,16 +112,6 @@ export const MyFightersPage = () => {
             <Button onClick={() => void loadFighters()} size="sm" type="button" variant="outline">
               Retry
             </Button>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {simulationError ? (
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs tracking-[0.08em] text-destructive uppercase">
-              {simulationError}
-            </p>
           </CardContent>
         </Card>
       ) : null}
@@ -202,10 +153,9 @@ export const MyFightersPage = () => {
           {fighters.map((fighter) => (
             <FighterBadgeCard
               fighter={fighter}
-              isSelected={selectedFighterIds.includes(fighter.id)}
+              isSelected={false}
               key={fighter.id}
               onDetails={openFighterDetails}
-              onToggleSelected={toggleSelectedFighter}
             />
           ))}
         </section>

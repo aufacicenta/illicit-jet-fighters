@@ -1,4 +1,10 @@
+import { createHash } from "node:crypto";
+
 import { clearPendingForFighter, sendToFighter } from "../ws/store";
+import {
+  createFighterAgentVersion,
+  getNextFighterAgentVersionNumber,
+} from "./agent-version-repository";
 import { touchFighterUpdatedAt } from "./fighter-access";
 import {
   generateAgentCode,
@@ -20,6 +26,7 @@ import { logger } from "./logger";
 import type { SectionStatus } from "./pipeline-status";
 import { deriveSectionStatuses } from "./pipeline-status";
 import {
+  fighterAgentVersionScriptObjectKey,
   getObjectBuffer,
   getSignedReadUrl,
   pipelineStateObjectKey,
@@ -91,6 +98,8 @@ const tenantByFighter = new Map<string, PipelineTenant>();
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
 
+const hashContent = (value: string) => createHash("sha256").update(value).digest("hex");
+
 export const bindPipelineTenant = (fighterKey: string, tenant: PipelineTenant) => {
   tenantByFighter.set(fighterKey, tenant);
 };
@@ -145,6 +154,46 @@ const persistSnapshot = async (
       error: getErrorMessage(error),
     });
   }
+};
+
+const persistAgentCodeVersion = async ({
+  fighterKey,
+  tenant,
+  code,
+  model,
+  correlationId,
+}: {
+  fighterKey: string;
+  tenant: PipelineTenant;
+  code: string;
+  model: string;
+  correlationId?: string;
+}) => {
+  const contentHash = hashContent(code);
+  const versionNumber = await getNextFighterAgentVersionNumber(tenant.fighterId);
+  const objectKey = fighterAgentVersionScriptObjectKey(
+    tenant.userId,
+    tenant.fighterId,
+    versionNumber,
+  );
+  await putObject(objectKey, Buffer.from(code), "application/typescript");
+  const created = await createFighterAgentVersion({
+    fighterId: tenant.fighterId,
+    userId: tenant.userId,
+    versionNumber,
+    contentHash,
+    objectKey,
+    model,
+  });
+
+  logger.info("pipeline agent-code version persisted", {
+    ...withContext(fighterKey, correlationId),
+    fighterId: tenant.fighterId,
+    versionNumber: created.versionNumber,
+    contentHash,
+    objectKey,
+    model,
+  });
 };
 
 const getState = (fighterKey: string, correlationId?: string): FighterPipelineState => {
@@ -566,6 +615,23 @@ const runTextSectionStep = async ({
   });
 
   markSectionFinished(state, sectionId);
+  if (sectionId === "agent-code" && tenant) {
+    try {
+      await persistAgentCodeVersion({
+        fighterKey,
+        tenant,
+        code: generated.content,
+        model: generated.model,
+        correlationId,
+      });
+    } catch (error) {
+      logger.warn("pipeline agent-code version persist failed", {
+        ...withContext(fighterKey, correlationId),
+        error: getErrorMessage(error),
+      });
+    }
+  }
+
   if (tenant) {
     await persistSnapshot(fighterKey, state, tenant);
   }
@@ -860,6 +926,69 @@ export const generateSpecsheetFromCharacterDescription = async (
       correlationId,
     );
   }
+};
+
+export const generateAgentCodeFromCharacterDescription = async (
+  fighterKey: string,
+  characterDescription?: string,
+  correlationId?: string,
+) => {
+  requireTenant(fighterKey);
+
+  const startedAt = Date.now();
+  const state = getState(fighterKey, correlationId);
+  const resolvedCharacterDescription =
+    characterDescription?.trim() || state.outputs["character-description"]?.content;
+  logger.info("pipeline agent-code generation requested", {
+    ...withContext(fighterKey, correlationId),
+    descriptionLength: resolvedCharacterDescription?.length ?? 0,
+  });
+
+  if (!resolvedCharacterDescription) {
+    const error = new Error("Character description is required before regenerating agent code.");
+    logger.error("pipeline agent-code generation failed", {
+      ...withContext(fighterKey, correlationId),
+      durationMs: Date.now() - startedAt,
+      error: error.message,
+    });
+    emitSectionError(fighterKey, "agent-code", error, correlationId);
+    return;
+  }
+
+  state.gateMessage = null;
+  state.lastErrorSectionId = null;
+  const tenant = tenantByFighter.get(fighterKey);
+
+  try {
+    await runTextSectionStep({
+      fighterKey,
+      sectionId: "agent-code",
+      input: resolvedCharacterDescription,
+      correlationId,
+      generator: async (input, onDelta) => {
+        const generated = await generateAgentCode(input, onDelta);
+        return { content: generated.code, model: generated.model };
+      },
+    });
+
+    resetDownstream(fighterKey, "agent-code", correlationId);
+    if (tenant) {
+      await syncPipelineState(fighterKey);
+    }
+  } catch (error) {
+    logger.error("pipeline agent-code generation failed", {
+      ...withContext(fighterKey, correlationId),
+      durationMs: Date.now() - startedAt,
+      error: getErrorMessage(error),
+    });
+    emitSectionError(fighterKey, "agent-code", error, correlationId);
+    return;
+  }
+
+  logger.info("pipeline agent-code generation completed", {
+    ...withContext(fighterKey, correlationId),
+    durationMs: Date.now() - startedAt,
+  });
 };
 
 export const continuePipeline = async (fighterKey: string, correlationId?: string) => {

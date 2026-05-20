@@ -10,6 +10,7 @@ export type CreateSimulationParticipantInput = {
   agentSource: AgentSource;
   agentObjectKey?: string | null;
   agentHash?: string | null;
+  agentVersionId?: string | null;
 };
 
 export const createSimulationAndBroadcast = async ({
@@ -59,6 +60,7 @@ export const createSimulationAndBroadcast = async ({
           agentSource: participant.agentSource,
           agentObjectKey: participant.agentObjectKey ?? null,
           agentHash: participant.agentHash ?? null,
+          agentVersionId: participant.agentVersionId ?? null,
         })),
       );
     }
@@ -296,6 +298,7 @@ export const listSimulationParticipants = async (simulationId: string) =>
       agentSource: simulationParticipants.agentSource,
       agentObjectKey: simulationParticipants.agentObjectKey,
       agentHash: simulationParticipants.agentHash,
+      agentVersionId: simulationParticipants.agentVersionId,
     })
     .from(simulationParticipants)
     .where(eq(simulationParticipants.simulationId, simulationId));

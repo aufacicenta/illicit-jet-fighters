@@ -7,6 +7,10 @@ export type PipelineSpecsheetRequest = {
   characterDescription: string;
 };
 
+export type PipelineAgentCodeRequest = {
+  id: number;
+};
+
 export type PipelineStartResponse = {
   status: "started";
 };

@@ -2,18 +2,23 @@ import { type ReplayFrame } from "@ijf/shared";
 
 import { apiRoutes } from "../../hooks/useRoutes";
 import { authHeadersJson, post, readErrorText } from "./client";
-import { type SimulationStartResponse } from "./types";
+import {
+  type SimulationParticipantInput,
+  type SimulationStartRequest,
+  type SimulationStartResponse,
+} from "./types";
 
-export const simulationStartPost = async (
-  fighterIdOrIds: number | number[],
-  seed?: number,
-): Promise<SimulationStartResponse> => {
-  const fighterIds = Array.isArray(fighterIdOrIds) ? fighterIdOrIds : [fighterIdOrIds];
-  return post<SimulationStartResponse>(apiRoutes.simulations, {
-    fighterIds,
+export const simulationStartPost = async ({
+  participants,
+  seed,
+}: SimulationStartRequest): Promise<SimulationStartResponse> =>
+  post<SimulationStartResponse>(apiRoutes.simulations, {
+    participants: participants.map((participant: SimulationParticipantInput) => ({
+      fighterId: participant.fighterId,
+      agentVersionId: participant.agentVersionId ?? null,
+    })),
     seed,
   });
-};
 
 export const fetchSimulationReplay = async (
   simulationId: string,

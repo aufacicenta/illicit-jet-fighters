@@ -30,6 +30,7 @@ export const routes = {
   createFighter: () => `/fighters/new`,
   fighterWizard: (id: string) => `/wizard/fighter/${id}`,
   terminalFighters: () => `/terminal/fighters`,
+  terminalSimulation: () => `/terminal/simulation`,
   login: () => `/login`,
   signup: () => `/signup`,
 };
@@ -42,6 +43,7 @@ export const apiRoutes = {
   simulationReplay: (id: string) => `${API_BASE}/simulations/${encodeURIComponent(id)}/replay`,
   pipelineStart: `${API_BASE}/pipeline/start`,
   pipelineSpecsheet: `${API_BASE}/pipeline/specsheet`,
+  pipelineAgentCode: `${API_BASE}/pipeline/agent-code`,
   pipelineState: (fighterId: string) =>
     `${API_BASE}/pipeline/${encodeURIComponent(fighterId)}/state`,
   generateCharacterDescription: `${API_BASE}/generate/character-description`,

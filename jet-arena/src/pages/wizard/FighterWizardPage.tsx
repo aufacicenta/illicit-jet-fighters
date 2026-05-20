@@ -152,7 +152,9 @@ const WizardLayout = () => {
     setIsStartingSimulation(true);
     setSimulationError(null);
 
-    void simulationStartPost(Number(fighterId))
+    void simulationStartPost({
+      participants: [{ fighterId: Number(fighterId) }],
+    })
       .then((response) => {
         navigate(routes.broadcast(response.broadcastId), { replace: true });
       })
@@ -328,7 +330,7 @@ const WizardLayout = () => {
                       <SpritesheetSection />
                     </section>
                     <section className="scroll-mt-6" id="wizard-section-agent-code">
-                      <AgentCodeSection />
+                      <AgentCodeSection showRegenerateButton />
                     </section>
                     <section
                       className="scroll-mt-6"

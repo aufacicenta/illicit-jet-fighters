@@ -62,5 +62,6 @@ export type WizardContextType = {
   setActiveSection: (sectionId: SectionId) => void;
   submitPrompt: () => Promise<void>;
   requestContinuePipeline: () => void;
+  requestRegenerateAgentCode: () => Promise<void>;
   saveEditedSection: (sectionId: SectionId, content: string) => void;
 };

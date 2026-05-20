@@ -7,6 +7,7 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import type { ChatMessage } from "../../lib/api";
 import {
   fetchPipelineState,
+  generatePipelineAgentCode,
   generateSpecsheetImage,
   refineCharacterDescription,
   refineSpecsheetPrompt,
@@ -594,6 +595,31 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     setErrorMessage(null);
   }, [send]);
 
+  const requestRegenerateAgentCode = useCallback(async () => {
+    if (!Number.isInteger(fighterNumericId) || fighterNumericId <= 0) {
+      setErrorMessage("Invalid fighter id for agent regeneration.");
+      return;
+    }
+
+    setErrorMessage(null);
+    setSectionStatuses((current) => ({
+      ...current,
+      "agent-code": "generating",
+    }));
+
+    try {
+      await generatePipelineAgentCode(fighterNumericId);
+    } catch (error) {
+      setSectionStatuses((current) => ({
+        ...current,
+        "agent-code": "error",
+      }));
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to regenerate agent source code.",
+      );
+    }
+  }, [fighterNumericId]);
+
   const props = useMemo<WizardContextType>(
     () => ({
       fighterId,
@@ -610,6 +636,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       setActiveSection,
       submitPrompt,
       requestContinuePipeline,
+      requestRegenerateAgentCode,
       saveEditedSection,
     }),
     [
@@ -626,6 +653,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       setActiveSection,
       submitPrompt,
       requestContinuePipeline,
+      requestRegenerateAgentCode,
       saveEditedSection,
     ],
   );

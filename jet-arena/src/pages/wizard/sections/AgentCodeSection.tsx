@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 
+import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Collapsible } from "../../../components/ui/collapsible";
 import { Skeleton } from "../../../components/ui/skeleton";
@@ -7,10 +8,23 @@ import { useWizardContext } from "../../../context/Wizard/useWizardContext";
 import { SectionStatusBadge, wizardCardHeaderClassName } from "./SectionStatusBadge";
 import { WizardCardTitle } from "./WizardCardTitle";
 
-export const AgentCodeSection = () => {
-  const { outputs, sectionStatuses, setActiveSection, activeSectionId } = useWizardContext();
+type AgentCodeSectionProps = {
+  showRegenerateButton?: boolean;
+};
+
+export const AgentCodeSection = ({ showRegenerateButton = false }: AgentCodeSectionProps) => {
+  const {
+    outputs,
+    sectionStatuses,
+    setActiveSection,
+    activeSectionId,
+    requestRegenerateAgentCode,
+  } = useWizardContext();
   const status = sectionStatuses["agent-code"];
   const code = outputs["agent-code"]?.content;
+  const hasCharacterDescription = Boolean(outputs["character-description"]?.content);
+  const isRegenerateDisabled =
+    status === "locked" || status === "generating" || !hasCharacterDescription;
   const codeContainerRef = useRef<HTMLPreElement | null>(null);
 
   useEffect(() => {
@@ -40,6 +54,20 @@ export const AgentCodeSection = () => {
         >
           <WizardCardTitle>Agent Source</WizardCardTitle>
           <div className="flex items-center gap-2">
+            {showRegenerateButton ? (
+              <Button
+                disabled={isRegenerateDisabled}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void requestRegenerateAgentCode();
+                }}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                {status === "generating" ? "Regenerating..." : "Regenerate"}
+              </Button>
+            ) : null}
             <SectionStatusBadge status={status} />
           </div>
         </CardHeader>

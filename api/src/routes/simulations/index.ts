@@ -14,30 +14,65 @@ import {
 const resolveSimulationFighters = async (
   request: Request,
   headers: Record<string, string | undefined>,
-  body: { fighterId?: number; fighterIds?: number[] },
+  body: {
+    fighterId?: number;
+    fighterIds?: number[];
+    participants?: Array<{ fighterId: number; agentVersionId?: string | null }>;
+  },
 ) => {
   const auth = await requireBearerAuth(request, headers);
-  const rawIds = body.fighterIds?.length ? body.fighterIds : body.fighterId ? [body.fighterId] : [];
-  const parsedIds = [...new Set(rawIds.map((rawId) => parseFighterIdParam(String(rawId))))].filter(
-    (id): id is number => id !== null,
-  );
+  const requestedParticipants = body.participants?.length
+    ? body.participants
+    : body.fighterIds?.length
+      ? body.fighterIds.map((fighterId) => ({ fighterId, agentVersionId: null }))
+      : body.fighterId
+        ? [{ fighterId: body.fighterId, agentVersionId: null }]
+        : [];
+  const parsedParticipants = requestedParticipants
+    .map((participant) => ({
+      fighterId: parseFighterIdParam(String(participant.fighterId)),
+      agentVersionId: participant.agentVersionId ?? null,
+    }))
+    .filter(
+      (participant): participant is { fighterId: number; agentVersionId: string | null } =>
+        participant.fighterId !== null,
+    );
 
-  if (parsedIds.length === 0) {
+  if (parsedParticipants.length === 0) {
     return { error: "At least one valid fighter id is required." as const };
   }
 
-  const fighters = await getFightersByIds(parsedIds);
-  if (fighters.length !== parsedIds.length) {
+  const parsedUniqueIds = [
+    ...new Set(parsedParticipants.map((participant) => participant.fighterId)),
+  ];
+  const fighters = await getFightersByIds(parsedUniqueIds);
+  if (fighters.length !== parsedUniqueIds.length) {
     return { error: "One or more fighters were not found." as const };
+  }
+  const fightersById = new Map(fighters.map((fighter) => [fighter.id, fighter]));
+
+  const unauthorizedParticipant = parsedParticipants.find((participant) => {
+    const fighter = fightersById.get(participant.fighterId);
+    return fighter && fighter.userId !== auth.userId;
+  });
+  if (unauthorizedParticipant) {
+    return { error: "You can only start simulations with your own fighters." as const };
   }
 
   return {
     initiatorUserId: auth.userId,
-    fighters: fighters.map((fighter) => ({
-      fighterId: fighter.id,
-      fighterKey: fighterKeyFromId(fighter.id),
-      ownerUserId: fighter.userId,
-    })),
+    fighters: parsedParticipants.map((participant) => {
+      const fighter = fightersById.get(participant.fighterId);
+      if (!fighter) {
+        throw new Error("Simulation participant resolution failed.");
+      }
+      return {
+        fighterId: fighter.id,
+        fighterKey: fighterKeyFromId(fighter.id),
+        ownerUserId: fighter.userId,
+        agentVersionId: participant.agentVersionId,
+      };
+    }),
   };
 };
 
@@ -46,11 +81,13 @@ export const simulationRoutes = new Elysia({ prefix: "/simulations" })
     "",
     async ({ body, request, headers, status }) => {
       const correlationId = createCorrelationId("simulation-start");
-      const fighterIds = body.fighterIds?.length
-        ? body.fighterIds
-        : body.fighterId
-          ? [body.fighterId]
-          : [];
+      const fighterIds = body.participants?.length
+        ? body.participants.map((participant) => participant.fighterId)
+        : body.fighterIds?.length
+          ? body.fighterIds
+          : body.fighterId
+            ? [body.fighterId]
+            : [];
       const seed = body.seed ?? Date.now();
 
       logger.info("simulation start endpoint hit", {
@@ -126,6 +163,14 @@ export const simulationRoutes = new Elysia({ prefix: "/simulations" })
     },
     {
       body: t.Object({
+        participants: t.Optional(
+          t.Array(
+            t.Object({
+              fighterId: t.Number(),
+              agentVersionId: t.Optional(t.Union([t.String(), t.Null()])),
+            }),
+          ),
+        ),
         fighterId: t.Optional(t.Number()),
         fighterIds: t.Optional(t.Array(t.Number())),
         seed: t.Optional(t.Number()),

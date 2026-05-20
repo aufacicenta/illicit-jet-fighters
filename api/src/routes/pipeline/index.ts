@@ -11,12 +11,17 @@ import {
 import { logger } from "../../lib/logger";
 import {
   bindPipelineTenant,
+  generateAgentCodeFromCharacterDescription,
   generateSpecsheetFromCharacterDescription,
   serializeClientPipelineState,
   startPipeline,
 } from "../../lib/pipeline-runner";
 import { requireBearerAuth } from "../../lib/require-bearer-auth";
-import type { PipelineSpecsheetRequest, PipelineStartResponse } from "./types";
+import type {
+  PipelineAgentCodeRequest,
+  PipelineSpecsheetRequest,
+  PipelineStartResponse,
+} from "./types";
 
 const resolveFighterAccess = async (authUserId: string, rawId: string) => {
   const fighterId = parseFighterIdParam(rawId);
@@ -143,6 +148,52 @@ export const pipelineRoutes = new Elysia({ prefix: "/pipeline" })
       body: t.Object({
         id: t.Number(),
         characterDescription: t.String(),
+      }),
+    },
+  )
+  .post(
+    "/agent-code",
+    async ({ body, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const payload = body as PipelineAgentCodeRequest;
+      const resolution = await resolveFighterAccess(auth.userId, String(payload.id));
+      if ("error" in resolution) {
+        return status(404, resolution.error);
+      }
+
+      const correlationId = createCorrelationId("pipeline-agent-code");
+      logger.info("pipeline agent-code endpoint hit", {
+        path: "/pipeline/agent-code",
+        fighterId: resolution.fighterId,
+        correlationId,
+      });
+
+      void generateAgentCodeFromCharacterDescription(
+        resolution.fighterKey,
+        undefined,
+        correlationId,
+      )
+        .then(() => {
+          logger.info("pipeline agent-code endpoint async execution completed", {
+            path: "/pipeline/agent-code",
+            fighterId: resolution.fighterId,
+            correlationId,
+          });
+        })
+        .catch((error) => {
+          logger.error("pipeline agent-code endpoint async execution failed", {
+            path: "/pipeline/agent-code",
+            fighterId: resolution.fighterId,
+            correlationId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+
+      return { status: "started" } satisfies PipelineStartResponse;
+    },
+    {
+      body: t.Object({
+        id: t.Number(),
       }),
     },
   );

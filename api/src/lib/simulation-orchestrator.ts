@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import type { BroadcastMessage, ReplayFrame } from "@ijf/shared";
 import { simulationManager } from "@ijf/simulator";
 
+import { getLatestFighterAgentVersionForHash } from "./agent-version-repository";
 import { bindPipelineTenant, serializeClientPipelineState } from "./pipeline-runner";
 import { fighterAgentScriptObjectKey, getObjectBuffer } from "./r2";
 import { readReplayFramesArtifact, writeSimulationArtifacts } from "./simulation-artifacts";
@@ -26,6 +27,7 @@ type ResolvedSimulationPlayer = {
   source: AgentSource;
   objectKey: string | null;
   hash: string;
+  agentVersionId: string | null;
 };
 
 type ActiveSimulation = {
@@ -52,12 +54,13 @@ const resolvePlayerFromSources = async ({
   userId,
   fighterId,
   fighterKey,
+  playerId,
 }: {
   userId: string;
   fighterId: number;
   fighterKey: string;
+  playerId: string;
 }): Promise<ResolvedSimulationPlayer> => {
-  const playerId = `jet-fighter-${fighterKey}`;
   const agentScriptKey = fighterAgentScriptObjectKey(userId, fighterId);
   const r2Script = await getObjectBuffer(agentScriptKey);
   if (r2Script) {
@@ -70,6 +73,7 @@ const resolvePlayerFromSources = async ({
         source: "r2",
         objectKey: agentScriptKey,
         hash: hashContent(code),
+        agentVersionId: null,
       };
     }
   }
@@ -77,13 +81,19 @@ const resolvePlayerFromSources = async ({
   const snapshot = await serializeClientPipelineState(fighterKey);
   const pipelineCode = snapshot?.outputs?.["agent-code"]?.content;
   if (pipelineCode && pipelineCode.trim().length > 0) {
+    const contentHash = hashContent(pipelineCode);
+    const latestVersion = await getLatestFighterAgentVersionForHash({
+      fighterId,
+      contentHash,
+    });
     return {
       fighterId,
       id: playerId,
       code: pipelineCode,
       source: "pipeline",
       objectKey: null,
-      hash: hashContent(pipelineCode),
+      hash: contentHash,
+      agentVersionId: latestVersion?.id ?? null,
     };
   }
 
@@ -94,6 +104,7 @@ const resolvePlayerFromSources = async ({
     source: "fallback",
     objectKey: null,
     hash: hashContent(FALLBACK_AGENT_CODE),
+    agentVersionId: null,
   };
 };
 
@@ -187,7 +198,12 @@ export const startSimulationForRoster = async ({
   seed,
 }: {
   initiatorUserId: string;
-  fighters: Array<{ fighterId: number; fighterKey: string; ownerUserId: string }>;
+  fighters: Array<{
+    fighterId: number;
+    fighterKey: string;
+    ownerUserId: string;
+    agentVersionId?: string | null;
+  }>;
   seed?: number;
 }) => {
   if (fighters.length === 0) {
@@ -197,9 +213,14 @@ export const startSimulationForRoster = async ({
   const resolvedSeed = Number.isFinite(seed) ? Number(seed) : Date.now();
   const broadcastId = `${fighters[0]!.fighterId}-${crypto.randomUUID()}`;
   const players = await Promise.all(
-    fighters.map(async ({ fighterId, fighterKey, ownerUserId }) => {
+    fighters.map(async ({ fighterId, fighterKey, ownerUserId }, index) => {
       bindPipelineTenant(fighterKey, { userId: ownerUserId, fighterId });
-      return resolvePlayerFromSources({ userId: ownerUserId, fighterId, fighterKey });
+      return resolvePlayerFromSources({
+        userId: ownerUserId,
+        fighterId,
+        fighterKey,
+        playerId: `jet-fighter-${fighterKey}-slot-${index}`,
+      });
     }),
   );
 
@@ -214,6 +235,7 @@ export const startSimulationForRoster = async ({
       agentSource: player.source,
       agentObjectKey: player.objectKey,
       agentHash: player.hash,
+      agentVersionId: player.agentVersionId,
     })),
   });
 
