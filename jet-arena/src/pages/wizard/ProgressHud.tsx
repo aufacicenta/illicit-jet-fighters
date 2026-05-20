@@ -1,3 +1,6 @@
+import { ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import { Button } from "../../components/ui/button";
 import type { SectionId, SectionStatus } from "../../context/Wizard/WizardContext.types";
 
@@ -24,15 +27,73 @@ const getCompletedCount = (
 
 const getStepClassName = (status: SectionStatus) => {
   if (status === "complete") {
-    return "border-primary bg-primary";
+    return "text-primary";
   }
   if (status === "generating") {
-    return "border-accent bg-accent animate-pulse";
+    return "text-accent animate-pulse";
   }
   if (status === "error") {
-    return "border-destructive bg-destructive";
+    return "text-destructive";
   }
-  return "border-border bg-muted";
+  return "text-muted-foreground/60";
+};
+
+const CHEVRON_SLOT_WIDTH_PX = 10;
+const CHEVRON_GAP_PX = 2;
+const MIN_CHEVRON_COUNT = 1;
+
+const getChevronCountForWidth = (width: number) =>
+  Math.max(
+    MIN_CHEVRON_COUNT,
+    Math.floor((width + CHEVRON_GAP_PX) / (CHEVRON_SLOT_WIDTH_PX + CHEVRON_GAP_PX)),
+  );
+
+const StepChevronBar = ({ status, title }: { status: SectionStatus; title: string }) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [chevronCount, setChevronCount] = useState(3);
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+
+    const updateChevronCount = (width: number) => {
+      const nextCount = getChevronCountForWidth(width);
+      setChevronCount((currentCount) => (currentCount === nextCount ? currentCount : nextCount));
+    };
+
+    updateChevronCount(node.clientWidth);
+
+    const observer = new ResizeObserver((entries) => {
+      const nextWidth = entries[0]?.contentRect.width;
+      if (nextWidth) updateChevronCount(nextWidth);
+    });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const chevrons = useMemo(
+    () =>
+      Array.from({ length: chevronCount }, (_, index) => (
+        <ChevronRight aria-hidden className="h-3 w-full" key={index} />
+      )),
+    [chevronCount],
+  );
+
+  return (
+    <div
+      className={`rounded-sm border border-border/60 bg-muted/30 px-1 py-0.5 ${getStepClassName(status)}`}
+      ref={containerRef}
+      title={title}
+    >
+      <div
+        className="grid items-center gap-0.5"
+        style={{ gridTemplateColumns: `repeat(${chevronCount}, minmax(0, 1fr))` }}
+      >
+        {chevrons}
+      </div>
+    </div>
+  );
 };
 
 export const ProgressHud = ({
@@ -76,9 +137,9 @@ export const ProgressHud = ({
           </div>
           <div className="grid grid-cols-3 gap-1.5">
             {phaseOneSections.map((section) => (
-              <div
+              <StepChevronBar
                 key={section.id}
-                className={`h-1.5 rounded-sm border ${getStepClassName(sectionStatuses[section.id])}`}
+                status={sectionStatuses[section.id]}
                 title={`Phase 1: ${section.label}`}
               />
             ))}
@@ -103,9 +164,9 @@ export const ProgressHud = ({
           </div>
           <div className="grid grid-cols-7 gap-1.5">
             {phaseTwoSections.map((section) => (
-              <div
+              <StepChevronBar
                 key={section.id}
-                className={`h-1.5 rounded-sm border ${getStepClassName(sectionStatuses[section.id])}`}
+                status={sectionStatuses[section.id]}
                 title={`Phase 2: ${section.label}`}
               />
             ))}

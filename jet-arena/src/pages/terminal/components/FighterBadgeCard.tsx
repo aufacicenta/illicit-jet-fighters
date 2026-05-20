@@ -1,8 +1,9 @@
 import type { MyFighter } from "@ijf/shared";
 
 import { Badge } from "../../../components/ui/badge";
-import { Card, CardContent } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { cn } from "../../../lib/utils";
+import { WizardCardTitle } from "../../wizard/sections/WizardCardTitle";
 
 const parseDisplayName = (characterDescription: string | null, slug: string, id: number) => {
   if (characterDescription) {
@@ -45,6 +46,9 @@ export const FighterBadgeCard = ({ fighter, onClick }: FighterBadgeCardProps) =>
   return (
     <button className="text-left" onClick={() => onClick(fighter.id)} type="button">
       <Card className="border-border/90 bg-card/95 hover:border-secondary/60">
+        <CardHeader className="p-2">
+          <WizardCardTitle>{displayName}</WizardCardTitle>
+        </CardHeader>
         <CardContent className="p-0">
           <div className="grid min-h-44 grid-cols-[210px_1fr]">
             <div
@@ -70,9 +74,6 @@ export const FighterBadgeCard = ({ fighter, onClick }: FighterBadgeCardProps) =>
               ) : null}
             </div>
             <div className="space-y-1.5 p-3">
-              <p className="truncate text-xs font-bold tracking-[0.14em] text-foreground uppercase">
-                {displayName}
-              </p>
               <p className="text-xs leading-relaxed text-muted-foreground">{briefing}</p>
               <div>
                 <Badge

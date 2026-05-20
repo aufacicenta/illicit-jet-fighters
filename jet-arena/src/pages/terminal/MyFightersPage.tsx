@@ -36,8 +36,7 @@ export const MyFightersPage = () => {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs tracking-[0.22em] text-muted-foreground uppercase">My Fighters</p>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
         <Button asChild className="tracking-[0.12em]">
           <Link to={routes.createFighter()}>Create Fighter</Link>
         </Button>
