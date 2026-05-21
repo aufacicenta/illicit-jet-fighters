@@ -55,10 +55,14 @@ class SimulationWorkerRuntime {
   private lastResults = new Map<string, PendingResult>();
   private inFlight = false;
   private broadcastId = "";
+  private fighterIdByPlayerId = new Map<string, number | null>();
 
   async start(input: StartSimulationInput): Promise<void> {
     this.stop();
     this.broadcastId = input.broadcastId;
+    this.fighterIdByPlayerId = new Map(
+      input.players.map((player) => [player.id, player.fighterId ?? null]),
+    );
     this.world = new GameWorld(
       input.players.map((player) => player.id),
       input.seed,
@@ -78,6 +82,7 @@ class SimulationWorkerRuntime {
       data: {
         battlefieldConfig: input.battlefield,
         playerIds: input.players.map((player) => player.id),
+        playerMetaById: input.playerMetaById,
         arenaBounds: this.world.state.arenaBounds,
         pickupStats: this.world.state.pickupStats,
       },
@@ -150,10 +155,18 @@ class SimulationWorkerRuntime {
 
     const frame = this.world.replayLog[this.world.replayLog.length - 1];
     if (frame) {
+      const frameWithFighterIds: ReplayFrame = {
+        ...frame,
+        jets: frame.jets.map((jet) => ({
+          ...jet,
+          fighterId: this.fighterIdByPlayerId.get(jet.id) ?? null,
+        })),
+      };
+      this.world.replayLog[this.world.replayLog.length - 1] = frameWithFighterIds;
       self.postMessage({
         type: "FRAME",
         broadcastId: this.broadcastId,
-        data: frame,
+        data: frameWithFighterIds,
       } satisfies SimulationWorkerResponseMessage);
     }
 

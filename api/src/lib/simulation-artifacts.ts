@@ -1,6 +1,6 @@
 import { gunzipSync, gzipSync } from "node:zlib";
 
-import type { BroadcastMessage, ReplayFrame } from "@ijf/shared";
+import type { BroadcastInitData, BroadcastMessage, ReplayFrame } from "@ijf/shared";
 
 import {
   getObjectBuffer,
@@ -55,4 +55,26 @@ export const readReplayFramesArtifact = async (
     return null;
   }
   return parsed.frames;
+};
+
+export const readBroadcastInitArtifact = async (
+  broadcastEventsObjectKey: string,
+): Promise<BroadcastInitData | null> => {
+  const raw = await getObjectBuffer(broadcastEventsObjectKey);
+  if (!raw) {
+    return null;
+  }
+
+  const body = gunzipSync(raw).toString("utf8");
+  const lines = body
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  for (const line of lines) {
+    const parsed = JSON.parse(line) as BroadcastMessage;
+    if (parsed.type === "init") {
+      return parsed.data;
+    }
+  }
+  return null;
 };

@@ -31,6 +31,7 @@ const baseStatuses = {
   "specsheet-image": "locked",
   "spritesheet-prompt": "locked",
   "spritesheet-image": "locked",
+  "spritesheet-manifest": "locked",
   "agent-code": "locked",
   "strikecraft-specsheet-prompt": "locked",
   "strikecraft-specsheet-image": "locked",
@@ -44,6 +45,7 @@ const sectionOrder: SectionId[] = [
   "specsheet-image",
   "spritesheet-prompt",
   "spritesheet-image",
+  "spritesheet-manifest",
   "agent-code",
   "strikecraft-specsheet-prompt",
   "strikecraft-specsheet-image",
@@ -59,6 +61,7 @@ const streamableSectionIds = new Set<SectionId>([
   "strikecraft-specsheet-prompt",
   "strikecraft-sprite-prompt",
 ]);
+const hiddenSectionIds = new Set<SectionId>(["spritesheet-manifest"]);
 const wizardBookmarkVersion = 1;
 
 type WizardBookmark = {
@@ -166,18 +169,27 @@ const resolveActiveSection = (
   outputs: WizardContextType["outputs"],
 ): SectionId | null => {
   for (const sectionId of sectionOrder) {
+    if (hiddenSectionIds.has(sectionId)) {
+      continue;
+    }
     if (statuses[sectionId] === "error") {
       return sectionId;
     }
   }
 
   for (const sectionId of sectionOrder) {
+    if (hiddenSectionIds.has(sectionId)) {
+      continue;
+    }
     if (statuses[sectionId] === "ready") {
       return sectionId;
     }
   }
 
   for (const sectionId of sectionOrder) {
+    if (hiddenSectionIds.has(sectionId)) {
+      continue;
+    }
     if (!outputs[sectionId]) {
       return sectionId;
     }
@@ -401,7 +413,12 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
 
     if (message.type === "section:complete") {
       const completedSection = message.sectionId;
-      const nextSection = sectionOrder[sectionOrder.indexOf(completedSection) + 1];
+      const completedSectionIndex = sectionOrder.indexOf(completedSection);
+      const firstNextSection = sectionOrder[completedSectionIndex + 1];
+      const nextSection =
+        firstNextSection && hiddenSectionIds.has(firstNextSection)
+          ? sectionOrder[completedSectionIndex + 2]
+          : firstNextSection;
 
       setOutputs((current) => ({
         ...current,
@@ -457,6 +474,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
           "specsheet-image": "locked",
           "spritesheet-prompt": "locked",
           "spritesheet-image": "locked",
+          "spritesheet-manifest": "locked",
           "agent-code": "locked",
           "strikecraft-specsheet-prompt": "locked",
           "strikecraft-specsheet-image": "locked",

@@ -10,6 +10,10 @@ const spritesheetPrompt = readFileSync(
   join(skillsDir, "character-spritesheet-generator.md"),
   "utf8",
 );
+const spritesheetManifestMapper = readFileSync(
+  join(skillsDir, "spritesheet-manifest-mapper.md"),
+  "utf8",
+);
 const agentCode = readFileSync(join(skillsDir, "character-description-to-jet-agent.md"), "utf8");
 const rawStrikecraftSpecsheetPrompt = readFileSync(
   join(skillsDir, "strikecraft-specsheet-generator.md"),
@@ -41,6 +45,7 @@ export const skills = {
   characterDescription,
   specsheetPrompt,
   spritesheetPrompt,
+  spritesheetManifestMapper,
   agentCode,
   strikecraftSpecsheetPrompt,
   strikecraftSpritePrompt,

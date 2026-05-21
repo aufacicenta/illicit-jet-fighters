@@ -42,8 +42,6 @@ export class GameRenderer {
   draw(state: GameState): void {
     const { context } = this;
     context.clearRect(0, 0, this.width, this.height);
-    context.fillStyle = "#0b1220";
-    context.fillRect(0, 0, this.width, this.height);
 
     this.drawArena();
     this.drawPickups(state.pickups, state.tick);
@@ -83,6 +81,8 @@ export class GameRenderer {
       });
       this.context.closePath();
     }
+    this.context.fillStyle = "#0a0d06";
+    this.context.fill();
     this.context.strokeStyle = "#3e5f8a";
     this.context.lineWidth = 2;
     this.context.stroke();

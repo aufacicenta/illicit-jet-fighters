@@ -4,6 +4,7 @@ export const aiModels = {
   specsheetImage: "google/gemini-3.1-flash-image-preview",
   spritesheetPrompt: "anthropic/claude-sonnet-4",
   spritesheetImage: "openai/gpt-5-image-mini",
+  spritesheetManifest: "google/gemini-2.5-flash",
   agentCode: "anthropic/claude-sonnet-4",
   strikecraftSpecsheetPrompt: "anthropic/claude-sonnet-4",
   strikecraftSpecsheetImage: "google/gemini-3.1-flash-image-preview",

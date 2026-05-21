@@ -382,6 +382,49 @@ export const generateSpritesheetImage = async (prompt: string) => {
   return generateImageWithModel(aiModels.spritesheetImage, prompt, "Spritesheet image generation");
 };
 
+export const generateSpritesheetManifest = async ({
+  imageUrl,
+  sheetWidth,
+  sheetHeight,
+}: {
+  imageUrl: string;
+  sheetWidth: number;
+  sheetHeight: number;
+}) => {
+  const completionResponse = await openrouter.chat.send({
+    chatRequest: {
+      model: aiModels.spritesheetManifest,
+      messages: [
+        { role: "system", content: skills.spritesheetManifestMapper },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Analyze this spritesheet and produce the strict JSON manifest. sheetWidth=${sheetWidth}, sheetHeight=${sheetHeight}.`,
+            },
+            {
+              type: "image_url",
+              imageUrl: { url: imageUrl },
+            },
+          ],
+        },
+      ],
+    },
+  });
+  const completion = unwrapOpenRouterResult(completionResponse) as {
+    choices?: Array<{ message?: { content?: unknown } }>;
+  };
+  const manifest = getText(completion.choices?.[0]?.message?.content);
+  if (!manifest.trim()) {
+    throw new Error("Spritesheet manifest generation returned empty output.");
+  }
+  return {
+    manifest,
+    model: aiModels.spritesheetManifest,
+  };
+};
+
 export const generateAgentCode = async (
   characterDescription: string,
   onDelta?: StreamDeltaHandler,

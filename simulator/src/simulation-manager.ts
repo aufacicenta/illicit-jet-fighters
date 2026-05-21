@@ -3,6 +3,7 @@ import type {
   BroadcastMessage,
   PickupConfig,
   ReplayFrame,
+  SpritesheetManifest,
 } from "@ijf/shared/simulation";
 
 import { DEFAULT_BATTLEFIELD } from "./default-battlefield";
@@ -39,6 +40,15 @@ type SimulationRecord = {
 export type StartSimulationArgs = {
   broadcastId: string;
   players: SimulationPlayerConfig[];
+  playerMetaById?: Record<
+    string,
+    {
+      fighterId: number;
+      spritesheetImageUrl: string | null;
+      spritesheetManifestUrl: string | null;
+      spritesheetManifest: SpritesheetManifest | null;
+    }
+  >;
   seed: number;
   battlefield?: BattlefieldConfig;
   pickupConfig?: PickupConfig;
@@ -57,6 +67,7 @@ const buildDefaultPlayers = (): SimulationPlayerConfig[] =>
   [1, 2, 3, 4].map((index) => ({
     id: `jet-${index}-fallback`,
     code: FALLBACK_AGENT_CODE,
+    fighterId: null,
   }));
 
 class SimulationManager {
@@ -110,11 +121,24 @@ class SimulationManager {
       this.markErrored(args.broadcastId, event.message || "Simulation worker crashed.");
     });
 
+    const resolvedPlayers = args.players.length > 0 ? args.players : buildDefaultPlayers();
+    const fallbackMetaById = Object.fromEntries(
+      resolvedPlayers.map((player) => [
+        player.id,
+        {
+          fighterId: player.fighterId ?? 0,
+          spritesheetImageUrl: null,
+          spritesheetManifestUrl: null,
+          spritesheetManifest: null,
+        },
+      ]),
+    );
     worker.postMessage({
       type: "START",
       payload: {
         broadcastId: args.broadcastId,
-        players: args.players.length > 0 ? args.players : buildDefaultPlayers(),
+        players: resolvedPlayers,
+        playerMetaById: args.playerMetaById ?? fallbackMetaById,
         seed: Number.isFinite(args.seed) ? args.seed : 1337,
         battlefield: args.battlefield ?? DEFAULT_BATTLEFIELD,
         pickupConfig: args.pickupConfig,

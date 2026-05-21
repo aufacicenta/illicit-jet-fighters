@@ -13,6 +13,7 @@ export type SectionId =
   | "specsheet-image"
   | "spritesheet-prompt"
   | "spritesheet-image"
+  | "spritesheet-manifest"
   | "agent-code"
   | "strikecraft-specsheet-prompt"
   | "strikecraft-specsheet-image"

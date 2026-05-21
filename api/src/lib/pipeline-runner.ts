@@ -14,6 +14,7 @@ import {
   generateSpecsheetPrompt,
   generateSpecsheetPromptRefine,
   generateSpritesheetImage,
+  generateSpritesheetManifest,
   generateSpritesheetPrompt,
   generateStrikecraftSpecsheetImage,
   generateStrikecraftSpecsheetPrompt,
@@ -21,7 +22,7 @@ import {
   generateStrikecraftSpritePrompt,
 } from "./generate";
 import { decodeImagePayload } from "./image-payload";
-import { normalizeForStoragePng } from "./image-processing";
+import { getImageDimensions, normalizeForStoragePng } from "./image-processing";
 import { withFighterContext as withContext } from "./log-context";
 import { logger } from "./logger";
 import type { SectionStatus } from "./pipeline-status";
@@ -34,9 +35,11 @@ import {
   putObject,
   specsheetObjectKey,
   spritesheetImageObjectKey,
+  spritesheetManifestObjectKey,
   strikecraftSpecsheetObjectKey,
   strikecraftSpriteObjectKey,
 } from "./r2";
+import { normalizeSpritesheetManifest } from "./spritesheet-manifest";
 import type { ChatMessage, SectionId, SectionOutput } from "./types";
 
 export type PipelineTenant = {
@@ -69,6 +72,7 @@ const stepOrder: SectionId[] = [
   "specsheet-image",
   "spritesheet-prompt",
   "spritesheet-image",
+  "spritesheet-manifest",
   "agent-code",
   "strikecraft-specsheet-prompt",
   "strikecraft-specsheet-image",
@@ -82,6 +86,8 @@ const imageSections = new Set<SectionId>([
   "strikecraft-specsheet-image",
   "strikecraft-sprite-image",
 ]);
+
+const assetBackedSections = new Set<SectionId>([...imageSections, "spritesheet-manifest"]);
 
 const imageObjectKeyBuilders = {
   "specsheet-image": specsheetObjectKey,
@@ -260,7 +266,7 @@ const sanitizeSectionOutput = async (
   sectionId: SectionId,
   output: SectionOutput,
 ): Promise<SectionOutput> => {
-  if (!imageSections.has(sectionId)) {
+  if (!assetBackedSections.has(sectionId)) {
     const { assetUrl: _discard, ...rest } = output;
     return rest;
   }
@@ -511,7 +517,7 @@ const commitImageAsset = async ({
   imageUrl: string;
   objectKeyBuilder: (userId: string, fighterId: number, extension: string) => string;
   requireTransparentBackground: boolean;
-}): Promise<{ objectKey: string; signedUrl: string }> => {
+}): Promise<{ objectKey: string; signedUrl: string; width: number; height: number }> => {
   const tenant = requireTenant(fighterKey);
   const { buffer } = await decodeImagePayload(imageUrl, mimeTypeHint);
   const normalized = await normalizeForStoragePng({
@@ -523,7 +529,8 @@ const commitImageAsset = async ({
   const objectKey = objectKeyBuilder(tenant.userId, tenant.fighterId, extension);
   await putObject(objectKey, normalized.buffer, normalized.mimeType);
   const signedUrl = await getSignedReadUrl(objectKey);
-  return { objectKey, signedUrl };
+  const { width, height } = await getImageDimensions(normalized.buffer);
+  return { objectKey, signedUrl, width, height };
 };
 
 const broadcastSectionComplete = async (
@@ -688,7 +695,13 @@ const runImageSectionStep = async ({
   objectKeyBuilder: (userId: string, fighterId: number, extension: string) => string;
   generator: (prompt: string) => Promise<{ imageBase64: string; mimeType: string; model: string }>;
   emitGateOnComplete?: boolean;
-}) => {
+}): Promise<{
+  objectKey: string;
+  signedUrl: string;
+  width: number;
+  height: number;
+  model: string;
+} | null> => {
   const tenant = tenantByFighter.get(fighterKey);
   const state = getState(fighterKey, correlationId);
   const imageStartedAt = Date.now();
@@ -705,6 +718,8 @@ const runImageSectionStep = async ({
     } | null = null;
     let resolvedObjectKey = "";
     let resolvedSignedUrl = "";
+    let resolvedWidth = 0;
+    let resolvedHeight = 0;
     let lastAttemptError: unknown;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -732,6 +747,8 @@ CRITICAL TECHNICAL OUTPUT REQUIREMENTS:
         resolvedImage = image;
         resolvedObjectKey = committed.objectKey;
         resolvedSignedUrl = committed.signedUrl;
+        resolvedWidth = committed.width;
+        resolvedHeight = committed.height;
         break;
       } catch (error) {
         lastAttemptError = error;
@@ -785,10 +802,76 @@ CRITICAL TECHNICAL OUTPUT REQUIREMENTS:
         totalDurationMs: startedAt ? Date.now() - startedAt : Date.now() - imageStartedAt,
       });
     }
+
+    return {
+      objectKey: resolvedObjectKey,
+      signedUrl: resolvedSignedUrl,
+      width: resolvedWidth,
+      height: resolvedHeight,
+      model: resolvedImage.model,
+    };
   } catch (error) {
     markSectionFinished(state, sectionId);
     emitSectionError(fighterKey, sectionId, error, correlationId);
-    return;
+    return null;
+  }
+};
+
+const runSpritesheetManifestStep = async ({
+  fighterKey,
+  imageUrl,
+  sheetWidth,
+  sheetHeight,
+  correlationId,
+  modelHint,
+}: {
+  fighterKey: string;
+  imageUrl: string;
+  sheetWidth: number;
+  sheetHeight: number;
+  correlationId?: string;
+  modelHint?: string;
+}) => {
+  const tenant = requireTenant(fighterKey);
+  const state = getState(fighterKey, correlationId);
+  const sectionId: SectionId = "spritesheet-manifest";
+  markSectionStarted(state, fighterKey, sectionId);
+
+  try {
+    const generated = await generateSpritesheetManifest({
+      imageUrl,
+      sheetWidth,
+      sheetHeight,
+    });
+    const normalized = normalizeSpritesheetManifest({
+      raw: generated.manifest,
+      sheetWidth,
+      sheetHeight,
+    });
+    const objectKey = spritesheetManifestObjectKey(tenant.userId, tenant.fighterId);
+    await putObject(
+      objectKey,
+      Buffer.from(JSON.stringify(normalized, null, 2)),
+      "application/json",
+    );
+    const signedUrl = await getSignedReadUrl(objectKey);
+    const output = setOutput(
+      fighterKey,
+      sectionId,
+      objectKey,
+      generated.model || modelHint || "spritesheet-manifest-mapper",
+      "application/json",
+      correlationId,
+      signedUrl,
+    );
+    await broadcastSectionComplete(fighterKey, sectionId, output);
+    markSectionFinished(state, sectionId);
+    if (tenant) {
+      await persistSnapshot(fighterKey, state, tenant);
+    }
+  } catch (error) {
+    markSectionFinished(state, sectionId);
+    emitSectionError(fighterKey, sectionId, error, correlationId);
   }
 };
 
@@ -832,7 +915,7 @@ const runPhase2Pipeline = async (fighterKey: string, correlationId?: string) => 
     }),
   ]);
 
-  const [, , strikecraftSpritePrompt] = await Promise.all([
+  const [spritesheetImageResult, , strikecraftSpritePrompt] = await Promise.all([
     runImageSectionStep({
       fighterKey,
       sectionId: "spritesheet-image",
@@ -860,6 +943,19 @@ const runPhase2Pipeline = async (fighterKey: string, correlationId?: string) => 
       },
     }),
   ]);
+
+  if (!spritesheetImageResult) {
+    throw new Error("Spritesheet image generation failed.");
+  }
+
+  await runSpritesheetManifestStep({
+    fighterKey,
+    imageUrl: spritesheetImageResult.signedUrl,
+    sheetWidth: spritesheetImageResult.width,
+    sheetHeight: spritesheetImageResult.height,
+    correlationId,
+    modelHint: spritesheetImageResult.model,
+  });
 
   await runImageSectionStep({
     fighterKey,
@@ -1078,7 +1174,7 @@ export const generateSpritesheetImageFromPrompt = async (
   const tenant = tenantByFighter.get(fighterKey);
 
   try {
-    await runImageSectionStep({
+    const imageResult = await runImageSectionStep({
       fighterKey,
       sectionId: "spritesheet-image",
       prompt,
@@ -1086,6 +1182,16 @@ export const generateSpritesheetImageFromPrompt = async (
       objectKeyBuilder: spritesheetImageObjectKey,
       generator: generateSpritesheetImage,
     });
+    if (imageResult) {
+      await runSpritesheetManifestStep({
+        fighterKey,
+        imageUrl: imageResult.signedUrl,
+        sheetWidth: imageResult.width,
+        sheetHeight: imageResult.height,
+        correlationId,
+        modelHint: imageResult.model,
+      });
+    }
 
     if (tenant) {
       await syncPipelineState(fighterKey);

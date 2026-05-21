@@ -1,4 +1,4 @@
-import { type ReplayFrame } from "@ijf/shared";
+import { type BroadcastInitData, type ReplayFrame, type SpritesheetManifest } from "@ijf/shared";
 
 import { apiRoutes } from "../../hooks/useRoutes";
 import { authHeadersJson, post, readErrorText } from "./client";
@@ -22,7 +22,19 @@ export const simulationStartPost = async ({
 
 export const fetchSimulationReplay = async (
   simulationId: string,
-): Promise<{ frames: ReplayFrame[] }> => {
+): Promise<{
+  frames: ReplayFrame[];
+  initData?: BroadcastInitData | null;
+  playerMetaById?: Record<
+    string,
+    {
+      fighterId: number;
+      spritesheetImageUrl: string | null;
+      spritesheetManifestUrl: string | null;
+      spritesheetManifest: SpritesheetManifest | null;
+    }
+  >;
+}> => {
   const response = await fetch(apiRoutes.simulationReplay(simulationId), {
     method: "GET",
     headers: {
@@ -35,5 +47,17 @@ export const fetchSimulationReplay = async (
     throw new Error(await readErrorText(response));
   }
 
-  return (await response.json()) as { frames: ReplayFrame[] };
+  return (await response.json()) as {
+    frames: ReplayFrame[];
+    initData?: BroadcastInitData | null;
+    playerMetaById?: Record<
+      string,
+      {
+        fighterId: number;
+        spritesheetImageUrl: string | null;
+        spritesheetManifestUrl: string | null;
+        spritesheetManifest: SpritesheetManifest | null;
+      }
+    >;
+  };
 };

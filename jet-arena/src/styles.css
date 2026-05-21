@@ -119,8 +119,6 @@ body {
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  gap: 12px;
-  padding: 16px;
 }
 
 #arena {
@@ -192,7 +190,9 @@ body {
 }
 
 .jet-pose-sheet-wrap {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 112px;
   height: 112px;
   margin: 0;

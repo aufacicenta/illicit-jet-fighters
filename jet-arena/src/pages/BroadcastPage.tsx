@@ -1,4 +1,10 @@
-import type { BroadcastMessage, ReplayFrame } from "@ijf/shared";
+import type {
+  BattlefieldConfig,
+  BroadcastInitData,
+  BroadcastMessage,
+  ReplayFrame,
+  SpritesheetManifest,
+} from "@ijf/shared";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -16,6 +22,19 @@ type EndSummary = {
   winnerId: string | null;
   replayHashHex: string;
 } | null;
+type RenderBootstrapData = Pick<
+  BroadcastInitData,
+  "battlefieldConfig" | "arenaBounds" | "pickupStats"
+>;
+type PlayerMetaById = Record<
+  string,
+  {
+    fighterId: number;
+    spritesheetImageUrl: string | null;
+    spritesheetManifestUrl: string | null;
+    spritesheetManifest: SpritesheetManifest | null;
+  }
+>;
 
 const emptyPickupTally = (): PickupTally => ({
   ammo: 0,
@@ -34,17 +53,67 @@ const mergeReplayFrames = (current: ReplayFrame[], incoming: ReplayFrame[]) => {
   return [...byTick.values()].sort((left, right) => left.tick - right.tick);
 };
 
+const fallbackArena = (frame: ReplayFrame): RenderBootstrapData => {
+  const points = [
+    ...frame.jets.map((jet) => ({ x: jet.x, y: jet.y })),
+    ...frame.bullets.map((bullet) => ({ x: bullet.x, y: bullet.y })),
+    ...frame.pickups.map((pickup) => ({ x: pickup.x, y: pickup.y })),
+  ];
+  const defaultHalfExtent = 500;
+  const minX = points.length > 0 ? Math.min(...points.map((point) => point.x)) : -defaultHalfExtent;
+  const maxX = points.length > 0 ? Math.max(...points.map((point) => point.x)) : defaultHalfExtent;
+  const minY = points.length > 0 ? Math.min(...points.map((point) => point.y)) : -defaultHalfExtent;
+  const maxY = points.length > 0 ? Math.max(...points.map((point) => point.y)) : defaultHalfExtent;
+
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+  const width = Math.max(400, maxX - minX);
+  const height = Math.max(400, maxY - minY);
+  const halfExtent = Math.max(width, height) * 0.65;
+
+  const battlefieldConfig: BattlefieldConfig = {
+    name: "Replay",
+    shape: {
+      type: "polygon",
+      vertices: [
+        [centerX - halfExtent, centerY - halfExtent],
+        [centerX + halfExtent, centerY - halfExtent],
+        [centerX + halfExtent, centerY + halfExtent],
+        [centerX - halfExtent, centerY + halfExtent],
+      ],
+    },
+    walls: [],
+    spawnPoints: [[centerX, centerY]],
+    canvasAspect: [16, 9],
+  };
+
+  return {
+    battlefieldConfig,
+    arenaBounds: {
+      width: halfExtent * 2,
+      height: halfExtent * 2,
+    },
+    pickupStats: {
+      totalSpawned: emptyPickupTally(),
+      totalCollected: emptyPickupTally(),
+    },
+  };
+};
+
 export const BroadcastPage = () => {
   const { id } = useParams();
   const { isBootstrapping, refreshAccessToken } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<GameRenderer | null>(null);
+  const rendererSourceRef = useRef<"init" | "replay" | "fallback" | null>(null);
   const [frames, setFrames] = useState<ReplayFrame[]>([]);
   const [frameIndex, setFrameIndex] = useState(0);
   const [isFollowingLive, setIsFollowingLive] = useState(true);
   const [isPlayingReplay, setIsPlayingReplay] = useState(false);
   const [endSummary, setEndSummary] = useState<EndSummary>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [playerMetaById, setPlayerMetaById] = useState<PlayerMetaById>({});
+  const [replayInitData, setReplayInitData] = useState<RenderBootstrapData | null>(null);
   const [initMessage, setInitMessage] = useState<Extract<
     BroadcastMessage,
     { type: "init" }
@@ -59,6 +128,7 @@ export const BroadcastPage = () => {
     onMessage: (message) => {
       if (message.type === "init") {
         setInitMessage(message);
+        setPlayerMetaById(message.data.playerMetaById ?? {});
         return;
       }
 
@@ -109,6 +179,12 @@ export const BroadcastPage = () => {
           }
           return next;
         });
+        if (replay.playerMetaById) {
+          setPlayerMetaById((current) => ({ ...current, ...replay.playerMetaById }));
+        }
+        if (replay.initData) {
+          setReplayInitData(replay.initData);
+        }
       };
 
       try {
@@ -139,23 +215,54 @@ export const BroadcastPage = () => {
     };
   }, [id, isBootstrapping, isFollowingLive, endSummary?.replayHashHex, refreshAccessToken]);
 
-  useEffect(() => {
-    if (!initMessage || !canvasRef.current) return;
+  const renderBootstrapData = useMemo<RenderBootstrapData | null>(() => {
+    if (initMessage) {
+      return initMessage.data;
+    }
+    if (replayInitData) {
+      return replayInitData;
+    }
+    if (frames.length === 0) {
+      return null;
+    }
+    return fallbackArena(frames[0]!);
+  }, [initMessage, replayInitData, frames]);
 
-    const [aspectW, aspectH] = initMessage.data.battlefieldConfig.canvasAspect ?? [4, 3];
+  useEffect(() => {
+    if (!renderBootstrapData || !canvasRef.current) return;
+    if (rendererRef.current && rendererSourceRef.current === "init" && initMessage) return;
+    if (
+      rendererRef.current &&
+      rendererSourceRef.current === "replay" &&
+      replayInitData &&
+      !initMessage
+    ) {
+      return;
+    }
+    if (
+      rendererRef.current &&
+      rendererSourceRef.current === "fallback" &&
+      !initMessage &&
+      !replayInitData
+    ) {
+      return;
+    }
+
+    const [aspectW, aspectH] = renderBootstrapData.battlefieldConfig.canvasAspect ?? [4, 3];
     const maxWidth = 1600;
     const width = maxWidth;
     const height = Math.max(560, Math.round((maxWidth * aspectH) / Math.max(1, aspectW)));
     canvasRef.current.width = width;
     canvasRef.current.height = height;
 
-    const arenaShape = new ArenaShape(initMessage.data.battlefieldConfig);
+    const arenaShape = new ArenaShape(renderBootstrapData.battlefieldConfig);
     rendererRef.current = new GameRenderer(
       canvasRef.current,
       arenaShape,
-      initMessage.data.battlefieldConfig.name,
+      renderBootstrapData.battlefieldConfig.name,
     );
-  }, [initMessage]);
+    rendererSourceRef.current = initMessage ? "init" : replayInitData ? "replay" : "fallback";
+  }, [initMessage, replayInitData, renderBootstrapData]);
 
   useEffect(() => {
     if (!isPlayingReplay) return;
@@ -182,7 +289,7 @@ export const BroadcastPage = () => {
   const currentPickups = currentFrame?.pickups.length ?? 0;
 
   useEffect(() => {
-    if (!rendererRef.current || !currentFrame || !initMessage) {
+    if (!rendererRef.current || !currentFrame || !renderBootstrapData) {
       return;
     }
 
@@ -192,14 +299,14 @@ export const BroadcastPage = () => {
       bullets: currentFrame.bullets,
       recentHitEvents: currentFrame.hitEvents,
       pickups: currentFrame.pickups,
-      pickupStats: initMessage.data.pickupStats ?? {
+      pickupStats: renderBootstrapData.pickupStats ?? {
         totalSpawned: emptyPickupTally(),
         totalCollected: emptyPickupTally(),
       },
-      arenaBounds: initMessage.data.arenaBounds,
+      arenaBounds: renderBootstrapData.arenaBounds,
     };
     rendererRef.current.draw(state);
-  }, [currentFrame, initMessage]);
+  }, [currentFrame, renderBootstrapData]);
 
   const onSliderChange = (nextIndex: number) => {
     setIsFollowingLive(false);
@@ -237,7 +344,12 @@ export const BroadcastPage = () => {
               .slice()
               .sort((left, right) => left.id.localeCompare(right.id))
               .map((jet) => (
-                <BroadcastJetCard key={jet.id} jet={jet} />
+                <BroadcastJetCard
+                  key={jet.id}
+                  jet={jet}
+                  tick={currentFrame?.tick ?? 0}
+                  playerMeta={playerMetaById[jet.id]}
+                />
               ))}
           </section>
           <section

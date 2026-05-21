@@ -112,6 +112,7 @@ const wizardSectionBreadcrumbLabels: Record<SectionId, string> = {
   "specsheet-image": "Pilot Specsheet",
   "spritesheet-prompt": "Character Spritesheet Prompt",
   "spritesheet-image": "Character Spritesheet",
+  "spritesheet-manifest": "Character Spritesheet Manifest",
   "agent-code": "Agent Source",
   "strikecraft-specsheet-prompt": "Strikecraft Specsheet Prompt",
   "strikecraft-specsheet-image": "Strikecraft Specsheet",

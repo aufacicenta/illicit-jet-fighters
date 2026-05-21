@@ -60,6 +60,9 @@ export const spritesheetImageObjectKey = (userId: string, fighterId: number, ext
     `spritesheet-image.${extension}`,
   );
 
+export const spritesheetManifestObjectKey = (userId: string, fighterId: number) =>
+  path.posix.join(`users/${userId}/fighters/${String(fighterId)}`, "spritesheet.json");
+
 export const strikecraftSpecsheetObjectKey = (
   userId: string,
   fighterId: number,

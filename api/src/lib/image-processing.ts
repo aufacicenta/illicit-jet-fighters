@@ -205,3 +205,15 @@ export const normalizeForStoragePng = async ({
     mimeType: "image/png",
   };
 };
+
+export const getImageDimensions = async (
+  sourceBuffer: Buffer,
+): Promise<{ width: number; height: number }> => {
+  const metadata = await sharp(sourceBuffer, { failOn: "none" }).metadata();
+  const width = metadata.width ?? 0;
+  const height = metadata.height ?? 0;
+  if (!width || !height) {
+    throw new Error("Unable to determine image dimensions.");
+  }
+  return { width, height };
+};

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { BroadcastMessage, ReplayFrame } from "@ijf/shared";
+import type { BroadcastMessage, ReplayFrame, SpritesheetManifest } from "@ijf/shared";
 import { simulationManager } from "@ijf/simulator";
 
 import {
@@ -8,8 +8,18 @@ import {
   getLatestFighterAgentVersionForHash,
 } from "./agent-version-repository";
 import { bindPipelineTenant, serializeClientPipelineState } from "./pipeline-runner";
-import { fighterAgentScriptObjectKey, getObjectBuffer } from "./r2";
-import { readReplayFramesArtifact, writeSimulationArtifacts } from "./simulation-artifacts";
+import {
+  fighterAgentScriptObjectKey,
+  getObjectBuffer,
+  getSignedReadUrl,
+  spritesheetImageObjectKey,
+  spritesheetManifestObjectKey,
+} from "./r2";
+import {
+  readBroadcastInitArtifact,
+  readReplayFramesArtifact,
+  writeSimulationArtifacts,
+} from "./simulation-artifacts";
 import {
   createSimulationAndBroadcast,
   getBroadcastWithSimulationForUser,
@@ -25,6 +35,7 @@ type AgentSource = "r2" | "pipeline" | "fallback";
 
 type ResolvedSimulationPlayer = {
   fighterId: number;
+  ownerUserId: string;
   id: string;
   code: string;
   source: AgentSource;
@@ -104,6 +115,7 @@ const resolvePlayerFromSources = async ({
 
     return {
       fighterId,
+      ownerUserId: userId,
       id: playerId,
       code: versionCode,
       source: "pipeline",
@@ -120,6 +132,7 @@ const resolvePlayerFromSources = async ({
     if (code.trim().length > 0) {
       return {
         fighterId,
+        ownerUserId: userId,
         id: playerId,
         code,
         source: "r2",
@@ -140,6 +153,7 @@ const resolvePlayerFromSources = async ({
     });
     return {
       fighterId,
+      ownerUserId: userId,
       id: playerId,
       code: pipelineCode,
       source: "pipeline",
@@ -151,6 +165,7 @@ const resolvePlayerFromSources = async ({
 
   return {
     fighterId,
+    ownerUserId: userId,
     id: playerId,
     code: FALLBACK_AGENT_CODE,
     source: "fallback",
@@ -166,6 +181,40 @@ const appendMessage = (broadcastId: string, message: BroadcastMessage) => {
     return;
   }
   active.messages.push(message);
+};
+
+const getPlayerSpritesheetMeta = async (
+  ownerUserId: string,
+  fighterId: number,
+): Promise<{
+  fighterId: number;
+  spritesheetImageUrl: string | null;
+  spritesheetManifestUrl: string | null;
+  spritesheetManifest: SpritesheetManifest | null;
+}> => {
+  const imageKey = spritesheetImageObjectKey(ownerUserId, fighterId, "png");
+  const manifestKey = spritesheetManifestObjectKey(ownerUserId, fighterId);
+  const [spritesheetImageUrl, spritesheetManifestUrl, spritesheetManifestRaw] = await Promise.all([
+    getSignedReadUrl(imageKey, 3600).catch(() => null),
+    getSignedReadUrl(manifestKey, 3600).catch(() => null),
+    getObjectBuffer(manifestKey).catch(() => null),
+  ]);
+  let spritesheetManifest: SpritesheetManifest | null = null;
+  if (spritesheetManifestRaw) {
+    try {
+      spritesheetManifest = JSON.parse(
+        spritesheetManifestRaw.toString("utf8"),
+      ) as SpritesheetManifest;
+    } catch {
+      spritesheetManifest = null;
+    }
+  }
+  return {
+    fighterId,
+    spritesheetImageUrl,
+    spritesheetManifestUrl,
+    spritesheetManifest,
+  };
 };
 
 const finalizeEndedSimulation = async ({
@@ -276,6 +325,13 @@ export const startSimulationForRoster = async ({
       });
     }),
   );
+  const playerMetaEntries = await Promise.all(
+    players.map(async (player) => [
+      player.id,
+      await getPlayerSpritesheetMeta(player.ownerUserId, player.fighterId),
+    ]),
+  );
+  const playerMetaById = Object.fromEntries(playerMetaEntries);
 
   const created = await createSimulationAndBroadcast({
     userId: initiatorUserId,
@@ -303,7 +359,12 @@ export const startSimulationForRoster = async ({
   try {
     simulationManager.startSimulation({
       broadcastId,
-      players: players.map((player) => ({ id: player.id, code: player.code })),
+      players: players.map((player) => ({
+        id: player.id,
+        code: player.code,
+        fighterId: player.fighterId,
+      })),
+      playerMetaById,
       seed: resolvedSeed,
       lifecycle: {
         onInit: async (init) => {
@@ -417,9 +478,27 @@ export const getReplayForBroadcast = async ({
     return null;
   }
 
+  const participants = await listSimulationParticipants(persisted.simulationId);
+  const playerMetaById = Object.fromEntries(
+    await Promise.all(
+      participants.map(async (participant) => [
+        participant.playerId,
+        await getPlayerSpritesheetMeta(userId, participant.fighterId),
+      ]),
+    ),
+  );
+  const getInitFromActiveMessages = () => {
+    const active = activeByBroadcastId.get(broadcastId);
+    if (!active) {
+      return null;
+    }
+    const initMessage = active.messages.find((message) => message.type === "init");
+    return initMessage?.type === "init" ? initMessage.data : null;
+  };
+
   const inMemory = simulationManager.getReplay(broadcastId);
   if (inMemory) {
-    return { frames: inMemory };
+    return { frames: inMemory, playerMetaById, initData: getInitFromActiveMessages() };
   }
 
   if (!persisted.replayObjectKey) {
@@ -431,7 +510,10 @@ export const getReplayForBroadcast = async ({
     return null;
   }
 
-  return { frames };
+  const initData = persisted.broadcastEventsObjectKey
+    ? await readBroadcastInitArtifact(persisted.broadcastEventsObjectKey)
+    : null;
+  return { frames, playerMetaById, initData };
 };
 
 export const getBroadcastDetails = async ({

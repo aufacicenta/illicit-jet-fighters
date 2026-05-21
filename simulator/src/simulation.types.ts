@@ -11,11 +11,13 @@ import type {
 export type SimulationPlayerConfig = {
   id: string;
   code: string;
+  fighterId?: number | null;
 };
 
 export type StartSimulationInput = {
   broadcastId: string;
   players: SimulationPlayerConfig[];
+  playerMetaById: BroadcastInitData["playerMetaById"];
   seed: number;
   battlefield: BattlefieldConfig;
   pickupConfig?: PickupConfig;
