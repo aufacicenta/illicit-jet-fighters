@@ -103,7 +103,7 @@ export const AgentCodeSection = ({ showRegenerateButton = false }: AgentCodeSect
               </code>
             </pre>
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <p className="p-3 text-sm text-muted-foreground">
               Agent source code will appear here after continuation starts.
             </p>
           )}

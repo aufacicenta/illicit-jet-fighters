@@ -62,7 +62,7 @@ export const StrikecraftSpriteSection = () => {
             {errorMessage ?? "Strikecraft sprite generation failed. Retry to generate again."}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className="p-3 text-sm text-muted-foreground">
             Strikecraft top-down sprite will appear here after continuation starts.
           </p>
         )}

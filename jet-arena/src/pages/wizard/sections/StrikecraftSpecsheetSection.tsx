@@ -33,7 +33,7 @@ export const StrikecraftSpecsheetSection = () => {
             src={imageOutput.assetUrl ?? imageOutput.content}
           />
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className="p-3 text-sm text-muted-foreground">
             Strikecraft specsheet image will appear here after continuation starts.
           </p>
         )}

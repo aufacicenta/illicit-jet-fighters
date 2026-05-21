@@ -71,9 +71,6 @@ export const DescriptionSection = () => {
             </div>
           ) : status === "generating" && description ? (
             <div className="space-y-2">
-              <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
-                Live briefing narrative
-              </p>
               <pre
                 className="max-h-[300px] overflow-auto rounded-sm border border-border bg-background p-3 text-xs whitespace-pre-wrap"
                 ref={narrativeContainerRef}

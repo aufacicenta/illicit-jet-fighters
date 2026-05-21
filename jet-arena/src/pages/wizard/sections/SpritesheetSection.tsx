@@ -46,7 +46,7 @@ export const SpritesheetSection = () => {
           <SectionStatusBadge status={imageStatus} />
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent>
         {imageStatus === "generating" ? (
           <div className="space-y-2">
             <Skeleton className="h-[280px] w-full" />
@@ -65,7 +65,7 @@ export const SpritesheetSection = () => {
             {errorMessage ?? "Character spritesheet generation failed. Retry to generate again."}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className="p-3 text-sm text-muted-foreground">
             Character spritesheet will appear here after continuation starts.
           </p>
         )}
