@@ -12,6 +12,7 @@ export class GameRenderer {
   private arenaDrawable: DrawableArena;
   private battlefieldName: string;
   private jetSprites: Map<string, HTMLImageElement>;
+  private hudErrorMessage: string | null = null;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -52,6 +53,10 @@ export class GameRenderer {
       this.drawJet(jet);
     }
     this.drawHud(state);
+  }
+
+  setHudErrorMessage(message: string | null): void {
+    this.hudErrorMessage = message;
   }
 
   private toScreen(x: number, y: number): { x: number; y: number } {
@@ -269,7 +274,7 @@ export class GameRenderer {
     const panelX = 10;
     const panelY = 10;
     const panelW = 200;
-    const panelH = 90;
+    const panelH = this.hudErrorMessage ? 112 : 90;
     context.save();
     context.fillStyle = "rgba(8, 15, 28, 0.82)";
     context.strokeStyle = "#1e3a5f";
@@ -290,6 +295,14 @@ export class GameRenderer {
       panelX + 10,
       panelY + 68,
     );
+    if (this.hudErrorMessage) {
+      context.fillStyle = "#fca5a5";
+      context.font = "10px ui-monospace, SFMono-Regular, Menlo, monospace";
+      context.fillText(`ERR ${this.hudErrorMessage.slice(0, 28)}`, panelX + 10, panelY + 86);
+      if (this.hudErrorMessage.length > 28) {
+        context.fillText(this.hudErrorMessage.slice(28, 56), panelX + 10, panelY + 100);
+      }
+    }
     context.restore();
 
     // --- Top-right scoreboard ---

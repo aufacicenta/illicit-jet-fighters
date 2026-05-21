@@ -29,13 +29,6 @@ const colorForJet = (id: string): string => {
   return palette[hash] ?? "#22d3ee";
 };
 
-const formatJetIdForStat = (value: string | null): string => {
-  if (!value) return "NONE";
-  const maxLength = 24;
-  if (value.length <= maxLength) return value;
-  return `${value.slice(0, maxLength - 1)}...`;
-};
-
 const toTitleCase = (value: string): string =>
   value
     .replace(/[_-]+/g, " ")
@@ -143,9 +136,15 @@ type BroadcastJetCardProps = {
   jet: BroadcastJet;
   tick: number;
   playerMeta?: RemotePlayerMeta;
+  side?: "left" | "right";
 };
 
-export const BroadcastJetCard = ({ jet, tick, playerMeta }: BroadcastJetCardProps) => {
+export const BroadcastJetCard = ({
+  jet,
+  tick,
+  playerMeta,
+  side = "left",
+}: BroadcastJetCardProps) => {
   const remoteSheet = useMemo<RemoteSpriteSheet | null>(() => {
     if (!playerMeta?.spritesheetImageUrl || !playerMeta.spritesheetManifest) {
       return null;
@@ -167,7 +166,8 @@ export const BroadcastJetCard = ({ jet, tick, playerMeta }: BroadcastJetCardProp
   const sheetFrame = remoteSheet?.manifest.poses[pose];
   const sheetStyle = useMemo<CSSProperties | null>(() => {
     if (!sheetFrame || !remoteSheet) return null;
-    const scale = Math.min(112 / sheetFrame.w, 112 / sheetFrame.h);
+    const spriteSize = 44;
+    const scale = Math.min(spriteSize / sheetFrame.w, spriteSize / sheetFrame.h);
     return {
       width: `${sheetFrame.w}px`,
       height: `${sheetFrame.h}px`,
@@ -178,88 +178,85 @@ export const BroadcastJetCard = ({ jet, tick, playerMeta }: BroadcastJetCardProp
       transformOrigin: "center center",
     };
   }, [remoteSheet, sheetFrame]);
-  const collisionCount = Math.max(0, jet.collisionCount);
-  const collisionDamage = Math.max(0, jet.collisionDamageTaken);
-  const lastHitLabel = jet.lastCollision
-    ? `HIT ${jet.lastCollision.wallType.toUpperCase()} @ ${jet.lastCollision.x.toFixed(0)},${jet.lastCollision.y.toFixed(0)}`
-    : "HIT NONE";
-  const lastOut = formatJetIdForStat(jet.lastHitDealtToId);
-  const lastIn = formatJetIdForStat(jet.lastHitTakenFromId);
-  const collectedTotal =
-    jet.pickupsCollected.health + jet.pickupsCollected.ammo + jet.pickupsCollected.fuel;
+  const cardJustifyClass = side === "right" ? "justify-self-end" : "justify-self-start";
+  const infoAlignClass = side === "right" ? "items-end text-right" : "items-start text-left";
+  const roleAlignClass = side === "right" ? "text-right" : "text-left";
 
   return (
     <article
-      className={`jet-card ${jet.alive ? "alive" : "down"}`}
-      style={{ "--accent": accent } as CSSProperties}
+      className={`grid w-[220px] grid-cols-[44px_minmax(0,1fr)] gap-2 rounded-md border border-slate-700/80 bg-slate-950/75 p-2 font-mono text-[10px] text-slate-200 shadow-md backdrop-blur-[1px] ${cardJustifyClass}`}
+      style={{ borderLeftColor: accent, borderLeftWidth: "3px" } as CSSProperties}
     >
-      <div className="jet-card-layout">
-        <div className="jet-card-media">
-          {sheetStyle ? (
-            <div className="jet-pose-sheet-wrap">
-              <div
-                className="jet-pose-sheet"
-                style={{
-                  display: "block",
-                  margin: "0 auto",
-                  ...sheetStyle,
-                }}
-                aria-label={`${roleLabel} ${pose}`}
-                role="img"
+      <div className="h-11 w-11 overflow-hidden rounded border border-slate-700 bg-slate-900">
+        {sheetStyle ? (
+          <div className="flex h-11 w-11 items-center justify-center overflow-hidden">
+            <div
+              className="block bg-no-repeat [image-rendering:crisp-edges]"
+              style={{
+                ...sheetStyle,
+              }}
+              aria-label={`${roleLabel} ${pose}`}
+              role="img"
+            />
+          </div>
+        ) : (
+          <img className="h-11 w-11 object-cover" src={poseSprite} alt={`${roleLabel} ${pose}`} />
+        )}
+      </div>
+      <div className={`flex min-w-0 flex-col gap-1 ${infoAlignClass}`}>
+        <header className="flex w-full items-center justify-between gap-2 text-[9px] leading-none">
+          <span className="max-w-[132px] truncate font-semibold" style={{ color: accent }}>
+            {jet.id}
+          </span>
+          <span
+            className={`shrink-0 rounded px-1 py-0.5 text-[8px] font-semibold ${
+              jet.alive ? "bg-emerald-500/15 text-emerald-300" : "bg-rose-500/15 text-rose-300"
+            }`}
+          >
+            {jet.alive ? "LIVE" : "DOWN"}
+          </span>
+        </header>
+        <div className={`max-w-full truncate text-[9px] text-sky-300 ${roleAlignClass}`}>
+          {roleLabel}
+        </div>
+        <div className="grid gap-1 text-[9px]">
+          <div className="grid grid-cols-[24px_1fr_20px] items-center gap-1">
+            <span>HP</span>
+            <div className="h-1.5 overflow-hidden rounded-full bg-slate-700">
+              <i
+                className="block h-full bg-gradient-to-r from-emerald-400 to-emerald-100"
+                style={{ width: `${hpPct}%` }}
               />
             </div>
-          ) : (
-            <img className="jet-pose" src={poseSprite} alt={`${roleLabel} ${pose}`} />
-          )}
-        </div>
-        <div className="jet-card-stats">
-          <header>
-            <span className="jet-id">{jet.id}</span>
-            <span className="jet-state">{jet.alive ? "ALIVE" : "DOWN"}</span>
-          </header>
-          <div className="agent-role">{roleLabel}</div>
-          <div className="bar-row">
-            <span>HP</span>
-            <div className="bar">
-              <i style={{ width: `${hpPct}%` }} />
-            </div>
-            <b>{Math.max(0, jet.health).toFixed(0)}</b>
+            <b className="text-right font-semibold">{Math.max(0, jet.health).toFixed(0)}</b>
           </div>
-          <div className="bar-row">
+          <div className="grid grid-cols-[24px_1fr_20px] items-center gap-1">
             <span>FUEL</span>
-            <div className="bar">
-              <i style={{ width: `${fuelPct}%` }} />
+            <div className="h-1.5 overflow-hidden rounded-full bg-slate-700">
+              <i
+                className="block h-full bg-gradient-to-r from-cyan-400 to-cyan-100"
+                style={{ width: `${fuelPct}%` }}
+              />
             </div>
-            <b>{Math.max(0, jet.fuel).toFixed(0)}</b>
+            <b className="text-right font-semibold">{Math.max(0, jet.fuel).toFixed(0)}</b>
           </div>
-          <div className="bar-row">
+          <div className="grid grid-cols-[24px_1fr_20px] items-center gap-1">
             <span>AMMO</span>
-            <div className="bar">
-              <i style={{ width: `${ammoPct}%` }} />
+            <div className="h-1.5 overflow-hidden rounded-full bg-slate-700">
+              <i
+                className="block h-full bg-gradient-to-r from-violet-400 to-violet-100"
+                style={{ width: `${ammoPct}%` }}
+              />
             </div>
-            <b>{Math.max(0, jet.ammo)}</b>
+            <b className="text-right font-semibold">{Math.max(0, jet.ammo)}</b>
           </div>
-          <footer>
-            SPD {speed.toFixed(2)} | ALT {(jet.altitude * 100).toFixed(0)}% | CD {jet.cooldown}
-          </footer>
-          <div className="combat-row">
-            <span>HITS {jet.enemyHitsLanded}</span>
-            <span>TAKEN {jet.enemyHitsTaken}</span>
-          </div>
-          <div className="combat-row">
-            <span title={jet.lastHitDealtToId ?? "NONE"}>LAST_OUT {lastOut}</span>
-            <span title={jet.lastHitTakenFromId ?? "NONE"}>LAST_IN {lastIn}</span>
-          </div>
-          {collectedTotal > 0 ? (
-            <div className="pickup-tally">
-              <span title="Health pickups">+HP x{jet.pickupsCollected.health}</span>
-              <span title="Ammo pickups">+AMMO x{jet.pickupsCollected.ammo}</span>
-              <span title="Fuel pickups">+FUEL x{jet.pickupsCollected.fuel}</span>
-            </div>
-          ) : null}
-          <footer>
-            COLL {collisionCount} | DMG {collisionDamage.toFixed(1)} | {lastHitLabel}
-          </footer>
+        </div>
+        <div className="flex w-full items-center justify-between text-[9px] text-slate-300">
+          <span>
+            H {jet.enemyHitsLanded} / T {jet.enemyHitsTaken}
+          </span>
+          <span>SPD {speed.toFixed(1)}</span>
+          <span>ALT {(jet.altitude * 100).toFixed(0)}%</span>
         </div>
       </div>
     </article>
