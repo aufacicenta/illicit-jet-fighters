@@ -33,6 +33,7 @@ type PlayerMetaById = Record<
     spritesheetImageUrl: string | null;
     spritesheetManifestUrl: string | null;
     spritesheetManifest: SpritesheetManifest | null;
+    strikecraftTopSpriteUrl: string | null;
   }
 >;
 
@@ -52,6 +53,14 @@ const mergeReplayFrames = (current: ReplayFrame[], incoming: ReplayFrame[]) => {
   }
   return [...byTick.values()].sort((left, right) => left.tick - right.tick);
 };
+
+const preloadImage = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Unable to preload sprite: ${url}`));
+    image.src = url;
+  });
 
 const fallbackArena = (frame: ReplayFrame): RenderBootstrapData => {
   const points = [
@@ -105,7 +114,6 @@ export const BroadcastPage = () => {
   const { isBootstrapping, refreshAccessToken } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<GameRenderer | null>(null);
-  const rendererSourceRef = useRef<"init" | "replay" | "fallback" | null>(null);
   const replayAutoplayInitializedRef = useRef(false);
   const [frames, setFrames] = useState<ReplayFrame[]>([]);
   const [frameIndex, setFrameIndex] = useState(0);
@@ -115,6 +123,7 @@ export const BroadcastPage = () => {
   const [endSummary, setEndSummary] = useState<EndSummary>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [playerMetaById, setPlayerMetaById] = useState<PlayerMetaById>({});
+  const [jetSprites, setJetSprites] = useState<Map<string, HTMLImageElement>>(new Map());
   const [replayInitData, setReplayInitData] = useState<RenderBootstrapData | null>(null);
   const [initMessage, setInitMessage] = useState<Extract<
     BroadcastMessage,
@@ -231,24 +240,49 @@ export const BroadcastPage = () => {
   }, [initMessage, replayInitData, frames]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const loadJetSprites = async () => {
+      const spriteEntries = await Promise.all(
+        Object.entries(playerMetaById).map(async ([jetId, playerMeta]) => {
+          if (!playerMeta?.strikecraftTopSpriteUrl) {
+            return null;
+          }
+          try {
+            const image = await preloadImage(playerMeta.strikecraftTopSpriteUrl);
+            return [jetId, image] as const;
+          } catch (error) {
+            console.warn(
+              `Unable to load strikecraft top sprite for ${jetId}; using fallback jet shape.`,
+              error,
+            );
+            return null;
+          }
+        }),
+      );
+
+      if (cancelled) {
+        return;
+      }
+
+      const loadedSprites = new Map<string, HTMLImageElement>();
+      for (const entry of spriteEntries) {
+        if (entry) {
+          loadedSprites.set(entry[0], entry[1]);
+        }
+      }
+      setJetSprites(loadedSprites);
+    };
+
+    void loadJetSprites();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [playerMetaById]);
+
+  useEffect(() => {
     if (!renderBootstrapData || !canvasRef.current) return;
-    if (rendererRef.current && rendererSourceRef.current === "init" && initMessage) return;
-    if (
-      rendererRef.current &&
-      rendererSourceRef.current === "replay" &&
-      replayInitData &&
-      !initMessage
-    ) {
-      return;
-    }
-    if (
-      rendererRef.current &&
-      rendererSourceRef.current === "fallback" &&
-      !initMessage &&
-      !replayInitData
-    ) {
-      return;
-    }
 
     const [aspectW, aspectH] = renderBootstrapData.battlefieldConfig.canvasAspect ?? [4, 3];
     const maxWidth = 1600;
@@ -262,9 +296,9 @@ export const BroadcastPage = () => {
       canvasRef.current,
       arenaShape,
       renderBootstrapData.battlefieldConfig.name,
+      jetSprites,
     );
-    rendererSourceRef.current = initMessage ? "init" : replayInitData ? "replay" : "fallback";
-  }, [initMessage, replayInitData, renderBootstrapData]);
+  }, [jetSprites, renderBootstrapData]);
 
   useEffect(() => {
     if (!isPlayingReplay) return;

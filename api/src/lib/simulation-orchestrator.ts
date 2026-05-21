@@ -14,6 +14,7 @@ import {
   getSignedReadUrl,
   spritesheetImageObjectKey,
   spritesheetManifestObjectKey,
+  strikecraftSpriteObjectKey,
 } from "./r2";
 import {
   readBroadcastInitArtifact,
@@ -191,13 +192,21 @@ const getPlayerSpritesheetMeta = async (
   spritesheetImageUrl: string | null;
   spritesheetManifestUrl: string | null;
   spritesheetManifest: SpritesheetManifest | null;
+  strikecraftTopSpriteUrl: string | null;
 }> => {
   const imageKey = spritesheetImageObjectKey(ownerUserId, fighterId, "png");
   const manifestKey = spritesheetManifestObjectKey(ownerUserId, fighterId);
-  const [spritesheetImageUrl, spritesheetManifestUrl, spritesheetManifestRaw] = await Promise.all([
+  const strikecraftTopSpriteKey = strikecraftSpriteObjectKey(ownerUserId, fighterId, "png");
+  const [
+    spritesheetImageUrl,
+    spritesheetManifestUrl,
+    spritesheetManifestRaw,
+    strikecraftTopSpriteUrl,
+  ] = await Promise.all([
     getSignedReadUrl(imageKey, 3600).catch(() => null),
     getSignedReadUrl(manifestKey, 3600).catch(() => null),
     getObjectBuffer(manifestKey).catch(() => null),
+    getSignedReadUrl(strikecraftTopSpriteKey, 3600).catch(() => null),
   ]);
   let spritesheetManifest: SpritesheetManifest | null = null;
   if (spritesheetManifestRaw) {
@@ -214,6 +223,7 @@ const getPlayerSpritesheetMeta = async (
     spritesheetImageUrl,
     spritesheetManifestUrl,
     spritesheetManifest,
+    strikecraftTopSpriteUrl,
   };
 };
 

@@ -51,6 +51,7 @@ export const fetchSimulationReplay = async (
       spritesheetImageUrl: string | null;
       spritesheetManifestUrl: string | null;
       spritesheetManifest: SpritesheetManifest | null;
+      strikecraftTopSpriteUrl: string | null;
     }
   >;
 }> => {
@@ -76,6 +77,7 @@ export const fetchSimulationReplay = async (
         spritesheetImageUrl: string | null;
         spritesheetManifestUrl: string | null;
         spritesheetManifest: SpritesheetManifest | null;
+        strikecraftTopSpriteUrl: string | null;
       }
     >;
   };

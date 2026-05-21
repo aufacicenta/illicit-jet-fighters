@@ -47,6 +47,7 @@ export type StartSimulationArgs = {
       spritesheetImageUrl: string | null;
       spritesheetManifestUrl: string | null;
       spritesheetManifest: SpritesheetManifest | null;
+      strikecraftTopSpriteUrl: string | null;
     }
   >;
   seed: number;
@@ -130,6 +131,7 @@ class SimulationManager {
           spritesheetImageUrl: null,
           spritesheetManifestUrl: null,
           spritesheetManifest: null,
+          strikecraftTopSpriteUrl: null,
         },
       ]),
     );

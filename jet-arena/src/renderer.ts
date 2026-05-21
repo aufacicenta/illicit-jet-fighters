@@ -86,7 +86,7 @@ export class GameRenderer {
       });
       this.context.closePath();
     }
-    this.context.fillStyle = "#0a0d06";
+    this.context.fillStyle = "#111827";
     this.context.fill();
     this.context.strokeStyle = "#3e5f8a";
     this.context.lineWidth = 2;
