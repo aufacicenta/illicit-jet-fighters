@@ -1,4 +1,9 @@
-import { type FighterAgentVersion, formatDateTime, type MyFighter } from "@ijf/shared";
+import {
+  type FighterAgentVersion,
+  formatDateTime,
+  type MyFighter,
+  resolveFighterName,
+} from "@ijf/shared";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -28,18 +33,6 @@ type LineupSlot = {
 };
 
 const LATEST_AGENT_VERSION_VALUE = "__latest__";
-
-const parseDisplayName = (characterDescription: string | null, slug: string, id: number) => {
-  if (characterDescription) {
-    const nameMatch = characterDescription.match(/^#\s+(.+)$/m);
-    const parsed = nameMatch?.[1]?.trim();
-    if (parsed) {
-      return parsed;
-    }
-  }
-
-  return slug.length > 0 ? slug : `Fighter ${id}`;
-};
 
 const formatAgentVersionOption = (version: FighterAgentVersion) => {
   const createdAt = formatDateTime(version.createdAt);
@@ -252,11 +245,11 @@ export const TerminalSimulationPage = () => {
             {!isLoading && fighters.length > 0 ? (
               <div className="space-y-2">
                 {fighters.map((fighter) => {
-                  const displayName = parseDisplayName(
-                    fighter.characterDescription,
-                    fighter.slug,
-                    fighter.id,
-                  );
+                  const displayName = resolveFighterName({
+                    storedName: fighter.name,
+                    characterDescription: fighter.characterDescription,
+                    slug: fighter.slug,
+                  });
                   return (
                     <Card className="border-border/70" key={fighter.id}>
                       <CardContent className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
@@ -310,11 +303,11 @@ export const TerminalSimulationPage = () => {
               }
               const fighterVersions = fighterVersionsById[slot.fighterId] ?? [];
 
-              const displayName = parseDisplayName(
-                fighter.characterDescription,
-                fighter.slug,
-                fighter.id,
-              );
+              const displayName = resolveFighterName({
+                storedName: fighter.name,
+                characterDescription: fighter.characterDescription,
+                slug: fighter.slug,
+              });
 
               return (
                 <Card className="border-secondary/30 bg-secondary/5" key={slot.id}>

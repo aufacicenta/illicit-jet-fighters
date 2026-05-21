@@ -44,6 +44,9 @@ export type StartSimulationArgs = {
     string,
     {
       fighterId: number;
+      fighterName: string | null;
+      agentVersionNumber: number | null;
+      displayLabel: string;
       spritesheetImageUrl: string | null;
       spritesheetManifestUrl: string | null;
       spritesheetManifest: SpritesheetManifest | null;
@@ -128,6 +131,9 @@ class SimulationManager {
         player.id,
         {
           fighterId: player.fighterId ?? 0,
+          fighterName: null,
+          agentVersionNumber: null,
+          displayLabel: player.id,
           spritesheetImageUrl: null,
           spritesheetManifestUrl: null,
           spritesheetManifest: null,

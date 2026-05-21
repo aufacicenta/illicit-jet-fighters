@@ -1,5 +1,10 @@
 export { formatDateTime, formatNullableDateTime } from "./datetime";
 export {
+  formatFighterDisplayLabel,
+  parseFighterNameAndEpithet,
+  resolveFighterName,
+} from "./fighter-name";
+export {
   fighterAgentVersionsResponseSchema,
   myFightersResponseSchema,
   pipelineStartSchema,

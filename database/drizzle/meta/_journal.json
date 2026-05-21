@@ -29,6 +29,13 @@
       "when": 1779260000000,
       "tag": "0003_agent_code_versions",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779398516784,
+      "tag": "0004_talented_killraven",
+      "breakpoints": true
     }
   ]
 }

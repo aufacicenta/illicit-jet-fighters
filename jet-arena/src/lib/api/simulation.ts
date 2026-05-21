@@ -48,6 +48,9 @@ export const fetchSimulationReplay = async (
     string,
     {
       fighterId: number;
+      fighterName: string | null;
+      agentVersionNumber: number | null;
+      displayLabel: string | null;
       spritesheetImageUrl: string | null;
       spritesheetManifestUrl: string | null;
       spritesheetManifest: SpritesheetManifest | null;
@@ -74,6 +77,9 @@ export const fetchSimulationReplay = async (
       string,
       {
         fighterId: number;
+        fighterName: string | null;
+        agentVersionNumber: number | null;
+        displayLabel: string | null;
         spritesheetImageUrl: string | null;
         spritesheetManifestUrl: string | null;
         spritesheetManifest: SpritesheetManifest | null;

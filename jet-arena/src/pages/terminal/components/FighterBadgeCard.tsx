@@ -1,4 +1,4 @@
-import type { MyFighter } from "@ijf/shared";
+import { type MyFighter, resolveFighterName } from "@ijf/shared";
 import { Circle, CircleCheckBig } from "lucide-react";
 
 import { Badge } from "../../../components/ui/badge";
@@ -6,18 +6,6 @@ import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { cn } from "../../../lib/utils";
 import { WizardCardTitle } from "../../wizard/sections/WizardCardTitle";
-
-const parseDisplayName = (characterDescription: string | null, slug: string, id: number) => {
-  if (characterDescription) {
-    const nameMatch = characterDescription.match(/^#\s+(.+)$/m);
-    const parsed = nameMatch?.[1]?.trim();
-    if (parsed) {
-      return parsed;
-    }
-  }
-
-  return slug.length > 0 ? slug : `Fighter ${id}`;
-};
 
 const statusLabelByCode: Record<MyFighter["status"], string> = {
   locked: "Locked",
@@ -48,7 +36,11 @@ export const FighterBadgeCard = ({
   onOpenWizard,
   onToggleSelected,
 }: FighterBadgeCardProps) => {
-  const displayName = parseDisplayName(fighter.characterDescription, fighter.slug, fighter.id);
+  const displayName = resolveFighterName({
+    storedName: fighter.name,
+    characterDescription: fighter.characterDescription,
+    slug: fighter.slug,
+  });
   const briefing = fighter.briefing?.trim() || "No briefing captured yet.";
   const hasSpecsheetImage = Boolean(fighter.specsheetImageUrl);
 

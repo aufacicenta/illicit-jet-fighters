@@ -14,9 +14,16 @@ export const fighterKeyFromId = (fighterId: number) => String(fighterId);
 export const getOwnedFighter = async (
   fighterId: number,
   userId: string,
-): Promise<{ id: number; slug: string; briefing: string | null } | undefined> => {
+): Promise<
+  { id: number; slug: string; name: string | null; briefing: string | null } | undefined
+> => {
   const rows = await db
-    .select({ id: fighters.id, slug: fighters.slug, briefing: fighters.briefing })
+    .select({
+      id: fighters.id,
+      slug: fighters.slug,
+      name: fighters.name,
+      briefing: fighters.briefing,
+    })
     .from(fighters)
     .where(and(eq(fighters.id, fighterId), eq(fighters.userId, userId)))
     .limit(1);
@@ -27,6 +34,7 @@ export const getOwnedFighter = async (
 export type FighterByIdRecord = {
   id: number;
   slug: string;
+  name: string | null;
   briefing: string | null;
   userId: string;
 };
@@ -40,6 +48,7 @@ export const getFightersByIds = async (fighterIds: number[]): Promise<FighterByI
     .select({
       id: fighters.id,
       slug: fighters.slug,
+      name: fighters.name,
       briefing: fighters.briefing,
       userId: fighters.userId,
     })
@@ -92,6 +101,7 @@ export const ensureFighterForUser = async (userId: string): Promise<number> => {
 export type OwnedFighterListItem = {
   id: number;
   slug: string;
+  name: string | null;
   briefing: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -102,6 +112,7 @@ export const listOwnedFighters = async (userId: string): Promise<OwnedFighterLis
     .select({
       id: fighters.id,
       slug: fighters.slug,
+      name: fighters.name,
       briefing: fighters.briefing,
       createdAt: fighters.createdAt,
       updatedAt: fighters.updatedAt,
@@ -119,4 +130,8 @@ export const saveFighterBriefing = async (fighterId: number, briefing: string) =
     .update(fighters)
     .set({ briefing, updatedAt: new Date() })
     .where(eq(fighters.id, fighterId));
+};
+
+export const saveFighterName = async (fighterId: number, name: string | null) => {
+  await db.update(fighters).set({ name, updatedAt: new Date() }).where(eq(fighters.id, fighterId));
 };

@@ -12,6 +12,7 @@ export class GameRenderer {
   private arenaDrawable: DrawableArena;
   private battlefieldName: string;
   private jetSprites: Map<string, HTMLImageElement>;
+  private jetLabels: Map<string, string>;
   private hudErrorMessage: string | null = null;
 
   constructor(
@@ -19,6 +20,7 @@ export class GameRenderer {
     arenaShape: ArenaShape,
     battlefieldName: string,
     jetSprites?: Map<string, HTMLImageElement>,
+    jetLabels?: Map<string, string>,
   ) {
     const context = canvas.getContext("2d");
     if (!context) {
@@ -38,6 +40,7 @@ export class GameRenderer {
     this.offsetY = this.height / 2 - centerY * this.scale;
     this.battlefieldName = battlefieldName;
     this.jetSprites = jetSprites ?? new Map();
+    this.jetLabels = jetLabels ?? new Map();
   }
 
   draw(state: GameState): void {
@@ -57,6 +60,10 @@ export class GameRenderer {
 
   setHudErrorMessage(message: string | null): void {
     this.hudErrorMessage = message;
+  }
+
+  setJetLabels(labels: Map<string, string>): void {
+    this.jetLabels = labels;
   }
 
   private toScreen(x: number, y: number): { x: number; y: number } {
@@ -189,7 +196,7 @@ export class GameRenderer {
     const labelOffset = hasSprite ? 13 * altScale : bodySize;
     this.context.fillStyle = "#e2e8f0";
     this.context.font = "10px ui-monospace, SFMono-Regular, Menlo, monospace";
-    this.context.fillText(jet.id, x + labelOffset + 2, y - labelOffset - 2);
+    this.context.fillText(this.resolveJetLabel(jet.id), x + labelOffset + 2, y - labelOffset - 2);
 
     // Mini HP bar
     const barWidth = 28;
@@ -372,5 +379,9 @@ export class GameRenderer {
       hash = (hash + id.charCodeAt(index) * (index + 1)) % palette.length;
     }
     return palette[hash] ?? "#22d3ee";
+  }
+
+  private resolveJetLabel(jetId: string): string {
+    return this.jetLabels.get(jetId) ?? jetId;
   }
 }

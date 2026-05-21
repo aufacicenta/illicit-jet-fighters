@@ -10,6 +10,9 @@ export type BroadcastInitData = {
     string,
     {
       fighterId: number;
+      fighterName: string | null;
+      agentVersionNumber: number | null;
+      displayLabel: string | null;
       spritesheetImageUrl: string | null;
       spritesheetManifestUrl: string | null;
       spritesheetManifest: SpritesheetManifest | null;

@@ -50,6 +50,7 @@ export const fighterSessionRoutes = new Elysia({ prefix: "/fighters" })
         return {
           id: fighter.id,
           slug: fighter.slug,
+          name: fighter.name,
           briefing: fighter.briefing,
           createdAt: fighter.createdAt.toISOString(),
           updatedAt: fighter.updatedAt.toISOString(),

@@ -1,11 +1,13 @@
 import { createHash } from "node:crypto";
 
+import { parseFighterNameAndEpithet } from "@ijf/shared";
+
 import { clearPendingForFighter, sendToFighter } from "../ws/store";
 import {
   createFighterAgentVersion,
   getNextFighterAgentVersionNumber,
 } from "./agent-version-repository";
-import { touchFighterUpdatedAt } from "./fighter-access";
+import { saveFighterName, touchFighterUpdatedAt } from "./fighter-access";
 import {
   generateAgentCode,
   generateCharacterDescription,
@@ -22,7 +24,11 @@ import {
   generateStrikecraftSpritePrompt,
 } from "./generate";
 import { decodeImagePayload } from "./image-payload";
-import { getImageDimensions, normalizeForStoragePng } from "./image-processing";
+import {
+  canonicalizeSpritesheet,
+  getImageDimensions,
+  normalizeForStoragePng,
+} from "./image-processing";
 import { withFighterContext as withContext } from "./log-context";
 import { logger } from "./logger";
 import type { SectionStatus } from "./pipeline-status";
@@ -656,6 +662,17 @@ const emitSectionDelta = (fighterKey: string, sectionId: SectionId, delta: strin
   });
 };
 
+const syncFighterNameFromCharacterDescription = async ({
+  tenant,
+  markdown,
+}: {
+  tenant: PipelineTenant;
+  markdown: string;
+}) => {
+  const parsedName = parseFighterNameAndEpithet(markdown).name;
+  await saveFighterName(tenant.fighterId, parsedName);
+};
+
 type TextSectionResult = {
   content: string;
   model: string;
@@ -715,6 +732,19 @@ const runTextSectionStep = async ({
   });
 
   markSectionFinished(state, sectionId);
+  if (sectionId === "character-description" && tenant) {
+    try {
+      await syncFighterNameFromCharacterDescription({
+        tenant,
+        markdown: generated.content,
+      });
+    } catch (error) {
+      logger.warn("pipeline character-description fighter name persist failed", {
+        ...withContext(fighterKey, correlationId),
+        error: getErrorMessage(error),
+      });
+    }
+  }
   if (sectionId === "agent-code" && tenant) {
     try {
       await persistAgentCodeVersion({
@@ -932,10 +962,32 @@ const runSpritesheetManifestStep = async ({
       sheetWidth,
       sheetHeight,
     });
+    const spritesheetImageKey = spritesheetImageObjectKey(tenant.userId, tenant.fighterId, "png");
+    const spritesheetImageBuffer = await getObjectBuffer(spritesheetImageKey);
+    if (!spritesheetImageBuffer) {
+      throw new Error("Spritesheet image asset is missing when canonicalizing manifest.");
+    }
+    const canonicalized = await canonicalizeSpritesheet({
+      sourceBuffer: spritesheetImageBuffer,
+      manifest: normalized,
+    });
+    await putObject(spritesheetImageKey, canonicalized.buffer, "image/png");
+    const canonicalImageSignedUrl = await getSignedReadUrl(spritesheetImageKey);
+    const imageOutput = state.outputs["spritesheet-image"];
+    if (imageOutput) {
+      const updatedImageOutput = {
+        ...imageOutput,
+        content: spritesheetImageKey,
+        mimeType: "image/png",
+        assetUrl: canonicalImageSignedUrl,
+      };
+      state.outputs["spritesheet-image"] = updatedImageOutput;
+      await broadcastSectionComplete(fighterKey, "spritesheet-image", updatedImageOutput);
+    }
     const objectKey = spritesheetManifestObjectKey(tenant.userId, tenant.fighterId);
     await putObject(
       objectKey,
-      Buffer.from(JSON.stringify(normalized, null, 2)),
+      Buffer.from(JSON.stringify(canonicalized.manifest, null, 2)),
       "application/json",
     );
     const signedUrl = await getSignedReadUrl(objectKey);
@@ -1432,6 +1484,12 @@ export const refineSection = async (
       );
       resetDownstream(fighterKey, sectionId, correlationId);
       await broadcastSectionComplete(fighterKey, sectionId, outputRecord);
+      if (tenant) {
+        await syncFighterNameFromCharacterDescription({
+          tenant,
+          markdown: refined.markdown,
+        });
+      }
 
       logger.info("pipeline refine generated", {
         ...withContext(fighterKey, correlationId),
@@ -1597,6 +1655,12 @@ export const editSection = async (
       );
       resetDownstream(fighterKey, sectionId, correlationId);
       await broadcastSectionComplete(fighterKey, sectionId, outputRecord);
+      if (sectionId === "character-description" && tenant) {
+        await syncFighterNameFromCharacterDescription({
+          tenant,
+          markdown: content,
+        });
+      }
     }
 
     if (tenant) {

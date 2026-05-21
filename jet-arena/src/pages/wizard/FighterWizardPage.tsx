@@ -1,7 +1,10 @@
+import { parseFighterNameAndEpithet } from "@ijf/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
+import { Checkbox } from "../../components/ui/checkbox";
+import { Label } from "../../components/ui/label";
 import { useNavbarBreadcrumbContext } from "../../context/NavbarBreadcrumb/useNavbarBreadcrumbContext";
 import { useWizardContext } from "../../context/Wizard/useWizardContext";
 import type { SectionId, SectionStatus } from "../../context/Wizard/WizardContext.types";
@@ -30,6 +33,29 @@ type StorySegment = {
   text: string;
   className?: string;
   delayMs?: number;
+};
+
+const SETTING_STORY_DISMISSED_STORAGE_KEY = "ijf:wizard-setting-story-dismissed";
+const settingStoryDoNotShowAgainId = "wizard-setting-story-do-not-show-again";
+
+const readSettingStoryDismissed = (): boolean => {
+  try {
+    return window.localStorage.getItem(SETTING_STORY_DISMISSED_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+};
+
+const persistSettingStoryDismissed = (dismissed: boolean) => {
+  try {
+    if (dismissed) {
+      window.localStorage.setItem(SETTING_STORY_DISMISSED_STORAGE_KEY, "true");
+      return;
+    }
+    window.localStorage.removeItem(SETTING_STORY_DISMISSED_STORAGE_KEY);
+  } catch {
+    // Ignore storage failures (private mode, quota, etc.).
+  }
 };
 
 const settingStorySegments: StorySegment[] = [
@@ -142,20 +168,6 @@ const getSectionStatusClassName = (status: SectionStatus | null) => {
 const isSectionId = (sectionId: SectionAnchorId): sectionId is SectionId =>
   sectionId !== "original-briefing";
 
-const parseNameAndEpithet = (markdown: string | undefined) => {
-  if (!markdown) {
-    return { name: "Unnamed Pilot", epithet: null as string | null };
-  }
-
-  const nameMatch = markdown.match(/^#\s+(.+)$/m);
-  const quoteMatch = markdown.match(/^>\s+"?(.+?)"?$/m);
-
-  return {
-    name: nameMatch?.[1]?.trim() || "Unnamed Pilot",
-    epithet: quoteMatch?.[1]?.trim() || null,
-  };
-};
-
 const OriginalBriefingCard = ({ originalBriefing }: { originalBriefing: string | null }) => (
   <Card>
     <CardHeader className={wizardCardHeaderClassName}>
@@ -185,8 +197,18 @@ const WizardLayout = () => {
   const { setCurrentSectionLabel, clearCurrentSectionLabel } = useNavbarBreadcrumbContext();
   const contentContainerRef = useRef<HTMLDivElement | null>(null);
   const [briefingMinHeightPx, setBriefingMinHeightPx] = useState<number | null>(null);
+  const [settingStoryDismissed, setSettingStoryDismissed] = useState(readSettingStoryDismissed);
   const [visibleStoryChars, setVisibleStoryChars] = useState(0);
   const [storyFinished, setStoryFinished] = useState(false);
+
+  const handleSettingStoryDoNotShowAgainChange = useCallback(
+    (checked: boolean | "indeterminate") => {
+      const dismissed = checked === true;
+      setSettingStoryDismissed(dismissed);
+      persistSettingStoryDismissed(dismissed);
+    },
+    [],
+  );
 
   const view = useMemo<WizardView>(() => {
     if (outputs["specsheet-image"]) {
@@ -230,10 +252,13 @@ const WizardLayout = () => {
 
     return "Original Briefing";
   }, [activeSectionId, view]);
-  const { name, epithet } = useMemo(
-    () => parseNameAndEpithet(outputs["character-description"]?.content),
-    [outputs],
-  );
+  const { name, epithet } = useMemo(() => {
+    const parsed = parseFighterNameAndEpithet(outputs["character-description"]?.content);
+    return {
+      name: parsed.name ?? "Unnamed Pilot",
+      epithet: parsed.epithet,
+    };
+  }, [outputs]);
   const settingStoryTextLength = useMemo(
     () => settingStorySegments.reduce((length, segment) => length + segment.text.length, 0),
     [],
@@ -302,6 +327,12 @@ const WizardLayout = () => {
       return;
     }
 
+    if (settingStoryDismissed) {
+      setVisibleStoryChars(settingStoryTextLength);
+      setStoryFinished(true);
+      return;
+    }
+
     setVisibleStoryChars(0);
     setStoryFinished(false);
     let cancelled = false;
@@ -339,7 +370,7 @@ const WizardLayout = () => {
     return () => {
       cancelled = true;
     };
-  }, [settingStoryTextLength, view]);
+  }, [settingStoryDismissed, settingStoryTextLength, view]);
 
   const navigateToSection = (sectionId: SectionAnchorId) => {
     if (isSectionId(sectionId)) {
@@ -364,37 +395,59 @@ const WizardLayout = () => {
             style={briefingMinHeightPx ? { minHeight: `${briefingMinHeightPx}px` } : undefined}
           >
             <div className="relative mx-auto w-full max-w-2xl">
-              <PromptBar mode="briefing" disabled={isGenerating} autoFocus={storyFinished} />
-              <div
-                className={`absolute inset-0 z-10 flex items-center rounded-sm border border-[#7f1d1d]/80 bg-[#17090a]/95 px-5 py-4 text-lg leading-relaxed tracking-wide text-[#fda4af] shadow-[0_0_0_1px_rgba(127,29,29,0.25),0_0_28px_rgba(127,29,29,0.2)] transition-opacity duration-700 md:px-6 md:text-xl md:leading-loose ${storyFinished ? "pointer-events-none opacity-0" : "opacity-100"}`}
-              >
-                <p className="whitespace-pre-wrap">
-                  {settingStorySegments.map((segment, index) => {
-                    const charsBeforeSegment = settingStorySegments
-                      .slice(0, index)
-                      .reduce((length, priorSegment) => length + priorSegment.text.length, 0);
-                    const visibleSegmentChars = Math.max(
-                      0,
-                      Math.min(segment.text.length, visibleStoryChars - charsBeforeSegment),
-                    );
+              <PromptBar
+                mode="briefing"
+                disabled={isGenerating}
+                autoFocus={storyFinished || settingStoryDismissed}
+              />
+              {!settingStoryDismissed ? (
+                <div
+                  className={`absolute inset-0 z-10 flex flex-col rounded-sm border border-[#7f1d1d]/80 bg-[#17090a]/95 px-5 py-4 text-lg leading-relaxed tracking-wide text-[#fda4af] shadow-[0_0_0_1px_rgba(127,29,29,0.25),0_0_28px_rgba(127,29,29,0.2)] transition-opacity duration-700 md:px-6 md:text-xl md:leading-loose ${storyFinished ? "pointer-events-none opacity-0" : "opacity-100"}`}
+                >
+                  <div className="flex flex-1 items-center">
+                    <p className="whitespace-pre-wrap">
+                      {settingStorySegments.map((segment, index) => {
+                        const charsBeforeSegment = settingStorySegments
+                          .slice(0, index)
+                          .reduce((length, priorSegment) => length + priorSegment.text.length, 0);
+                        const visibleSegmentChars = Math.max(
+                          0,
+                          Math.min(segment.text.length, visibleStoryChars - charsBeforeSegment),
+                        );
 
-                    if (visibleSegmentChars <= 0) {
-                      return null;
-                    }
+                        if (visibleSegmentChars <= 0) {
+                          return null;
+                        }
 
-                    return (
-                      <span className={segment.className} key={`${segment.text}-${index}`}>
-                        {segment.text.slice(0, visibleSegmentChars)}
-                      </span>
-                    );
-                  })}
-                  {visibleStoryChars < settingStoryTextLength ? (
-                    <span aria-hidden className="ml-0.5 animate-pulse text-[#fecaca]">
-                      ▋
-                    </span>
-                  ) : null}
-                </p>
-              </div>
+                        return (
+                          <span className={segment.className} key={`${segment.text}-${index}`}>
+                            {segment.text.slice(0, visibleSegmentChars)}
+                          </span>
+                        );
+                      })}
+                      {visibleStoryChars < settingStoryTextLength ? (
+                        <span aria-hidden className="ml-0.5 animate-pulse text-[#fecaca]">
+                          ▋
+                        </span>
+                      ) : null}
+                    </p>
+                  </div>
+                  <div className="mt-4 flex shrink-0 items-center gap-2 border-t border-[#7f1d1d]/50 pt-3">
+                    <Checkbox
+                      checked={settingStoryDismissed}
+                      className="border-[#fecaca]/60 data-[state=checked]:border-[#fecaca] data-[state=checked]:bg-[#fecaca] data-[state=checked]:text-[#17090a]"
+                      id={settingStoryDoNotShowAgainId}
+                      onCheckedChange={handleSettingStoryDoNotShowAgainChange}
+                    />
+                    <Label
+                      className="cursor-pointer text-sm font-normal tracking-wide text-[#fecaca]/90"
+                      htmlFor={settingStoryDoNotShowAgainId}
+                    >
+                      Do not show again
+                    </Label>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </section>
         ) : (

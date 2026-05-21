@@ -1,13 +1,23 @@
 import { createHash } from "node:crypto";
 
-import type { BroadcastMessage, ReplayFrame, SpritesheetManifest } from "@ijf/shared";
+import {
+  type BroadcastMessage,
+  formatFighterDisplayLabel,
+  type ReplayFrame,
+  resolveFighterName,
+  type SpritesheetManifest,
+} from "@ijf/shared";
 import { simulationManager } from "@ijf/simulator";
 
 import {
   getFighterAgentVersionByIdForOwnerAndFighter,
   getLatestFighterAgentVersionForHash,
 } from "./agent-version-repository";
-import { bindPipelineTenant, serializeClientPipelineState } from "./pipeline-runner";
+import {
+  bindPipelineTenant,
+  type ClientPipelineStateSnapshot,
+  serializeClientPipelineState,
+} from "./pipeline-runner";
 import {
   fighterAgentScriptObjectKey,
   getObjectBuffer,
@@ -43,6 +53,7 @@ type ResolvedSimulationPlayer = {
   objectKey: string | null;
   hash: string;
   agentVersionId: string | null;
+  agentVersionNumber: number | null;
 };
 
 type ActiveSimulation = {
@@ -81,12 +92,14 @@ const resolvePlayerFromSources = async ({
   fighterKey,
   playerId,
   requestedAgentVersionId,
+  pipelineSnapshot,
 }: {
   userId: string;
   fighterId: number;
   fighterKey: string;
   playerId: string;
   requestedAgentVersionId?: string | null;
+  pipelineSnapshot?: ClientPipelineStateSnapshot | null;
 }): Promise<ResolvedSimulationPlayer> => {
   if (requestedAgentVersionId) {
     const selectedVersion = await getFighterAgentVersionByIdForOwnerAndFighter({
@@ -123,6 +136,7 @@ const resolvePlayerFromSources = async ({
       objectKey: selectedVersion.objectKey,
       hash: hashContent(versionCode),
       agentVersionId: selectedVersion.id,
+      agentVersionNumber: selectedVersion.versionNumber,
     };
   }
 
@@ -140,11 +154,12 @@ const resolvePlayerFromSources = async ({
         objectKey: agentScriptKey,
         hash: hashContent(code),
         agentVersionId: null,
+        agentVersionNumber: null,
       };
     }
   }
 
-  const snapshot = await serializeClientPipelineState(fighterKey);
+  const snapshot = pipelineSnapshot ?? (await serializeClientPipelineState(fighterKey));
   const pipelineCode = snapshot?.outputs?.["agent-code"]?.content;
   if (pipelineCode && pipelineCode.trim().length > 0) {
     const contentHash = hashContent(pipelineCode);
@@ -161,6 +176,7 @@ const resolvePlayerFromSources = async ({
       objectKey: null,
       hash: contentHash,
       agentVersionId: latestVersion?.id ?? null,
+      agentVersionNumber: latestVersion?.versionNumber ?? null,
     };
   }
 
@@ -173,6 +189,7 @@ const resolvePlayerFromSources = async ({
     objectKey: null,
     hash: hashContent(FALLBACK_AGENT_CODE),
     agentVersionId: null,
+    agentVersionNumber: null,
   };
 };
 
@@ -187,8 +204,13 @@ const appendMessage = (broadcastId: string, message: BroadcastMessage) => {
 const getPlayerSpritesheetMeta = async (
   ownerUserId: string,
   fighterId: number,
+  fighterName: string | null,
+  agentVersionNumber: number | null,
 ): Promise<{
   fighterId: number;
+  fighterName: string;
+  agentVersionNumber: number | null;
+  displayLabel: string | null;
   spritesheetImageUrl: string | null;
   spritesheetManifestUrl: string | null;
   spritesheetManifest: SpritesheetManifest | null;
@@ -220,6 +242,16 @@ const getPlayerSpritesheetMeta = async (
   }
   return {
     fighterId,
+    fighterName: fighterName ?? `Fighter ${fighterId}`,
+    agentVersionNumber,
+    displayLabel:
+      fighterName !== null
+        ? formatFighterDisplayLabel({
+            fighterName,
+            fighterId,
+            agentVersionNumber,
+          })
+        : null,
     spritesheetImageUrl,
     spritesheetManifestUrl,
     spritesheetManifest,
@@ -312,6 +344,8 @@ export const startSimulationForRoster = async ({
   fighters: Array<{
     fighterId: number;
     fighterKey: string;
+    fighterName: string | null;
+    fighterSlug: string;
     ownerUserId: string;
     agentVersionId?: string | null;
   }>;
@@ -324,21 +358,45 @@ export const startSimulationForRoster = async ({
   const resolvedSeed = Number.isFinite(seed) ? Number(seed) : Date.now();
   const broadcastId = `${fighters[0]!.fighterId}-${crypto.randomUUID()}`;
   const players = await Promise.all(
-    fighters.map(async ({ fighterId, fighterKey, ownerUserId, agentVersionId }, index) => {
-      bindPipelineTenant(fighterKey, { userId: ownerUserId, fighterId });
-      return resolvePlayerFromSources({
-        userId: ownerUserId,
-        fighterId,
-        fighterKey,
-        playerId: `jet-fighter-${fighterKey}-slot-${index}`,
-        requestedAgentVersionId: agentVersionId ?? null,
-      });
-    }),
+    fighters.map(
+      async (
+        { fighterId, fighterKey, fighterName, fighterSlug, ownerUserId, agentVersionId },
+        index,
+      ) => {
+        bindPipelineTenant(fighterKey, { userId: ownerUserId, fighterId });
+        const pipelineSnapshot = await serializeClientPipelineState(fighterKey);
+        const characterDescription =
+          pipelineSnapshot?.outputs?.["character-description"]?.content ?? null;
+        const resolvedFighterName = resolveFighterName({
+          storedName: fighterName,
+          characterDescription,
+          slug: fighterSlug,
+        });
+        const player = await resolvePlayerFromSources({
+          userId: ownerUserId,
+          fighterId,
+          fighterKey,
+          playerId: `jet-fighter-${fighterKey}-slot-${index}`,
+          requestedAgentVersionId: agentVersionId ?? null,
+          pipelineSnapshot,
+        });
+        return {
+          ...player,
+          fighterName: resolvedFighterName,
+        };
+      },
+    ),
   );
+
   const playerMetaEntries = await Promise.all(
     players.map(async (player) => [
       player.id,
-      await getPlayerSpritesheetMeta(player.ownerUserId, player.fighterId),
+      await getPlayerSpritesheetMeta(
+        player.ownerUserId,
+        player.fighterId,
+        player.fighterName,
+        player.agentVersionNumber,
+      ),
     ]),
   );
   const playerMetaById = Object.fromEntries(playerMetaEntries);
@@ -446,7 +504,15 @@ export const startSimulationForFighter = async ({
 }) =>
   startSimulationForRoster({
     initiatorUserId: userId,
-    fighters: [{ fighterId, fighterKey, ownerUserId: userId }],
+    fighters: [
+      {
+        fighterId,
+        fighterKey,
+        fighterName: null,
+        fighterSlug: String(fighterId),
+        ownerUserId: userId,
+      },
+    ],
     seed,
   });
 
@@ -493,7 +559,7 @@ export const getReplayForBroadcast = async ({
     await Promise.all(
       participants.map(async (participant) => [
         participant.playerId,
-        await getPlayerSpritesheetMeta(userId, participant.fighterId),
+        await getPlayerSpritesheetMeta(userId, participant.fighterId, null, null),
       ]),
     ),
   );

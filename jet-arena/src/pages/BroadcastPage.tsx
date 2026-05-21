@@ -30,6 +30,9 @@ type PlayerMetaById = Record<
   string,
   {
     fighterId: number;
+    fighterName: string | null;
+    agentVersionNumber: number | null;
+    displayLabel: string | null;
     spritesheetImageUrl: string | null;
     spritesheetManifestUrl: string | null;
     spritesheetManifest: SpritesheetManifest | null;
@@ -169,6 +172,16 @@ export const BroadcastPage = () => {
     },
   });
 
+  const jetLabelsById = useMemo(() => {
+    const entries: Array<[string, string]> = [];
+    for (const [jetId, meta] of Object.entries(playerMetaById)) {
+      if (meta?.displayLabel) {
+        entries.push([jetId, meta.displayLabel]);
+      }
+    }
+    return new Map(entries);
+  }, [playerMetaById]);
+
   useEffect(() => {
     if (!id || isBootstrapping) {
       return;
@@ -195,6 +208,10 @@ export const BroadcastPage = () => {
         }
         if (replay.initData) {
           setReplayInitData(replay.initData);
+          setPlayerMetaById((current) => ({
+            ...current,
+            ...(replay.initData?.playerMetaById ?? {}),
+          }));
         }
       };
 
@@ -297,8 +314,9 @@ export const BroadcastPage = () => {
       arenaShape,
       renderBootstrapData.battlefieldConfig.name,
       jetSprites,
+      jetLabelsById,
     );
-  }, [jetSprites, renderBootstrapData]);
+  }, [jetLabelsById, jetSprites, renderBootstrapData]);
 
   useEffect(() => {
     if (!isPlayingReplay) return;
@@ -337,6 +355,10 @@ export const BroadcastPage = () => {
   useEffect(() => {
     replayAutoplayInitializedRef.current = false;
   }, [id]);
+
+  useEffect(() => {
+    rendererRef.current?.setJetLabels(jetLabelsById);
+  }, [jetLabelsById]);
 
   useEffect(() => {
     if (replayAutoplayInitializedRef.current) return;

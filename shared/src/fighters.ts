@@ -18,6 +18,7 @@ export const fighterSectionStatusSchema = z.enum([
 export const myFighterSchema = z.object({
   id: z.number().int().positive(),
   slug: z.string().min(1),
+  name: z.string().nullable(),
   briefing: z.string().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),

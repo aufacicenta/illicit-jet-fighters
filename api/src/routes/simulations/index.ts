@@ -71,6 +71,8 @@ const resolveSimulationFighters = async (
       return {
         fighterId: fighter.id,
         fighterKey: fighterKeyFromId(fighter.id),
+        fighterName: fighter.name,
+        fighterSlug: fighter.slug,
         ownerUserId: fighter.userId,
         agentVersionId: participant.agentVersionId,
       };
