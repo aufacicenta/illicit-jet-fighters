@@ -1,4 +1,4 @@
-import type { FighterAgentVersion, MyFighter } from "@ijf/shared";
+import { type FighterAgentVersion, formatDateTime, type MyFighter } from "@ijf/shared";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -42,7 +42,7 @@ const parseDisplayName = (characterDescription: string | null, slug: string, id:
 };
 
 const formatAgentVersionOption = (version: FighterAgentVersion) => {
-  const createdAt = new Date(version.createdAt).toLocaleDateString();
+  const createdAt = formatDateTime(version.createdAt);
   const model = version.model ? ` - ${version.model}` : "";
   return `v${version.versionNumber}${model} (${createdAt})`;
 };

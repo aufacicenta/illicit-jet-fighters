@@ -1,4 +1,4 @@
-import { and, broadcasts, db, eq, simulationParticipants, simulations } from "@ijf/database";
+import { and, broadcasts, db, desc, eq, simulationParticipants, simulations } from "@ijf/database";
 
 type SimulationStatus = "queued" | "running" | "ended" | "error";
 type AgentSource = "r2" | "pipeline" | "fallback";
@@ -256,6 +256,53 @@ export const getBroadcastWithSimulationForUser = async (
 
 export type SimulationWithBroadcast = BroadcastWithSimulation & {
   userId: string;
+};
+
+export type SimulationListItem = {
+  simulationId: string;
+  broadcastId: string;
+  status: SimulationStatus;
+  createdAt: string;
+  startedAt: string | null;
+  endedAt: string | null;
+  winnerId: string | null;
+  replayFrameCount: number;
+  errorMessage: string | null;
+};
+
+export const listSimulationsForUser = async (
+  userId: string,
+  limit = 24,
+): Promise<SimulationListItem[]> => {
+  const rows = await db
+    .select({
+      simulationId: simulations.id,
+      broadcastId: broadcasts.id,
+      status: simulations.status,
+      createdAt: simulations.createdAt,
+      startedAt: simulations.startedAt,
+      endedAt: simulations.endedAt,
+      winnerId: simulations.winnerId,
+      replayFrameCount: simulations.replayFrameCount,
+      errorMessage: simulations.errorMessage,
+    })
+    .from(simulations)
+    .innerJoin(broadcasts, eq(broadcasts.simulationId, simulations.id))
+    .where(eq(simulations.userId, userId))
+    .orderBy(desc(simulations.createdAt))
+    .limit(Math.max(1, Math.min(100, Math.floor(limit))));
+
+  return rows.map((row) => ({
+    simulationId: row.simulationId,
+    broadcastId: row.broadcastId,
+    status: row.status,
+    createdAt: row.createdAt.toISOString(),
+    startedAt: row.startedAt?.toISOString() ?? null,
+    endedAt: row.endedAt?.toISOString() ?? null,
+    winnerId: row.winnerId,
+    replayFrameCount: row.replayFrameCount,
+    errorMessage: row.errorMessage,
+  }));
 };
 
 export const getSimulationWithBroadcastForUser = async (

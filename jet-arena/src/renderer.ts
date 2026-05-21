@@ -114,7 +114,6 @@ export class GameRenderer {
     const hasSprite = Boolean(sprite && sprite.complete && sprite.naturalWidth > 0);
     const color = this.colorForJet(jet.id);
 
-    // Ground shadow — offset downward and scaled inversely to altitude
     if (jet.alive && jet.altitude > 0.1) {
       const shadowOffset = jet.altitude * 6 * this.scale;
       const shadowScale = 1.0 - jet.altitude * 0.3;
@@ -140,6 +139,25 @@ export class GameRenderer {
       this.context.restore();
     }
 
+    // Velocity heading line
+    if (jet.alive) {
+      const speed = Math.hypot(jet.vx, jet.vy);
+      if (speed > 0.5) {
+        const lineLength = Math.min(28, 8 + speed * 3) * altScale;
+        this.context.save();
+        this.context.beginPath();
+        this.context.moveTo(x, y);
+        this.context.lineTo(
+          x + Math.cos(jet.angle) * lineLength,
+          y + Math.sin(jet.angle) * lineLength,
+        );
+        this.context.strokeStyle = `${color}66`;
+        this.context.lineWidth = 1.5;
+        this.context.stroke();
+        this.context.restore();
+      }
+    }
+
     this.context.save();
     this.context.translate(x, y);
     this.context.rotate(jet.angle);
@@ -162,18 +180,40 @@ export class GameRenderer {
     }
     this.context.restore();
 
+    // Name label
     const labelOffset = hasSprite ? 13 * altScale : bodySize;
-    const altLabel = `ALT ${(jet.altitude * 100).toFixed(0)}%`;
     this.context.fillStyle = "#e2e8f0";
-    this.context.font = "11px ui-monospace, SFMono-Regular, Menlo, monospace";
-    this.context.fillText(
-      `${jet.id} (${Math.max(0, Math.round(jet.health))})`,
-      x + labelOffset + 2,
-      y - labelOffset,
-    );
-    this.context.fillStyle = "#94a3b8";
-    this.context.font = "9px ui-monospace, SFMono-Regular, Menlo, monospace";
-    this.context.fillText(altLabel, x + labelOffset + 2, y - labelOffset + 12);
+    this.context.font = "10px ui-monospace, SFMono-Regular, Menlo, monospace";
+    this.context.fillText(jet.id, x + labelOffset + 2, y - labelOffset - 2);
+
+    // Mini HP bar
+    const barWidth = 28;
+    const barHeight = 4;
+    const barX = x + labelOffset + 2;
+    const barY = y - labelOffset + 2;
+    const hpPct = Math.max(0, Math.min(1, jet.health / 100));
+    this.context.fillStyle = "#1e293b";
+    this.context.fillRect(barX, barY, barWidth, barHeight);
+    const hpColor = hpPct > 0.6 ? "#4ade80" : hpPct > 0.3 ? "#fbbf24" : "#ef4444";
+    this.context.fillStyle = hpColor;
+    this.context.fillRect(barX, barY, barWidth * hpPct, barHeight);
+
+    // Warning dots: low ammo (red) and low fuel (orange) — only when critical
+    let dotX = barX + barWidth + 4;
+    const dotY = barY + barHeight / 2;
+    if (jet.alive && jet.ammo <= 8) {
+      this.context.beginPath();
+      this.context.arc(dotX, dotY, 3, 0, Math.PI * 2);
+      this.context.fillStyle = "#ef4444";
+      this.context.fill();
+      dotX += 8;
+    }
+    if (jet.alive && jet.fuel < 150) {
+      this.context.beginPath();
+      this.context.arc(dotX, dotY, 3, 0, Math.PI * 2);
+      this.context.fillStyle = "#f97316";
+      this.context.fill();
+    }
   }
 
   private drawBullet(bullet: BulletState): void {
@@ -222,14 +262,94 @@ export class GameRenderer {
   }
 
   private drawHud(state: GameState): void {
+    const { context } = this;
     const alive = [...state.jets.values()].filter((jet) => jet.alive).length;
-    this.context.fillStyle = "#cbd5e1";
-    this.context.font = "12px ui-monospace, SFMono-Regular, Menlo, monospace";
-    this.context.fillText(`TICK ${state.tick}`, 16, 24);
-    this.context.fillText(`ALIVE ${alive}/${state.jets.size}`, 16, 42);
-    this.context.fillText(`BULLETS ${state.bullets.length}`, 16, 60);
-    this.context.fillText(`PICKUPS ${state.pickups.length}`, 16, 78);
-    this.context.fillText(`BATTLEFIELD ${this.battlefieldName.toUpperCase()}`, 16, 96);
+
+    // --- Top-left status panel (boxed) ---
+    const panelX = 10;
+    const panelY = 10;
+    const panelW = 200;
+    const panelH = 90;
+    context.save();
+    context.fillStyle = "rgba(8, 15, 28, 0.82)";
+    context.strokeStyle = "#1e3a5f";
+    context.lineWidth = 1;
+    context.beginPath();
+    context.roundRect(panelX, panelY, panelW, panelH, 6);
+    context.fill();
+    context.stroke();
+    context.fillStyle = "#94a3b8";
+    context.font = "10px ui-monospace, SFMono-Regular, Menlo, monospace";
+    context.fillText(this.battlefieldName.toUpperCase(), panelX + 10, panelY + 18);
+    context.fillStyle = "#e2e8f0";
+    context.font = "11px ui-monospace, SFMono-Regular, Menlo, monospace";
+    context.fillText(`TICK  ${state.tick}`, panelX + 10, panelY + 36);
+    context.fillText(`ALIVE ${alive}/${state.jets.size}`, panelX + 10, panelY + 52);
+    context.fillText(
+      `BUL ${state.bullets.length}  PKP ${state.pickups.length}`,
+      panelX + 10,
+      panelY + 68,
+    );
+    context.restore();
+
+    // --- Top-right scoreboard ---
+    this.drawScoreboard(state);
+  }
+
+  private drawScoreboard(state: GameState): void {
+    const { context } = this;
+    const jets = [...state.jets.values()].sort((a, b) => b.enemyHitsLanded - a.enemyHitsLanded);
+    const lineHeight = 16;
+    const headerHeight = 20;
+    const panelW = 180;
+    const panelH = headerHeight + jets.length * lineHeight + 8;
+    const panelX = this.width - panelW - 10;
+    const panelY = 10;
+
+    context.save();
+    context.fillStyle = "rgba(8, 15, 28, 0.82)";
+    context.strokeStyle = "#1e3a5f";
+    context.lineWidth = 1;
+    context.beginPath();
+    context.roundRect(panelX, panelY, panelW, panelH, 6);
+    context.fill();
+    context.stroke();
+
+    context.fillStyle = "#94a3b8";
+    context.font = "10px ui-monospace, SFMono-Regular, Menlo, monospace";
+    context.fillText("SCOREBOARD", panelX + 10, panelY + 14);
+
+    jets.forEach((jet, index) => {
+      const rowY = panelY + headerHeight + index * lineHeight + 12;
+      const color = this.colorForJet(jet.id);
+      const shortName = this.shortName(jet.id);
+
+      // Color dot
+      context.beginPath();
+      context.arc(panelX + 14, rowY - 3, 3.5, 0, Math.PI * 2);
+      context.fillStyle = jet.alive ? color : "#4b5563";
+      context.fill();
+
+      // Name
+      context.fillStyle = jet.alive ? "#e2e8f0" : "#64748b";
+      context.font = "10px ui-monospace, SFMono-Regular, Menlo, monospace";
+      context.fillText(shortName, panelX + 24, rowY);
+
+      // Hits count (right-aligned)
+      const hitsLabel = `${jet.enemyHitsLanded}`;
+      const hitsWidth = context.measureText(hitsLabel).width;
+      context.fillStyle = jet.alive ? "#4ade80" : "#64748b";
+      context.fillText(hitsLabel, panelX + panelW - hitsWidth - 12, rowY);
+    });
+
+    context.restore();
+  }
+
+  private shortName(jetId: string): string {
+    const parts = jetId.split("-");
+    const role = parts.slice(2).join(" ");
+    if (role.length > 14) return `${role.slice(0, 13)}…`;
+    return role || jetId.slice(0, 14);
   }
 
   private colorForJet(id: string): string {

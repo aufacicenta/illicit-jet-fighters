@@ -11,6 +11,7 @@ import {
   SimulationStartInputError,
   startSimulationForRoster,
 } from "../../lib/simulation-orchestrator";
+import { listSimulationsForUser } from "../../lib/simulation-repository";
 
 const resolveSimulationFighters = async (
   request: Request,
@@ -78,6 +79,13 @@ const resolveSimulationFighters = async (
 };
 
 export const simulationRoutes = new Elysia({ prefix: "/simulations" })
+  .get("", async ({ request, headers }) => {
+    const auth = await requireBearerAuth(request, headers);
+
+    return {
+      simulations: await listSimulationsForUser(auth.userId),
+    };
+  })
   .post(
     "",
     async ({ body, request, headers, status }) => {

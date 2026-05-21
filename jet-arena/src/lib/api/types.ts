@@ -43,6 +43,22 @@ export type SimulationStartResponse = {
   status: "queued" | "running" | "ended" | "error";
 };
 
+export type SimulationListItem = {
+  simulationId: string;
+  broadcastId: string;
+  status: "queued" | "running" | "ended" | "error";
+  createdAt: string;
+  startedAt: string | null;
+  endedAt: string | null;
+  winnerId: string | null;
+  replayFrameCount: number;
+  errorMessage: string | null;
+};
+
+export type SimulationListResponse = {
+  simulations: SimulationListItem[];
+};
+
 export type SimulationParticipantInput = {
   fighterId: number;
   /**
