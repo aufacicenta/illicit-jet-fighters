@@ -26,6 +26,50 @@ type SectionNavItem = {
   label: string;
 };
 
+type StorySegment = {
+  text: string;
+  className?: string;
+  delayMs?: number;
+};
+
+const settingStorySegments: StorySegment[] = [
+  {
+    text: "2187\n\n",
+    delayMs: 500,
+  },
+  {
+    text: "Wazcania fractured Earth's into combat zones.\n\n",
+  },
+  {
+    text: "Law enforcement collapsed.\n\n",
+    delayMs: 120,
+  },
+  {
+    text: "Illicit Jet Fighters ",
+    delayMs: 150,
+  },
+  {
+    text: "emerged — ",
+    delayMs: 120,
+  },
+  {
+    text: "an illicit network of bounty contractors, midflight in-cockpit, midflight exchange.\n\n\n",
+    delayMs: 98,
+  },
+  {
+    text: "Each hunter flies an Airmach.\n\n\n\n",
+    delayMs: 120,
+  },
+  {
+    text: "Part fighter jet, ",
+    delayMs: 120,
+  },
+  {
+    text: "part expression of identity.",
+    delayMs: 150,
+  },
+];
+
 const phaseSections: Record<WizardPhase, SectionId[]> = {
   "phase-one": ["character-description", "specsheet-prompt", "specsheet-image"],
   "phase-two": [
@@ -140,6 +184,8 @@ const WizardLayout = () => {
   const { setCurrentSectionLabel, clearCurrentSectionLabel } = useNavbarBreadcrumbContext();
   const contentContainerRef = useRef<HTMLDivElement | null>(null);
   const [briefingMinHeightPx, setBriefingMinHeightPx] = useState<number | null>(null);
+  const [visibleStoryChars, setVisibleStoryChars] = useState(0);
+  const [storyFinished, setStoryFinished] = useState(false);
 
   const view = useMemo<WizardView>(() => {
     if (outputs["specsheet-image"]) {
@@ -186,6 +232,10 @@ const WizardLayout = () => {
   const { name, epithet } = useMemo(
     () => parseNameAndEpithet(outputs["character-description"]?.content),
     [outputs],
+  );
+  const settingStoryTextLength = useMemo(
+    () => settingStorySegments.reduce((length, segment) => length + segment.text.length, 0),
+    [],
   );
 
   useEffect(() => {
@@ -244,6 +294,52 @@ const WizardLayout = () => {
     };
   }, [updateBriefingMinHeight, view]);
 
+  useEffect(() => {
+    if (view !== "briefing") {
+      setVisibleStoryChars(settingStoryTextLength);
+      setStoryFinished(true);
+      return;
+    }
+
+    setVisibleStoryChars(0);
+    setStoryFinished(false);
+    let cancelled = false;
+    let charIndex = 0;
+    let currentSegmentIndex = 0;
+    let charsInPriorSegments = 0;
+
+    const tick = () => {
+      if (cancelled) {
+        return;
+      }
+      if (charIndex >= settingStoryTextLength) {
+        setStoryFinished(true);
+        return;
+      }
+
+      charIndex += 1;
+      setVisibleStoryChars(charIndex);
+
+      while (
+        currentSegmentIndex < settingStorySegments.length &&
+        charIndex >= charsInPriorSegments + settingStorySegments[currentSegmentIndex].text.length
+      ) {
+        charsInPriorSegments += settingStorySegments[currentSegmentIndex].text.length;
+        currentSegmentIndex += 1;
+      }
+
+      const segment = settingStorySegments[currentSegmentIndex];
+      const delay = segment?.delayMs ?? 55;
+      window.setTimeout(tick, delay);
+    };
+
+    window.setTimeout(tick, settingStorySegments[0]?.delayMs ?? 55);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [settingStoryTextLength, view]);
+
   const navigateToSection = (sectionId: SectionAnchorId) => {
     if (isSectionId(sectionId)) {
       setActiveSection(sectionId);
@@ -263,10 +359,42 @@ const WizardLayout = () => {
       >
         {view === "briefing" ? (
           <section
-            className="flex w-full items-center justify-center"
+            className="flex w-full flex-col items-center justify-center"
             style={briefingMinHeightPx ? { minHeight: `${briefingMinHeightPx}px` } : undefined}
           >
-            <PromptBar mode="briefing" disabled={isGenerating} />
+            <div className="relative mx-auto w-full max-w-2xl">
+              <PromptBar mode="briefing" disabled={isGenerating} autoFocus={storyFinished} />
+              <div
+                className={`absolute inset-0 z-10 flex items-center rounded-sm border border-[#7f1d1d]/80 bg-[#17090a]/95 px-5 py-4 text-lg leading-relaxed tracking-wide text-[#fda4af] shadow-[0_0_0_1px_rgba(127,29,29,0.25),0_0_28px_rgba(127,29,29,0.2)] transition-opacity duration-700 md:px-6 md:text-xl md:leading-loose ${storyFinished ? "pointer-events-none opacity-0" : "opacity-100"}`}
+              >
+                <p className="whitespace-pre-wrap">
+                  {settingStorySegments.map((segment, index) => {
+                    const charsBeforeSegment = settingStorySegments
+                      .slice(0, index)
+                      .reduce((length, priorSegment) => length + priorSegment.text.length, 0);
+                    const visibleSegmentChars = Math.max(
+                      0,
+                      Math.min(segment.text.length, visibleStoryChars - charsBeforeSegment),
+                    );
+
+                    if (visibleSegmentChars <= 0) {
+                      return null;
+                    }
+
+                    return (
+                      <span className={segment.className} key={`${segment.text}-${index}`}>
+                        {segment.text.slice(0, visibleSegmentChars)}
+                      </span>
+                    );
+                  })}
+                  {visibleStoryChars < settingStoryTextLength ? (
+                    <span aria-hidden className="ml-0.5 animate-pulse text-[#fecaca]">
+                      ▋
+                    </span>
+                  ) : null}
+                </p>
+              </div>
+            </div>
           </section>
         ) : (
           <div className="space-y-6">

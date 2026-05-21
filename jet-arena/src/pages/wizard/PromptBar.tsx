@@ -1,4 +1,5 @@
 import { SendHorizontal } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 import { Button } from "../../components/ui/button";
 import { Textarea } from "../../components/ui/textarea";
@@ -12,7 +13,16 @@ const sectionLabels = {
 
 type PromptBarMode = "briefing" | "docked";
 
-export const PromptBar = ({ mode, disabled }: { mode: PromptBarMode; disabled?: boolean }) => {
+export const PromptBar = ({
+  mode,
+  disabled,
+  autoFocus,
+}: {
+  mode: PromptBarMode;
+  disabled?: boolean;
+  autoFocus?: boolean;
+}) => {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const {
     activeSectionId,
     outputs,
@@ -28,6 +38,12 @@ export const PromptBar = ({ mode, disabled }: { mode: PromptBarMode; disabled?: 
   const placeholder = isRefining
     ? "Refine your fighter..."
     : "Describe your fighter. Role, personality, visual vibe...";
+
+  useEffect(() => {
+    if (autoFocus) {
+      textareaRef.current?.focus();
+    }
+  }, [autoFocus]);
 
   return (
     <div
@@ -58,6 +74,7 @@ export const PromptBar = ({ mode, disabled }: { mode: PromptBarMode; disabled?: 
         {isBriefing ? (
           <>
             <Textarea
+              ref={textareaRef}
               className="min-h-36 text-sm"
               onChange={(event) => setPromptInput(event.target.value)}
               placeholder={placeholder}
