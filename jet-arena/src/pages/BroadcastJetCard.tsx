@@ -167,15 +167,15 @@ export const BroadcastJetCard = ({
   const sheetStyle = useMemo<CSSProperties | null>(() => {
     if (!sheetFrame || !remoteSheet) return null;
     const spriteSize = 44;
-    const scale = Math.min(spriteSize / sheetFrame.w, spriteSize / sheetFrame.h);
+    const scaleX = spriteSize / sheetFrame.w;
+    const scaleY = spriteSize / sheetFrame.h;
     return {
-      width: `${sheetFrame.w}px`,
-      height: `${sheetFrame.h}px`,
+      width: `${spriteSize}px`,
+      height: `${spriteSize}px`,
       backgroundImage: `url(${remoteSheet.imageUrl})`,
-      backgroundPosition: `-${sheetFrame.x}px -${sheetFrame.y}px`,
-      backgroundSize: `${remoteSheet.manifest.sheetWidth}px ${remoteSheet.manifest.sheetHeight}px`,
-      transform: `scale(${scale})`,
-      transformOrigin: "center center",
+      backgroundPosition: `-${sheetFrame.x * scaleX}px -${sheetFrame.y * scaleY}px`,
+      backgroundSize: `${remoteSheet.manifest.sheetWidth * scaleX}px ${remoteSheet.manifest.sheetHeight * scaleY}px`,
+      backgroundRepeat: "no-repeat",
     };
   }, [remoteSheet, sheetFrame]);
   const cardJustifyClass = side === "right" ? "justify-self-end" : "justify-self-start";
@@ -189,16 +189,12 @@ export const BroadcastJetCard = ({
     >
       <div className="h-11 w-11 overflow-hidden rounded border border-slate-700 bg-slate-900">
         {sheetStyle ? (
-          <div className="flex h-11 w-11 items-center justify-center overflow-hidden">
-            <div
-              className="block bg-no-repeat [image-rendering:crisp-edges]"
-              style={{
-                ...sheetStyle,
-              }}
-              aria-label={`${roleLabel} ${pose}`}
-              role="img"
-            />
-          </div>
+          <div
+            className="block bg-no-repeat [image-rendering:crisp-edges]"
+            style={sheetStyle}
+            aria-label={`${roleLabel} ${pose}`}
+            role="img"
+          />
         ) : (
           <img className="h-11 w-11 object-cover" src={poseSprite} alt={`${roleLabel} ${pose}`} />
         )}
