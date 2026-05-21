@@ -1,5 +1,5 @@
 import type { MyFighter } from "@ijf/shared";
-import { Circle, CircleCheckBig, FileUser } from "lucide-react";
+import { Circle, CircleCheckBig } from "lucide-react";
 
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
@@ -38,14 +38,14 @@ const statusClassByCode: Record<MyFighter["status"], string> = {
 type FighterBadgeCardProps = {
   fighter: MyFighter;
   isSelected: boolean;
-  onDetails: (fighterId: number) => void;
+  onOpenWizard: (fighterId: number) => void;
   onToggleSelected?: (fighterId: number) => void;
 };
 
 export const FighterBadgeCard = ({
   fighter,
   isSelected,
-  onDetails,
+  onOpenWizard,
   onToggleSelected,
 }: FighterBadgeCardProps) => {
   const displayName = parseDisplayName(fighter.characterDescription, fighter.slug, fighter.id);
@@ -75,24 +75,14 @@ export const FighterBadgeCard = ({
                 {isSelected ? <CircleCheckBig className="size-4" /> : <Circle className="size-4" />}
               </Button>
             ) : null}
-            <Button
-              aria-label="View fighter details"
-              className="px-2"
-              onClick={() => onDetails(fighter.id)}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              <FileUser className="size-4" />
-            </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent className="p-0">
         <button
-          aria-label={`Open details for ${displayName}`}
+          aria-label={`Open wizard for ${displayName}`}
           className="w-full text-left"
-          onClick={() => onDetails(fighter.id)}
+          onClick={() => onOpenWizard(fighter.id)}
           type="button"
         >
           <div className="grid min-h-44 grid-cols-[210px_1fr]">

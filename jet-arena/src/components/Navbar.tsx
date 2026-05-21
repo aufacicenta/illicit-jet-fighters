@@ -37,9 +37,12 @@ export const Navbar = () => {
   return (
     <nav className="border-b border-border">
       <div className="mx-auto flex w-full max-w-6xl flex-col">
-        <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-3 pb-3 max-h-[100px]">
+        <div className="grid max-h-[100px] w-full grid-cols-[1fr_auto_1fr] items-center gap-3 pb-3">
           <div aria-hidden />
-          <Link className="justify-self-center block pt-4" to={routes.terminalFighters()}>
+          <Link
+            className="relative z-10 block justify-self-center pt-4"
+            to={routes.terminalFighters()}
+          >
             <img alt="Illicit Jet Fighters" className="w-full max-w-[280px]" src="/ijf-logo.svg" />
           </Link>
           <div aria-hidden className="justify-self-end" />
