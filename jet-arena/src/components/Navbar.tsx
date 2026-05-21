@@ -5,6 +5,9 @@ import { useNavbarBreadcrumbContext } from "../context/NavbarBreadcrumb/useNavba
 import { routes } from "../hooks/useRoutes";
 
 const getBaseBreadcrumb = (pathname: string) => {
+  if (matchPath(routes.broadcast(":id"), pathname)) {
+    return "Broadcast / Live Match";
+  }
   if (matchPath(routes.fighterWizard(":id"), pathname)) {
     return "Pilot Intake Terminal";
   }
@@ -34,9 +37,9 @@ export const Navbar = () => {
   return (
     <nav className="border-b border-border">
       <div className="mx-auto flex w-full max-w-6xl flex-col">
-        <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-3 pb-3">
+        <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-3 pb-3 max-h-[100px]">
           <div aria-hidden />
-          <Link className="justify-self-center" to={routes.terminalFighters()}>
+          <Link className="justify-self-center block pt-4" to={routes.terminalFighters()}>
             <img alt="Illicit Jet Fighters" className="w-full max-w-[280px]" src="/ijf-logo.svg" />
           </Link>
           <div aria-hidden className="justify-self-end" />

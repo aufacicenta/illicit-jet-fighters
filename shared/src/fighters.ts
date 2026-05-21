@@ -31,6 +31,20 @@ export const myFightersResponseSchema = z.object({
   fighters: z.array(myFighterSchema),
 });
 
+export const fighterAgentVersionSchema = z.object({
+  id: z.string().uuid(),
+  fighterId: z.number().int().positive(),
+  versionNumber: z.number().int().positive(),
+  model: z.string().nullable(),
+  createdAt: z.string().datetime(),
+});
+
+export const fighterAgentVersionsResponseSchema = z.object({
+  versions: z.array(fighterAgentVersionSchema),
+});
+
 export type FighterSectionStatus = z.infer<typeof fighterSectionStatusSchema>;
 export type MyFighter = z.infer<typeof myFighterSchema>;
 export type MyFightersResponse = z.infer<typeof myFightersResponseSchema>;
+export type FighterAgentVersion = z.infer<typeof fighterAgentVersionSchema>;
+export type FighterAgentVersionsResponse = z.infer<typeof fighterAgentVersionsResponseSchema>;

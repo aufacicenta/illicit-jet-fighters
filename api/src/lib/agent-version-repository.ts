@@ -120,3 +120,60 @@ export const getLatestFighterAgentVersionForHash = async ({
 
   return rows[0] ?? null;
 };
+
+export const getFighterAgentVersionByIdForOwnerAndFighter = async ({
+  id,
+  fighterId,
+  userId,
+}: {
+  id: string;
+  fighterId: number;
+  userId: string;
+}): Promise<FighterAgentVersion | null> => {
+  const rows = await db
+    .select({
+      id: fighterAgentVersions.id,
+      fighterId: fighterAgentVersions.fighterId,
+      userId: fighterAgentVersions.userId,
+      versionNumber: fighterAgentVersions.versionNumber,
+      contentHash: fighterAgentVersions.contentHash,
+      objectKey: fighterAgentVersions.objectKey,
+      model: fighterAgentVersions.model,
+      createdAt: fighterAgentVersions.createdAt,
+    })
+    .from(fighterAgentVersions)
+    .where(
+      and(
+        eq(fighterAgentVersions.id, id),
+        eq(fighterAgentVersions.fighterId, fighterId),
+        eq(fighterAgentVersions.userId, userId),
+      ),
+    )
+    .limit(1);
+
+  return rows[0] ?? null;
+};
+
+export const listFighterAgentVersionsForOwnerAndFighter = async ({
+  fighterId,
+  userId,
+}: {
+  fighterId: number;
+  userId: string;
+}): Promise<FighterAgentVersion[]> =>
+  db
+    .select({
+      id: fighterAgentVersions.id,
+      fighterId: fighterAgentVersions.fighterId,
+      userId: fighterAgentVersions.userId,
+      versionNumber: fighterAgentVersions.versionNumber,
+      contentHash: fighterAgentVersions.contentHash,
+      objectKey: fighterAgentVersions.objectKey,
+      model: fighterAgentVersions.model,
+      createdAt: fighterAgentVersions.createdAt,
+    })
+    .from(fighterAgentVersions)
+    .where(
+      and(eq(fighterAgentVersions.fighterId, fighterId), eq(fighterAgentVersions.userId, userId)),
+    )
+    .orderBy(desc(fighterAgentVersions.versionNumber));

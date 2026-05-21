@@ -1,11 +1,14 @@
-import type { MyFightersResponse } from "@ijf/shared";
+import type { FighterAgentVersionsResponse, MyFightersResponse } from "@ijf/shared";
 import { Elysia } from "elysia";
 
+import { listFighterAgentVersionsForOwnerAndFighter } from "../../lib/agent-version-repository";
 import {
   createFighterForUser,
   ensureFighterForUser,
   fighterKeyFromId,
+  getOwnedFighter,
   listOwnedFighters,
+  parseFighterIdParam,
 } from "../../lib/fighter-access";
 import {
   bindPipelineTenant,
@@ -61,4 +64,31 @@ export const fighterSessionRoutes = new Elysia({ prefix: "/fighters" })
     return {
       fighters: hydrated,
     } satisfies MyFightersResponse;
+  })
+  .get("/:id/agent-versions", async ({ params, request, headers, status }) => {
+    const auth = await requireBearerAuth(request, headers);
+    const fighterId = parseFighterIdParam(params.id);
+    if (!fighterId) {
+      return status(400, "Invalid fighter id.");
+    }
+
+    const ownedFighter = await getOwnedFighter(fighterId, auth.userId);
+    if (!ownedFighter) {
+      return status(404, "Fighter not found.");
+    }
+
+    const versions = await listFighterAgentVersionsForOwnerAndFighter({
+      fighterId,
+      userId: auth.userId,
+    });
+
+    return {
+      versions: versions.map((version) => ({
+        id: version.id,
+        fighterId: version.fighterId,
+        versionNumber: version.versionNumber,
+        model: version.model,
+        createdAt: version.createdAt.toISOString(),
+      })),
+    } satisfies FighterAgentVersionsResponse;
   });

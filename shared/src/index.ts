@@ -1,5 +1,11 @@
-export { myFightersResponseSchema, pipelineStartSchema } from "./fighters";
+export {
+  fighterAgentVersionsResponseSchema,
+  myFightersResponseSchema,
+  pipelineStartSchema,
+} from "./fighters";
 export type {
+  FighterAgentVersion,
+  FighterAgentVersionsResponse,
   FighterSectionStatus,
   MyFighter,
   MyFightersResponse,

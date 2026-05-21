@@ -1,4 +1,4 @@
-import type { MyFighter } from "@ijf/shared";
+import type { FighterAgentVersion, MyFighter } from "@ijf/shared";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -6,8 +6,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
 import { routes } from "../../hooks/useRoutes";
-import { fetchMyFighters, simulationStartPost } from "../../lib/api";
+import { fetchFighterAgentVersions, fetchMyFighters, simulationStartPost } from "../../lib/api";
 import { cn } from "../../lib/utils";
 
 type LineupSlot = {
@@ -20,6 +27,8 @@ type LineupSlot = {
   agentVersionId: string | null;
 };
 
+const LATEST_AGENT_VERSION_VALUE = "__latest__";
+
 const parseDisplayName = (characterDescription: string | null, slug: string, id: number) => {
   if (characterDescription) {
     const nameMatch = characterDescription.match(/^#\s+(.+)$/m);
@@ -30,6 +39,12 @@ const parseDisplayName = (characterDescription: string | null, slug: string, id:
   }
 
   return slug.length > 0 ? slug : `Fighter ${id}`;
+};
+
+const formatAgentVersionOption = (version: FighterAgentVersion) => {
+  const createdAt = new Date(version.createdAt).toLocaleDateString();
+  const model = version.model ? ` - ${version.model}` : "";
+  return `v${version.versionNumber}${model} (${createdAt})`;
 };
 
 const statusLabelByCode: Record<MyFighter["status"], string> = {
@@ -51,6 +66,9 @@ const statusClassByCode: Record<MyFighter["status"], string> = {
 export const TerminalSimulationPage = () => {
   const navigate = useNavigate();
   const [fighters, setFighters] = useState<MyFighter[]>([]);
+  const [fighterVersionsById, setFighterVersionsById] = useState<
+    Record<number, FighterAgentVersion[]>
+  >({});
   const [lineupSlots, setLineupSlots] = useState<LineupSlot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -60,9 +78,22 @@ export const TerminalSimulationPage = () => {
   const loadFighters = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null);
+    setFighterVersionsById({});
     try {
       const response = await fetchMyFighters();
       setFighters(response.fighters);
+
+      const versionEntries = await Promise.all(
+        response.fighters.map(async (fighter) => {
+          try {
+            const versionResponse = await fetchFighterAgentVersions(fighter.id);
+            return [fighter.id, versionResponse.versions] as const;
+          } catch {
+            return [fighter.id, []] as const;
+          }
+        }),
+      );
+      setFighterVersionsById(Object.fromEntries(versionEntries));
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Unable to load fighter roster.");
     } finally {
@@ -122,6 +153,15 @@ export const TerminalSimulationPage = () => {
       next.splice(toIndex, 0, slot);
       return next;
     });
+  };
+
+  const updateSlotAgentVersion = (slotId: string, nextValue: string) => {
+    const nextAgentVersionId = nextValue === LATEST_AGENT_VERSION_VALUE ? null : nextValue;
+    setLineupSlots((current) =>
+      current.map((slot) =>
+        slot.id === slotId ? { ...slot, agentVersionId: nextAgentVersionId } : slot,
+      ),
+    );
   };
 
   const startSimulation = async () => {
@@ -268,6 +308,7 @@ export const TerminalSimulationPage = () => {
               if (!fighter) {
                 return null;
               }
+              const fighterVersions = fighterVersionsById[slot.fighterId] ?? [];
 
               const displayName = parseDisplayName(
                 fighter.characterDescription,
@@ -285,9 +326,27 @@ export const TerminalSimulationPage = () => {
                       <p className="text-sm font-semibold tracking-[0.06em] uppercase">
                         {displayName}
                       </p>
-                      <p className="text-[10px] tracking-widest text-muted-foreground uppercase">
-                        Agent version: latest (phase 1)
-                      </p>
+                      <div className="space-y-1">
+                        <p className="text-[10px] tracking-widest text-muted-foreground uppercase">
+                          Agent version
+                        </p>
+                        <Select
+                          onValueChange={(nextValue) => updateSlotAgentVersion(slot.id, nextValue)}
+                          value={slot.agentVersionId ?? LATEST_AGENT_VERSION_VALUE}
+                        >
+                          <SelectTrigger className="h-8 min-w-52 text-xs">
+                            <SelectValue placeholder="Select agent version" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={LATEST_AGENT_VERSION_VALUE}>Latest</SelectItem>
+                            {fighterVersions.map((version) => (
+                              <SelectItem key={version.id} value={version.id}>
+                                {formatAgentVersionOption(version)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <Button

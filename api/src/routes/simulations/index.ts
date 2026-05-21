@@ -8,6 +8,7 @@ import {
   getReplayForBroadcast,
   getSimulationDetails,
   getSimulationStatusForBroadcast,
+  SimulationStartInputError,
   startSimulationForRoster,
 } from "../../lib/simulation-orchestrator";
 
@@ -151,6 +152,17 @@ export const simulationRoutes = new Elysia({ prefix: "/simulations" })
           status: summary.status,
         };
       } catch (error) {
+        if (error instanceof SimulationStartInputError) {
+          logger.warn("simulation start rejected", {
+            path: "/simulations",
+            correlationId,
+            fighterIds,
+            seed,
+            error: error.message,
+          });
+          return status(error.statusCode, error.message);
+        }
+
         logger.error("simulation start endpoint failed", {
           path: "/simulations",
           correlationId,

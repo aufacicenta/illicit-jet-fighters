@@ -3,7 +3,10 @@ import { createHash } from "node:crypto";
 import type { BroadcastMessage, ReplayFrame } from "@ijf/shared";
 import { simulationManager } from "@ijf/simulator";
 
-import { getLatestFighterAgentVersionForHash } from "./agent-version-repository";
+import {
+  getFighterAgentVersionByIdForOwnerAndFighter,
+  getLatestFighterAgentVersionForHash,
+} from "./agent-version-repository";
 import { bindPipelineTenant, serializeClientPipelineState } from "./pipeline-runner";
 import { fighterAgentScriptObjectKey, getObjectBuffer } from "./r2";
 import { readReplayFramesArtifact, writeSimulationArtifacts } from "./simulation-artifacts";
@@ -38,6 +41,16 @@ type ActiveSimulation = {
   isFinalized: boolean;
 };
 
+export class SimulationStartInputError extends Error {
+  readonly statusCode: number;
+
+  constructor(message: string, statusCode = 400) {
+    super(message);
+    this.name = "SimulationStartInputError";
+    this.statusCode = statusCode;
+  }
+}
+
 const activeByBroadcastId = new Map<string, ActiveSimulation>();
 
 const FALLBACK_AGENT_CODE = `
@@ -55,12 +68,51 @@ const resolvePlayerFromSources = async ({
   fighterId,
   fighterKey,
   playerId,
+  requestedAgentVersionId,
 }: {
   userId: string;
   fighterId: number;
   fighterKey: string;
   playerId: string;
+  requestedAgentVersionId?: string | null;
 }): Promise<ResolvedSimulationPlayer> => {
+  if (requestedAgentVersionId) {
+    const selectedVersion = await getFighterAgentVersionByIdForOwnerAndFighter({
+      id: requestedAgentVersionId,
+      fighterId,
+      userId,
+    });
+    if (!selectedVersion) {
+      throw new SimulationStartInputError(
+        `Selected agent version is invalid for fighter ${fighterId}.`,
+      );
+    }
+
+    const versionBuffer = await getObjectBuffer(selectedVersion.objectKey);
+    if (!versionBuffer) {
+      throw new SimulationStartInputError(
+        `Selected agent version artifact is missing for fighter ${fighterId}.`,
+      );
+    }
+
+    const versionCode = versionBuffer.toString("utf8");
+    if (versionCode.trim().length === 0) {
+      throw new SimulationStartInputError(
+        `Selected agent version is empty for fighter ${fighterId}.`,
+      );
+    }
+
+    return {
+      fighterId,
+      id: playerId,
+      code: versionCode,
+      source: "pipeline",
+      objectKey: selectedVersion.objectKey,
+      hash: hashContent(versionCode),
+      agentVersionId: selectedVersion.id,
+    };
+  }
+
   const agentScriptKey = fighterAgentScriptObjectKey(userId, fighterId);
   const r2Script = await getObjectBuffer(agentScriptKey);
   if (r2Script) {
@@ -213,13 +265,14 @@ export const startSimulationForRoster = async ({
   const resolvedSeed = Number.isFinite(seed) ? Number(seed) : Date.now();
   const broadcastId = `${fighters[0]!.fighterId}-${crypto.randomUUID()}`;
   const players = await Promise.all(
-    fighters.map(async ({ fighterId, fighterKey, ownerUserId }, index) => {
+    fighters.map(async ({ fighterId, fighterKey, ownerUserId, agentVersionId }, index) => {
       bindPipelineTenant(fighterKey, { userId: ownerUserId, fighterId });
       return resolvePlayerFromSources({
         userId: ownerUserId,
         fighterId,
         fighterKey,
         playerId: `jet-fighter-${fighterKey}-slot-${index}`,
+        requestedAgentVersionId: agentVersionId ?? null,
       });
     }),
   );
