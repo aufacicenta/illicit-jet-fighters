@@ -37,7 +37,7 @@ export const Navbar = () => {
         <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-3 pb-3">
           <div aria-hidden />
           <Link className="justify-self-center" to={routes.terminalFighters()}>
-            <img alt="Illicit Jet Fighters" className="w-full max-w-[280px]" src="/ijf-1.png" />
+            <img alt="Illicit Jet Fighters" className="w-full max-w-[280px]" src="/ijf-logo.svg" />
           </Link>
           <div aria-hidden className="justify-self-end" />
         </div>
