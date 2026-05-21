@@ -41,3 +41,13 @@ export const generatePipelineAgentCode = (fighterId: number) =>
   post<{ status: "started" }>(apiRoutes.pipelineAgentCode, {
     id: fighterId,
   });
+
+export const generatePipelineSpritesheetImage = (fighterId: number) =>
+  post<{ status: "started" }>(apiRoutes.pipelineSpritesheetImage, {
+    id: fighterId,
+  });
+
+export const generatePipelineStrikecraftSpriteImage = (fighterId: number) =>
+  post<{ status: "started" }>(apiRoutes.pipelineStrikecraftSpriteImage, {
+    id: fighterId,
+  });

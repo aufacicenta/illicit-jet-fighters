@@ -1,3 +1,4 @@
+import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { useWizardContext } from "../../../context/Wizard/useWizardContext";
@@ -5,9 +6,20 @@ import { SectionStatusBadge, wizardCardHeaderClassName } from "./SectionStatusBa
 import { WizardCardTitle } from "./WizardCardTitle";
 
 export const StrikecraftSpriteSection = () => {
-  const { outputs, sectionStatuses, activeSectionId, setActiveSection } = useWizardContext();
+  const {
+    outputs,
+    sectionStatuses,
+    activeSectionId,
+    setActiveSection,
+    requestRegenerateStrikecraftSpriteImage,
+    errorMessage,
+  } = useWizardContext();
   const imageOutput = outputs["strikecraft-sprite-image"];
   const imageStatus = sectionStatuses["strikecraft-sprite-image"];
+  const hasStrikecraftSpritePrompt = Boolean(outputs["strikecraft-sprite-prompt"]?.content);
+  const isRetryDisabled =
+    imageStatus === "locked" || imageStatus === "generating" || !hasStrikecraftSpritePrompt;
+  const actionLabel = imageStatus === "error" ? "Retry" : "Regenerate";
 
   return (
     <Card
@@ -18,13 +30,26 @@ export const StrikecraftSpriteSection = () => {
         className={`flex flex-row items-center justify-between gap-2 ${wizardCardHeaderClassName}`}
       >
         <WizardCardTitle>Strikecraft Top Sprite</WizardCardTitle>
-        <SectionStatusBadge status={imageStatus} />
+        <div className="flex items-center gap-2">
+          <Button
+            disabled={isRetryDisabled}
+            onClick={(event) => {
+              event.stopPropagation();
+              void requestRegenerateStrikecraftSpriteImage();
+            }}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            {imageStatus === "generating" ? "Regenerating..." : actionLabel}
+          </Button>
+          <SectionStatusBadge status={imageStatus} />
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {imageStatus === "generating" ? (
           <div className="space-y-2">
             <Skeleton className="h-[220px] w-full" />
-            <Skeleton className="h-4 w-4/12" />
           </div>
         ) : imageOutput ? (
           <img
@@ -32,6 +57,10 @@ export const StrikecraftSpriteSection = () => {
             className="max-h-[360px] w-full rounded-sm border border-border bg-background object-contain"
             src={imageOutput.assetUrl ?? imageOutput.content}
           />
+        ) : imageStatus === "error" ? (
+          <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
+            {errorMessage ?? "Strikecraft sprite generation failed. Retry to generate again."}
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground">
             Strikecraft top-down sprite will appear here after continuation starts.

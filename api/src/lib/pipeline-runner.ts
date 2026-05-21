@@ -20,7 +20,8 @@ import {
   generateStrikecraftSpriteImage,
   generateStrikecraftSpritePrompt,
 } from "./generate";
-import { decodeImagePayload, extensionForMime } from "./image-payload";
+import { decodeImagePayload } from "./image-payload";
+import { normalizeForStoragePng } from "./image-processing";
 import { withFighterContext as withContext } from "./log-context";
 import { logger } from "./logger";
 import type { SectionStatus } from "./pipeline-status";
@@ -498,21 +499,29 @@ const emitSectionError = (
 
 const commitImageAsset = async ({
   fighterKey,
+  sectionId,
   mimeTypeHint,
   imageUrl,
   objectKeyBuilder,
+  requireTransparentBackground,
 }: {
   fighterKey: string;
+  sectionId: SectionId;
   mimeTypeHint: string;
   imageUrl: string;
   objectKeyBuilder: (userId: string, fighterId: number, extension: string) => string;
+  requireTransparentBackground: boolean;
 }): Promise<{ objectKey: string; signedUrl: string }> => {
   const tenant = requireTenant(fighterKey);
-  const { buffer, mimeType } = await decodeImagePayload(imageUrl, mimeTypeHint);
-  const resolvedMime = mimeType || mimeTypeHint || "image/png";
-  const extension = extensionForMime(resolvedMime);
+  const { buffer } = await decodeImagePayload(imageUrl, mimeTypeHint);
+  const normalized = await normalizeForStoragePng({
+    sourceBuffer: buffer,
+    sectionLabel: sectionId,
+    requireTransparentBackground,
+  });
+  const extension = "png";
   const objectKey = objectKeyBuilder(tenant.userId, tenant.fighterId, extension);
-  await putObject(objectKey, buffer, resolvedMime);
+  await putObject(objectKey, normalized.buffer, normalized.mimeType);
   const signedUrl = await getSignedReadUrl(objectKey);
   return { objectKey, signedUrl };
 };
@@ -683,33 +692,79 @@ const runImageSectionStep = async ({
   const tenant = tenantByFighter.get(fighterKey);
   const state = getState(fighterKey, correlationId);
   const imageStartedAt = Date.now();
+  const requireTransparentBackground =
+    sectionId === "spritesheet-image" || sectionId === "strikecraft-sprite-image";
+  const maxAttempts = requireTransparentBackground ? 2 : 1;
   markSectionStarted(state, fighterKey, sectionId);
 
-  const image = await generator(prompt);
-
   try {
-    const { objectKey, signedUrl } = await commitImageAsset({
-      fighterKey,
-      imageUrl: image.imageBase64,
-      mimeTypeHint: image.mimeType,
-      objectKeyBuilder,
-    });
+    let resolvedImage: {
+      imageBase64: string;
+      mimeType: string;
+      model: string;
+    } | null = null;
+    let resolvedObjectKey = "";
+    let resolvedSignedUrl = "";
+    let lastAttemptError: unknown;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      const effectivePrompt =
+        requireTransparentBackground && attempt > 1
+          ? `${prompt}
+
+CRITICAL TECHNICAL OUTPUT REQUIREMENTS:
+- Return a TRUE alpha-channel PNG (RGBA), not a painted checkerboard.
+- Every background pixel must have alpha=0.
+- Do not draw gray/white square patterns to simulate transparency.
+- Keep all non-subject pixels fully transparent.`
+          : prompt;
+
+      try {
+        const image = await generator(effectivePrompt);
+        const committed = await commitImageAsset({
+          fighterKey,
+          sectionId,
+          imageUrl: image.imageBase64,
+          mimeTypeHint: image.mimeType,
+          objectKeyBuilder,
+          requireTransparentBackground,
+        });
+        resolvedImage = image;
+        resolvedObjectKey = committed.objectKey;
+        resolvedSignedUrl = committed.signedUrl;
+        break;
+      } catch (error) {
+        lastAttemptError = error;
+        logger.warn("pipeline image generation attempt failed", {
+          ...withContext(fighterKey, correlationId),
+          sectionId,
+          attempt,
+          maxAttempts,
+          error: getErrorMessage(error),
+        });
+      }
+    }
+
+    if (!resolvedImage) {
+      throw lastAttemptError ?? new Error(`${sectionId} image generation failed.`);
+    }
+
     const output = setOutput(
       fighterKey,
       sectionId,
-      objectKey,
-      image.model,
-      image.mimeType,
+      resolvedObjectKey,
+      resolvedImage.model,
+      "image/png",
       correlationId,
-      signedUrl,
+      resolvedSignedUrl,
     );
     await broadcastSectionComplete(fighterKey, sectionId, output);
     logger.info("pipeline section completed", {
       ...withContext(fighterKey, correlationId),
       sectionId,
       durationMs: Date.now() - imageStartedAt,
-      model: image.model,
-      mimeType: image.mimeType,
+      model: resolvedImage.model,
+      mimeType: "image/png",
     });
 
     if (tenant) {
@@ -991,6 +1046,126 @@ export const generateAgentCodeFromCharacterDescription = async (
   });
 };
 
+export const generateSpritesheetImageFromPrompt = async (
+  fighterKey: string,
+  correlationId?: string,
+) => {
+  requireTenant(fighterKey);
+
+  const startedAt = Date.now();
+  const state = getState(fighterKey, correlationId);
+  const prompt = state.outputs["spritesheet-prompt"]?.content?.trim();
+  logger.info("pipeline spritesheet-image regeneration requested", {
+    ...withContext(fighterKey, correlationId),
+    promptLength: prompt?.length ?? 0,
+  });
+
+  if (!prompt) {
+    const error = new Error(
+      "Spritesheet prompt is required before regenerating spritesheet image.",
+    );
+    logger.error("pipeline spritesheet-image regeneration failed", {
+      ...withContext(fighterKey, correlationId),
+      durationMs: Date.now() - startedAt,
+      error: error.message,
+    });
+    emitSectionError(fighterKey, "spritesheet-image", error, correlationId);
+    return;
+  }
+
+  state.gateMessage = null;
+  state.lastErrorSectionId = null;
+  const tenant = tenantByFighter.get(fighterKey);
+
+  try {
+    await runImageSectionStep({
+      fighterKey,
+      sectionId: "spritesheet-image",
+      prompt,
+      correlationId,
+      objectKeyBuilder: spritesheetImageObjectKey,
+      generator: generateSpritesheetImage,
+    });
+
+    if (tenant) {
+      await syncPipelineState(fighterKey);
+    }
+  } catch (error) {
+    logger.error("pipeline spritesheet-image regeneration failed", {
+      ...withContext(fighterKey, correlationId),
+      durationMs: Date.now() - startedAt,
+      error: getErrorMessage(error),
+    });
+    emitSectionError(fighterKey, "spritesheet-image", error, correlationId);
+    return;
+  }
+
+  logger.info("pipeline spritesheet-image regeneration completed", {
+    ...withContext(fighterKey, correlationId),
+    durationMs: Date.now() - startedAt,
+  });
+};
+
+export const generateStrikecraftSpriteImageFromPrompt = async (
+  fighterKey: string,
+  correlationId?: string,
+) => {
+  requireTenant(fighterKey);
+
+  const startedAt = Date.now();
+  const state = getState(fighterKey, correlationId);
+  const prompt = state.outputs["strikecraft-sprite-prompt"]?.content?.trim();
+  logger.info("pipeline strikecraft-sprite-image regeneration requested", {
+    ...withContext(fighterKey, correlationId),
+    promptLength: prompt?.length ?? 0,
+  });
+
+  if (!prompt) {
+    const error = new Error(
+      "Strikecraft sprite prompt is required before regenerating strikecraft sprite image.",
+    );
+    logger.error("pipeline strikecraft-sprite-image regeneration failed", {
+      ...withContext(fighterKey, correlationId),
+      durationMs: Date.now() - startedAt,
+      error: error.message,
+    });
+    emitSectionError(fighterKey, "strikecraft-sprite-image", error, correlationId);
+    return;
+  }
+
+  state.gateMessage = null;
+  state.lastErrorSectionId = null;
+  const tenant = tenantByFighter.get(fighterKey);
+
+  try {
+    await runImageSectionStep({
+      fighterKey,
+      sectionId: "strikecraft-sprite-image",
+      prompt,
+      correlationId,
+      objectKeyBuilder: strikecraftSpriteObjectKey,
+      generator: generateStrikecraftSpriteImage,
+    });
+
+    if (tenant) {
+      await syncPipelineState(fighterKey);
+    }
+  } catch (error) {
+    logger.error("pipeline strikecraft-sprite-image regeneration failed", {
+      ...withContext(fighterKey, correlationId),
+      durationMs: Date.now() - startedAt,
+      error: getErrorMessage(error),
+    });
+    emitSectionError(fighterKey, "strikecraft-sprite-image", error, correlationId);
+    return;
+  }
+
+  logger.info("pipeline strikecraft-sprite-image regeneration completed", {
+    ...withContext(fighterKey, correlationId),
+    durationMs: Date.now() - startedAt,
+  });
+};
+
 export const continuePipeline = async (fighterKey: string, correlationId?: string) => {
   logger.info("pipeline continue requested", withContext(fighterKey, correlationId));
   requireTenant(fighterKey);
@@ -1106,9 +1281,11 @@ export const refineSection = async (
       const generated = await generateSpecsheetImage(message);
       const committed = await commitImageAsset({
         fighterKey,
+        sectionId,
         imageUrl: generated.imageBase64,
         mimeTypeHint: generated.mimeType,
         objectKeyBuilder: imageObjectKeyBuilders["specsheet-image"],
+        requireTransparentBackground: false,
       });
 
       const outputRecord = setOutput(
@@ -1116,7 +1293,7 @@ export const refineSection = async (
         sectionId,
         committed.objectKey,
         generated.model,
-        generated.mimeType,
+        "image/png",
         correlationId,
         committed.signedUrl,
       );
@@ -1126,7 +1303,7 @@ export const refineSection = async (
         ...withContext(fighterKey, correlationId),
         sectionId,
         model: generated.model,
-        mimeType: generated.mimeType,
+        mimeType: "image/png",
       });
     } else {
       throw new Error(`Refine is not supported for section "${sectionId}".`);
@@ -1201,16 +1378,19 @@ export const editSection = async (
       const objectKeyBuilder = imageObjectKeyBuilders[sectionId];
       const committed = await commitImageAsset({
         fighterKey,
+        sectionId,
         imageUrl: content,
         mimeTypeHint: mimeType ?? "image/png",
         objectKeyBuilder,
+        requireTransparentBackground:
+          sectionId === "spritesheet-image" || sectionId === "strikecraft-sprite-image",
       });
       const outputRecord = setOutput(
         fighterKey,
         sectionId,
         committed.objectKey,
         model,
-        mimeType ?? "image/png",
+        "image/png",
         correlationId,
         committed.signedUrl,
       );

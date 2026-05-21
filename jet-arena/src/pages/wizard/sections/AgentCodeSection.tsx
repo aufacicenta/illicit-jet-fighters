@@ -1,3 +1,7 @@
+import "highlight.js/styles/github-dark.css";
+
+import hljs from "highlight.js/lib/core";
+import javascript from "highlight.js/lib/languages/javascript";
 import { useEffect, useRef } from "react";
 
 import { Button } from "../../../components/ui/button";
@@ -7,6 +11,8 @@ import { Skeleton } from "../../../components/ui/skeleton";
 import { useWizardContext } from "../../../context/Wizard/useWizardContext";
 import { SectionStatusBadge, wizardCardHeaderClassName } from "./SectionStatusBadge";
 import { WizardCardTitle } from "./WizardCardTitle";
+
+hljs.registerLanguage("javascript", javascript);
 
 type AgentCodeSectionProps = {
   showRegenerateButton?: boolean;
@@ -26,6 +32,7 @@ export const AgentCodeSection = ({ showRegenerateButton = false }: AgentCodeSect
   const isRegenerateDisabled =
     status === "locked" || status === "generating" || !hasCharacterDescription;
   const codeContainerRef = useRef<HTMLPreElement | null>(null);
+  const codeElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!code) {
@@ -41,6 +48,14 @@ export const AgentCodeSection = ({ showRegenerateButton = false }: AgentCodeSect
     return () => {
       window.cancelAnimationFrame(animationFrameId);
     };
+  }, [code]);
+
+  useEffect(() => {
+    if (!code || !codeElementRef.current) {
+      return;
+    }
+
+    hljs.highlightElement(codeElementRef.current);
   }, [code]);
 
   return (
@@ -83,7 +98,9 @@ export const AgentCodeSection = ({ showRegenerateButton = false }: AgentCodeSect
               className="max-h-[420px] overflow-auto rounded-sm border border-border bg-background p-3 text-xs whitespace-pre-wrap"
               ref={codeContainerRef}
             >
-              {code}
+              <code className="language-javascript" ref={codeElementRef}>
+                {code}
+              </code>
             </pre>
           ) : (
             <p className="text-sm text-muted-foreground">

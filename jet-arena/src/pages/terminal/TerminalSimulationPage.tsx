@@ -230,7 +230,7 @@ export const TerminalSimulationPage = () => {
 
       <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr]">
         <Card className="h-fit">
-          <CardHeader className="pb-3">
+          <CardHeader>
             <CardTitle className="text-sm tracking-[0.08em] uppercase">Fighter Library</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -293,12 +293,12 @@ export const TerminalSimulationPage = () => {
         </Card>
 
         <Card className="h-fit">
-          <CardHeader className="pb-3">
+          <CardHeader>
             <CardTitle className="text-sm tracking-[0.08em] uppercase">Lineup Slots</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {lineupSlots.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="p-4 text-sm text-muted-foreground">
                 Add fighters from the library to create your lineup stack.
               </p>
             ) : null}

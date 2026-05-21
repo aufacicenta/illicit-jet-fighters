@@ -1,3 +1,4 @@
+import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { useWizardContext } from "../../../context/Wizard/useWizardContext";
@@ -5,9 +6,20 @@ import { SectionStatusBadge, wizardCardHeaderClassName } from "./SectionStatusBa
 import { WizardCardTitle } from "./WizardCardTitle";
 
 export const SpritesheetSection = () => {
-  const { outputs, sectionStatuses, activeSectionId, setActiveSection } = useWizardContext();
+  const {
+    outputs,
+    sectionStatuses,
+    activeSectionId,
+    setActiveSection,
+    requestRegenerateSpritesheetImage,
+    errorMessage,
+  } = useWizardContext();
   const imageOutput = outputs["spritesheet-image"];
   const imageStatus = sectionStatuses["spritesheet-image"];
+  const hasSpritesheetPrompt = Boolean(outputs["spritesheet-prompt"]?.content);
+  const isRetryDisabled =
+    imageStatus === "locked" || imageStatus === "generating" || !hasSpritesheetPrompt;
+  const actionLabel = imageStatus === "error" ? "Retry" : "Regenerate";
 
   return (
     <Card
@@ -18,13 +30,26 @@ export const SpritesheetSection = () => {
         className={`flex flex-row items-center justify-between gap-2 ${wizardCardHeaderClassName}`}
       >
         <WizardCardTitle>Character Spritesheet</WizardCardTitle>
-        <SectionStatusBadge status={imageStatus} />
+        <div className="flex items-center gap-2">
+          <Button
+            disabled={isRetryDisabled}
+            onClick={(event) => {
+              event.stopPropagation();
+              void requestRegenerateSpritesheetImage();
+            }}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            {imageStatus === "generating" ? "Regenerating..." : actionLabel}
+          </Button>
+          <SectionStatusBadge status={imageStatus} />
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {imageStatus === "generating" ? (
           <div className="space-y-2">
             <Skeleton className="h-[280px] w-full" />
-            <Skeleton className="h-4 w-3/12" />
           </div>
         ) : imageOutput ? (
           <div
@@ -35,6 +60,10 @@ export const SpritesheetSection = () => {
               backgroundImage: `url(${imageOutput.assetUrl ?? imageOutput.content})`,
             }}
           />
+        ) : imageStatus === "error" ? (
+          <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
+            {errorMessage ?? "Character spritesheet generation failed. Retry to generate again."}
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground">
             Character spritesheet will appear here after continuation starts.

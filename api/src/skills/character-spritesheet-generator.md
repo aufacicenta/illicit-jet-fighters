@@ -15,7 +15,9 @@ Global Style Prompt (should be included at the top of each output):
 Create a single 2D pixel-art sprite sheet PNG with exact canvas size 448x64 (7:1 aspect ratio, not square).
 Use exactly 7 frames in one horizontal row, each frame exactly 64x64, with no gutters, no padding, and no margins.
 Frame coordinates are fixed: idle(0,0,64,64), planning(64,0,64,64), attacking(128,0,64,64), hit-target(192,0,64,64), got-hit(256,0,64,64), low-fuel(320,0,64,64), down(384,0,64,64).
-No transparency outside frame bounds. No anti-aliasing. Pixel-perfect hard edges.
+Transparent background (true alpha channel). Every non-subject pixel must be fully transparent (alpha=0).
+Do not paint checkerboard squares or faux transparency patterns into the image.
+No anti-aliasing. Pixel-perfect hard edges.
 Palette-limited retro style, 16-bit/32-bit era, 3-tone shading per region.
 
 Use this exact output structure:

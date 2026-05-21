@@ -47,6 +47,8 @@ export const apiRoutes = {
   pipelineStart: `${API_BASE}/pipeline/start`,
   pipelineSpecsheet: `${API_BASE}/pipeline/specsheet`,
   pipelineAgentCode: `${API_BASE}/pipeline/agent-code`,
+  pipelineSpritesheetImage: `${API_BASE}/pipeline/spritesheet-image`,
+  pipelineStrikecraftSpriteImage: `${API_BASE}/pipeline/strikecraft-sprite-image`,
   pipelineState: (fighterId: string) =>
     `${API_BASE}/pipeline/${encodeURIComponent(fighterId)}/state`,
   generateCharacterDescription: `${API_BASE}/generate/character-description`,

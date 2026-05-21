@@ -8,6 +8,8 @@ import type { ChatMessage } from "../../lib/api";
 import {
   fetchPipelineState,
   generatePipelineAgentCode,
+  generatePipelineSpritesheetImage,
+  generatePipelineStrikecraftSpriteImage,
   generateSpecsheetImage,
   refineCharacterDescription,
   refineSpecsheetPrompt,
@@ -620,6 +622,58 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     }
   }, [fighterNumericId]);
 
+  const requestRegenerateSpritesheetImage = useCallback(async () => {
+    if (!Number.isInteger(fighterNumericId) || fighterNumericId <= 0) {
+      setErrorMessage("Invalid fighter id for spritesheet regeneration.");
+      return;
+    }
+
+    setErrorMessage(null);
+    setSectionStatuses((current) => ({
+      ...current,
+      "spritesheet-image": "generating",
+    }));
+
+    try {
+      await generatePipelineSpritesheetImage(fighterNumericId);
+    } catch (error) {
+      setSectionStatuses((current) => ({
+        ...current,
+        "spritesheet-image": "error",
+      }));
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to regenerate character spritesheet.",
+      );
+    }
+  }, [fighterNumericId]);
+
+  const requestRegenerateStrikecraftSpriteImage = useCallback(async () => {
+    if (!Number.isInteger(fighterNumericId) || fighterNumericId <= 0) {
+      setErrorMessage("Invalid fighter id for strikecraft sprite regeneration.");
+      return;
+    }
+
+    setErrorMessage(null);
+    setSectionStatuses((current) => ({
+      ...current,
+      "strikecraft-sprite-image": "generating",
+    }));
+
+    try {
+      await generatePipelineStrikecraftSpriteImage(fighterNumericId);
+    } catch (error) {
+      setSectionStatuses((current) => ({
+        ...current,
+        "strikecraft-sprite-image": "error",
+      }));
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to regenerate strikecraft top-down sprite.",
+      );
+    }
+  }, [fighterNumericId]);
+
   const props = useMemo<WizardContextType>(
     () => ({
       fighterId,
@@ -637,6 +691,8 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       submitPrompt,
       requestContinuePipeline,
       requestRegenerateAgentCode,
+      requestRegenerateSpritesheetImage,
+      requestRegenerateStrikecraftSpriteImage,
       saveEditedSection,
     }),
     [
@@ -654,6 +710,8 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       submitPrompt,
       requestContinuePipeline,
       requestRegenerateAgentCode,
+      requestRegenerateSpritesheetImage,
+      requestRegenerateStrikecraftSpriteImage,
       saveEditedSection,
     ],
   );

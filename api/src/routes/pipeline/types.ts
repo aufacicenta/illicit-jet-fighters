@@ -11,6 +11,14 @@ export type PipelineAgentCodeRequest = {
   id: number;
 };
 
+export type PipelineSpritesheetImageRequest = {
+  id: number;
+};
+
+export type PipelineStrikecraftSpriteImageRequest = {
+  id: number;
+};
+
 export type PipelineStartResponse = {
   status: "started";
 };

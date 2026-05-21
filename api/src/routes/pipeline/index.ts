@@ -13,6 +13,8 @@ import {
   bindPipelineTenant,
   generateAgentCodeFromCharacterDescription,
   generateSpecsheetFromCharacterDescription,
+  generateSpritesheetImageFromPrompt,
+  generateStrikecraftSpriteImageFromPrompt,
   serializeClientPipelineState,
   startPipeline,
 } from "../../lib/pipeline-runner";
@@ -20,7 +22,9 @@ import { requireBearerAuth } from "../../lib/require-bearer-auth";
 import type {
   PipelineAgentCodeRequest,
   PipelineSpecsheetRequest,
+  PipelineSpritesheetImageRequest,
   PipelineStartResponse,
+  PipelineStrikecraftSpriteImageRequest,
 } from "./types";
 
 const resolveFighterAccess = async (authUserId: string, rawId: string) => {
@@ -183,6 +187,90 @@ export const pipelineRoutes = new Elysia({ prefix: "/pipeline" })
         .catch((error) => {
           logger.error("pipeline agent-code endpoint async execution failed", {
             path: "/pipeline/agent-code",
+            fighterId: resolution.fighterId,
+            correlationId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+
+      return { status: "started" } satisfies PipelineStartResponse;
+    },
+    {
+      body: t.Object({
+        id: t.Number(),
+      }),
+    },
+  )
+  .post(
+    "/spritesheet-image",
+    async ({ body, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const payload = body as PipelineSpritesheetImageRequest;
+      const resolution = await resolveFighterAccess(auth.userId, String(payload.id));
+      if ("error" in resolution) {
+        return status(404, resolution.error);
+      }
+
+      const correlationId = createCorrelationId("pipeline-spritesheet-image");
+      logger.info("pipeline spritesheet-image endpoint hit", {
+        path: "/pipeline/spritesheet-image",
+        fighterId: resolution.fighterId,
+        correlationId,
+      });
+
+      void generateSpritesheetImageFromPrompt(resolution.fighterKey, correlationId)
+        .then(() => {
+          logger.info("pipeline spritesheet-image endpoint async execution completed", {
+            path: "/pipeline/spritesheet-image",
+            fighterId: resolution.fighterId,
+            correlationId,
+          });
+        })
+        .catch((error) => {
+          logger.error("pipeline spritesheet-image endpoint async execution failed", {
+            path: "/pipeline/spritesheet-image",
+            fighterId: resolution.fighterId,
+            correlationId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+
+      return { status: "started" } satisfies PipelineStartResponse;
+    },
+    {
+      body: t.Object({
+        id: t.Number(),
+      }),
+    },
+  )
+  .post(
+    "/strikecraft-sprite-image",
+    async ({ body, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const payload = body as PipelineStrikecraftSpriteImageRequest;
+      const resolution = await resolveFighterAccess(auth.userId, String(payload.id));
+      if ("error" in resolution) {
+        return status(404, resolution.error);
+      }
+
+      const correlationId = createCorrelationId("pipeline-strikecraft-sprite-image");
+      logger.info("pipeline strikecraft-sprite-image endpoint hit", {
+        path: "/pipeline/strikecraft-sprite-image",
+        fighterId: resolution.fighterId,
+        correlationId,
+      });
+
+      void generateStrikecraftSpriteImageFromPrompt(resolution.fighterKey, correlationId)
+        .then(() => {
+          logger.info("pipeline strikecraft-sprite-image endpoint async execution completed", {
+            path: "/pipeline/strikecraft-sprite-image",
+            fighterId: resolution.fighterId,
+            correlationId,
+          });
+        })
+        .catch((error) => {
+          logger.error("pipeline strikecraft-sprite-image endpoint async execution failed", {
+            path: "/pipeline/strikecraft-sprite-image",
             fighterId: resolution.fighterId,
             correlationId,
             error: error instanceof Error ? error.message : String(error),
