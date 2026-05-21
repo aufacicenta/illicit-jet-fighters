@@ -34,8 +34,20 @@
 
 body {
   margin: 0;
-  background: var(--color-background);
+  background-color: var(--color-background);
+  background-image: url("/fuselage-army-green.png");
+  background-repeat: repeat;
+  background-position: top left;
   color: var(--color-foreground);
+  image-rendering: pixelated;
+}
+
+.app-fuselage-background {
+  background-color: var(--color-background);
+  background-image: url("/fuselage-army-green.png");
+  background-repeat: repeat;
+  background-position: top left;
+  image-rendering: pixelated;
 }
 
 #app {

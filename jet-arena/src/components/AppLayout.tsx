@@ -4,7 +4,7 @@ import { NavbarBreadcrumbContextController } from "../context/NavbarBreadcrumb/N
 import { Navbar } from "./Navbar";
 
 export const AppLayout = () => (
-  <div className="min-h-screen bg-background text-foreground">
+  <div className="app-fuselage-background min-h-screen text-foreground">
     <NavbarBreadcrumbContextController>
       <Navbar />
       <Outlet />
