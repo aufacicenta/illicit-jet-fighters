@@ -31,6 +31,7 @@ import {
   fighterAgentVersionScriptObjectKey,
   getObjectBuffer,
   getSignedReadUrl,
+  objectExists,
   pipelineStateObjectKey,
   putObject,
   specsheetObjectKey,
@@ -98,6 +99,29 @@ const imageObjectKeyBuilders = {
 
 const isImageSection = (sectionId: SectionId): sectionId is keyof typeof imageObjectKeyBuilders =>
   imageSections.has(sectionId);
+
+const getCanonicalAssetObjectKey = (
+  sectionId: SectionId,
+  tenant: PipelineTenant,
+): string | null => {
+  if (sectionId === "spritesheet-manifest") {
+    return spritesheetManifestObjectKey(tenant.userId, tenant.fighterId);
+  }
+  if (isImageSection(sectionId)) {
+    return imageObjectKeyBuilders[sectionId](tenant.userId, tenant.fighterId, "png");
+  }
+  return null;
+};
+
+const getAssetSectionMimeType = (sectionId: SectionId): string | undefined => {
+  if (sectionId === "spritesheet-manifest") {
+    return "application/json";
+  }
+  if (isImageSection(sectionId)) {
+    return "image/png";
+  }
+  return undefined;
+};
 
 const stateByFighter = new Map<string, FighterPipelineState>();
 const tenantByFighter = new Map<string, PipelineTenant>();
@@ -300,6 +324,56 @@ const sanitizeOutputs = async (
   return next;
 };
 
+const reconcileAssetBackedOutputs = async ({
+  outputs,
+  tenant,
+}: {
+  outputs: Partial<Record<SectionId, SectionOutput>>;
+  tenant: PipelineTenant;
+}): Promise<Partial<Record<SectionId, SectionOutput>>> => {
+  const reconciled: Partial<Record<SectionId, SectionOutput>> = { ...outputs };
+
+  for (const sectionId of stepOrder) {
+    if (!assetBackedSections.has(sectionId)) {
+      continue;
+    }
+
+    const currentOutput = reconciled[sectionId];
+    const candidateKeys: string[] = [];
+    if (currentOutput?.content && !currentOutput.content.startsWith("http")) {
+      candidateKeys.push(currentOutput.content);
+    }
+
+    const canonicalKey = getCanonicalAssetObjectKey(sectionId, tenant);
+    if (canonicalKey && !candidateKeys.includes(canonicalKey)) {
+      candidateKeys.push(canonicalKey);
+    }
+
+    let resolvedObjectKey: string | null = null;
+    for (const key of candidateKeys) {
+      if (await objectExists(key)) {
+        resolvedObjectKey = key;
+        break;
+      }
+    }
+
+    if (!resolvedObjectKey) {
+      delete reconciled[sectionId];
+      continue;
+    }
+
+    reconciled[sectionId] = {
+      sectionId,
+      content: resolvedObjectKey,
+      generatedAt: currentOutput?.generatedAt ?? new Date().toISOString(),
+      model: currentOutput?.model ?? "storage-recovered",
+      mimeType: currentOutput?.mimeType ?? getAssetSectionMimeType(sectionId),
+    };
+  }
+
+  return reconciled;
+};
+
 export type ClientPipelineStateSnapshot = {
   sectionStatuses: Record<SectionId, SectionStatus>;
   outputs: Partial<Record<SectionId, SectionOutput>>;
@@ -374,13 +448,19 @@ export const serializeClientPipelineState = async (
     };
   }
 
+  const reconciledOutputs = await reconcileAssetBackedOutputs({
+    outputs: state.outputs,
+    tenant,
+  });
+  state.outputs = reconciledOutputs;
+
   return {
     sectionStatuses: deriveSectionStatuses({
-      outputs: state.outputs,
+      outputs: reconciledOutputs,
       activeSectionIds: state.activeSectionIds,
       lastErrorSectionId: state.lastErrorSectionId,
     }),
-    outputs: await sanitizeOutputs(state.outputs),
+    outputs: await sanitizeOutputs(reconciledOutputs),
     histories: state.histories,
     gateMessage: state.gateMessage,
   };
@@ -471,6 +551,10 @@ export const syncPipelineState = async (fighterKey: string) => {
   try {
     const tenant = tenantByFighter.get(fighterKey);
     if (tenant) {
+      state.outputs = await reconcileAssetBackedOutputs({
+        outputs: state.outputs,
+        tenant,
+      });
       await persistSnapshot(fighterKey, state, tenant);
     }
 

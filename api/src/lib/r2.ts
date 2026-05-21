@@ -3,6 +3,7 @@ import path from "node:path";
 import {
   GetObjectCommand,
   type GetObjectCommandOutput,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -139,6 +140,20 @@ export const getObjectBuffer = async (key: string): Promise<Buffer | null> => {
   }
 
   return Buffer.from(await result.Body.transformToByteArray());
+};
+
+export const objectExists = async (key: string): Promise<boolean> => {
+  try {
+    await getClient().send(
+      new HeadObjectCommand({
+        Bucket: getBucket(),
+        Key: key,
+      }),
+    );
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 export const getSignedReadUrl = async (key: string, expiresInSeconds = 900) => {

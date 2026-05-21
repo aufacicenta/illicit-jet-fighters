@@ -87,7 +87,7 @@ const mergeSyncOutputs = (
   incoming: WizardContextType["outputs"],
   current: WizardContextType["outputs"],
 ): WizardContextType["outputs"] => {
-  const merged = { ...incoming };
+  const merged = { ...current, ...incoming };
 
   for (const sectionId of sectionOrder) {
     if (!merged[sectionId]) {
