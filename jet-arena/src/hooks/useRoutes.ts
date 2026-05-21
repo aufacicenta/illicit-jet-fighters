@@ -30,6 +30,7 @@ export const routes = {
   createFighter: () => `/fighters/new`,
   fighterWizard: (id: string) => `/wizard/fighter/${id}`,
   terminalFighters: () => `/terminal/fighters`,
+  /** Deprecated singular route kept only for backward-compatible redirects. */
   terminalSimulation: () => `/terminal/simulation`,
   login: () => `/login`,
   signup: () => `/signup`,

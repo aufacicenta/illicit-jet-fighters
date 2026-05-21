@@ -44,13 +44,17 @@ export const router = createBrowserRouter([
         element: <TerminalSimulationPage />,
       },
       {
-        path: "/wizard/fighter/:id",
+        path: routes.terminalSimulation(),
+        element: <Navigate replace to={routes.terminalSimulation()} />,
+      },
+      {
+        path: routes.fighterWizard(":id"),
         element: <FighterWizardPage />,
       },
     ],
   },
   {
     path: "*",
-    element: <Navigate replace to="/broadcast/local" />,
+    element: <Navigate replace to={routes.broadcast("local")} />,
   },
 ]);

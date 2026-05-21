@@ -7,7 +7,6 @@ import { useWizardContext } from "../../context/Wizard/useWizardContext";
 import type { SectionId, SectionStatus } from "../../context/Wizard/WizardContext.types";
 import { WizardContextController } from "../../context/Wizard/WizardContextController";
 import { routes } from "../../hooks/useRoutes";
-import { simulationStartPost } from "../../lib/api";
 import { ProgressHud } from "./ProgressHud";
 import { PromptBar } from "./PromptBar";
 import { AgentCodeSection } from "./sections/AgentCodeSection";
@@ -127,7 +126,6 @@ const OriginalBriefingCard = ({ originalBriefing }: { originalBriefing: string |
 
 const WizardLayout = () => {
   const {
-    fighterId,
     sectionStatuses,
     outputs,
     errorMessage,
@@ -139,34 +137,6 @@ const WizardLayout = () => {
     activeSectionId,
   } = useWizardContext();
   const navigate = useNavigate();
-  const [isStartingSimulation, setIsStartingSimulation] = useState(false);
-  const [simulationError, setSimulationError] = useState<string | null>(null);
-
-  const isPipelineComplete = Boolean(outputs["strikecraft-sprite-image"]);
-
-  const startSimulationBroadcast = () => {
-    if (isStartingSimulation) {
-      return;
-    }
-
-    setIsStartingSimulation(true);
-    setSimulationError(null);
-
-    void simulationStartPost({
-      participants: [{ fighterId: Number(fighterId) }],
-    })
-      .then((response) => {
-        navigate(routes.broadcast(response.broadcastId), { replace: true });
-      })
-      .catch((error: unknown) => {
-        setSimulationError(
-          error instanceof Error ? error.message : "Unable to start simulation broadcast.",
-        );
-      })
-      .finally(() => {
-        setIsStartingSimulation(false);
-      });
-  };
   const { setCurrentSectionLabel, clearCurrentSectionLabel } = useNavbarBreadcrumbContext();
   const contentContainerRef = useRef<HTMLDivElement | null>(null);
   const [briefingMinHeightPx, setBriefingMinHeightPx] = useState<number | null>(null);
@@ -199,7 +169,6 @@ const WizardLayout = () => {
     Boolean(outputs["strikecraft-specsheet-image"]) ||
     Boolean(outputs["strikecraft-sprite-image"]);
   const nextPhaseOneSection = getNextSectionForPhase("phase-one", sectionStatuses);
-  const nextPhaseTwoSection = getNextSectionForPhase("phase-two", sectionStatuses);
   const sectionNavItems = showPhaseTwo
     ? [...phaseOneNavItems, ...phaseTwoNavItems]
     : phaseOneNavItems;
@@ -289,7 +258,7 @@ const WizardLayout = () => {
   return (
     <div className="relative">
       <div
-        className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 pb-[130px] md:px-6 md:pb-[120px]"
+        className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 pb-[190px] md:px-6 md:pb-[170px]"
         ref={contentContainerRef}
       >
         {view === "briefing" ? (
@@ -404,8 +373,7 @@ const WizardLayout = () => {
               }
               setActiveSection(nextPhaseOneSection);
             }}
-            // @TODO this will become an action to "deploy the agent" to a simulation
-            onContinuePhaseTwo={() => setActiveSection(nextPhaseTwoSection)}
+            onContinuePhaseTwo={() => navigate(routes.terminalSimulation())}
             sectionStatuses={sectionStatuses}
           />
         </div>
