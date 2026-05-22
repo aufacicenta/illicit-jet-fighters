@@ -14,6 +14,13 @@ export type ServerMessage =
       outputs: Partial<Record<SectionId, SectionOutput>>;
       histories: Partial<Record<SectionId, ChatMessage[]>>;
       gateMessage: string | null;
+    }
+  | {
+      type: "pipeline:cost-update";
+      fighterId: number;
+      totalCostUsd: string;
+      latestRunCorrelationId: string | null;
+      latestRunSectionCosts: Partial<Record<SectionId, string>>;
     };
 
 export type ClientMessage =

@@ -4,6 +4,7 @@ import { Elysia } from "elysia";
 import { env } from "./config/env";
 import { logServerStartup, withLogging } from "./plugins/logging";
 import { broadcastRoutes } from "./routes/broadcasts";
+import { costRoutes } from "./routes/costs";
 import { fighterSessionRoutes } from "./routes/fighters";
 import { generateRoutes } from "./routes/generate";
 import { pipelineRoutes } from "./routes/pipeline";
@@ -17,6 +18,7 @@ const HOST = env.HOST;
 
 const guardedHttp = new Elysia({ name: "guarded-http" })
   .use(fighterSessionRoutes)
+  .use(costRoutes)
   .use(pipelineRoutes)
   .use(simulationRoutes)
   .use(broadcastRoutes)

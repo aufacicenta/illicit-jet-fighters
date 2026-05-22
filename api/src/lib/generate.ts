@@ -1,16 +1,17 @@
+import { sendToFighter } from "../ws/store";
 import { aiModels } from "./ai-models";
-import { insertLlmUsageEvent } from "./llm-usage-repository";
+import { buildFighterCostSnapshot, insertLlmUsageEvent } from "./llm-usage-repository";
 import { logger } from "./logger";
 import { openrouter } from "./openrouter";
 import { skills } from "./skills";
-import type { ChatMessage } from "./types";
+import type { ChatMessage, SectionId } from "./types";
 
 type StreamDeltaHandler = (delta: string) => void;
 type OpenRouterResult<T> = { ok: true; value: T } | { ok: false; error: unknown };
 export type LlmCallContext = {
   userId: string;
   fighterId?: number;
-  sectionId: string;
+  sectionId: SectionId;
   correlationId?: string;
 };
 
@@ -174,27 +175,42 @@ const trackLlmUsage = ({
   const usage = usageOverride ?? extractUsage(payload);
   const generationId = generationIdOverride ?? extractGenerationId(payload);
 
-  void insertLlmUsageEvent({
-    userId: context.userId,
-    fighterId: context.fighterId ?? null,
-    sectionId: context.sectionId,
-    correlationId: context.correlationId,
-    openrouterGenerationId: generationId,
-    model,
-    provider: getProviderFromModel(model),
-    promptTokens: usage?.promptTokens ?? 0,
-    completionTokens: usage?.completionTokens ?? 0,
-    totalTokens: usage?.totalTokens ?? 0,
-    costCredits: usage?.costCredits ?? "0",
-    durationMs: Date.now() - startedAt,
-  }).catch((error) => {
-    logger.warn("llm usage event tracking failed", {
-      model,
-      sectionId: context.sectionId,
-      correlationId: context.correlationId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-  });
+  void (async () => {
+    try {
+      await insertLlmUsageEvent({
+        userId: context.userId,
+        fighterId: context.fighterId ?? null,
+        sectionId: context.sectionId,
+        correlationId: context.correlationId,
+        openrouterGenerationId: generationId,
+        model,
+        provider: getProviderFromModel(model),
+        promptTokens: usage?.promptTokens ?? 0,
+        completionTokens: usage?.completionTokens ?? 0,
+        totalTokens: usage?.totalTokens ?? 0,
+        costCredits: usage?.costCredits ?? "0",
+        durationMs: Date.now() - startedAt,
+      });
+
+      if (context.fighterId !== undefined) {
+        const snapshot = await buildFighterCostSnapshot({
+          userId: context.userId,
+          fighterId: context.fighterId,
+        });
+        sendToFighter(String(context.fighterId), {
+          type: "pipeline:cost-update",
+          ...snapshot,
+        });
+      }
+    } catch (error) {
+      logger.warn("llm usage event tracking failed", {
+        model,
+        sectionId: context.sectionId,
+        correlationId: context.correlationId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  })();
 };
 
 const buildSpecsheetImageDiagnostic = (completion: unknown) => {

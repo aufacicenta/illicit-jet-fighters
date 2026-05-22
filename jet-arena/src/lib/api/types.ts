@@ -37,6 +37,13 @@ export type PipelineStateSnapshot = {
   briefing: string | null;
 };
 
+export type FighterCostSnapshot = {
+  fighterId: number;
+  totalCostUsd: string;
+  latestRunCorrelationId: string | null;
+  latestRunSectionCosts: Partial<Record<ApiSectionId, string>>;
+};
+
 export type SimulationStartResponse = {
   simulationId: string;
   broadcastId: string;

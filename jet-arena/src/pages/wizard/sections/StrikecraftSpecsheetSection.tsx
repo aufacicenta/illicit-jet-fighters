@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { useWizardContext } from "../../../context/Wizard/useWizardContext";
+import { SectionCostBadge } from "./SectionCostBadge";
 import { SectionStatusBadge, wizardCardHeaderClassName } from "./SectionStatusBadge";
 import { WizardCardTitle } from "./WizardCardTitle";
 
@@ -18,7 +19,12 @@ export const StrikecraftSpecsheetSection = () => {
         className={`flex flex-row items-center justify-between gap-2 ${wizardCardHeaderClassName}`}
       >
         <WizardCardTitle>Strikecraft Specsheet</WizardCardTitle>
-        <SectionStatusBadge status={imageStatus} />
+        <div className="flex items-center gap-2">
+          <SectionCostBadge
+            sectionIds={["strikecraft-specsheet-prompt", "strikecraft-specsheet-image"]}
+          />
+          <SectionStatusBadge status={imageStatus} />
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {imageStatus === "generating" ? (

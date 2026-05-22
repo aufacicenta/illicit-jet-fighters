@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Collapsible } from "../../../components/ui/collapsible";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { useWizardContext } from "../../../context/Wizard/useWizardContext";
+import { SectionCostBadge } from "./SectionCostBadge";
 import { SectionStatusBadge, wizardCardHeaderClassName } from "./SectionStatusBadge";
 import { WizardCardTitle } from "./WizardCardTitle";
 
@@ -83,6 +84,7 @@ export const AgentCodeSection = ({ showRegenerateButton = false }: AgentCodeSect
                 {status === "generating" ? "Regenerating..." : "Regenerate"}
               </Button>
             ) : null}
+            <SectionCostBadge sectionIds={["agent-code"]} />
             <SectionStatusBadge status={status} />
           </div>
         </CardHeader>

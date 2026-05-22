@@ -2,6 +2,7 @@ import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { useWizardContext } from "../../../context/Wizard/useWizardContext";
+import { SectionCostBadge } from "./SectionCostBadge";
 import { SectionStatusBadge, wizardCardHeaderClassName } from "./SectionStatusBadge";
 import { WizardCardTitle } from "./WizardCardTitle";
 
@@ -43,6 +44,9 @@ export const StrikecraftSpriteSection = () => {
           >
             {imageStatus === "generating" ? "Regenerating..." : actionLabel}
           </Button>
+          <SectionCostBadge
+            sectionIds={["strikecraft-sprite-prompt", "strikecraft-sprite-image"]}
+          />
           <SectionStatusBadge status={imageStatus} />
         </div>
       </CardHeader>

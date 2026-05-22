@@ -9,6 +9,7 @@ import {
 } from "../../../components/ui/collapsible";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { useWizardContext } from "../../../context/Wizard/useWizardContext";
+import { SectionCostBadge } from "./SectionCostBadge";
 import { SectionStatusBadge, wizardCardHeaderClassName } from "./SectionStatusBadge";
 import { WizardCardTitle } from "./WizardCardTitle";
 
@@ -59,6 +60,7 @@ export const DescriptionSection = () => {
                 </Button>
               </CollapsibleTrigger>
             ) : null}
+            <SectionCostBadge sectionIds={["character-description"]} />
             <SectionStatusBadge status={status} />
           </div>
         </CardHeader>

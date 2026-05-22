@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { useWizardContext } from "../../../context/Wizard/useWizardContext";
+import { SectionCostBadge } from "./SectionCostBadge";
 import {
   resolveSectionStatus,
   SectionStatusBadge,
@@ -24,7 +25,10 @@ export const SpecsheetSection = () => {
       <CardHeader className={`space-y-2 ${wizardCardHeaderClassName}`}>
         <div className="flex items-center justify-between gap-2">
           <WizardCardTitle>Pilot Specsheet</WizardCardTitle>
-          <SectionStatusBadge status={headerStatus} />
+          <div className="flex items-center gap-2">
+            <SectionCostBadge sectionIds={["specsheet-prompt", "specsheet-image"]} />
+            <SectionStatusBadge status={headerStatus} />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">

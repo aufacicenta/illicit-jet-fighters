@@ -16,6 +16,7 @@ import {
   startPipeline,
 } from "../../lib/api";
 import { useAuth } from "../Auth/useAuth";
+import { getWizardCostUpdateEventName } from "../Costs/CostsContext.types";
 import { WizardContext } from "./WizardContext";
 import type {
   SectionId,
@@ -343,106 +344,123 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     });
   }, []);
 
-  const onMessage = useCallback((message: ServerMessage) => {
-    if (message.type === "pipeline:sync") {
-      const mergedOutputs = mergeSyncOutputs(message.outputs, outputsRef.current);
-      const mergedHistories = mergeSyncHistories(
-        message.histories,
-        sectionHistoriesRef.current,
-        mergedOutputs,
-      );
-      const mergedStatuses = mergeSyncStatuses(message.sectionStatuses, mergedOutputs);
+  const onMessage = useCallback(
+    (message: ServerMessage) => {
+      if (message.type === "pipeline:sync") {
+        const mergedOutputs = mergeSyncOutputs(message.outputs, outputsRef.current);
+        const mergedHistories = mergeSyncHistories(
+          message.histories,
+          sectionHistoriesRef.current,
+          mergedOutputs,
+        );
+        const mergedStatuses = mergeSyncStatuses(message.sectionStatuses, mergedOutputs);
 
-      setSectionStatuses(mergedStatuses);
-      setOutputs(mergedOutputs);
-      setSectionHistories(mergedHistories);
-      setGateMessage(message.gateMessage);
-      setActiveSectionId(resolveActiveSection(mergedStatuses, mergedOutputs));
-      setErrorMessage(null);
-      return;
-    }
-
-    if (message.type === "section:start") {
-      setSectionStatuses((current) => ({
-        ...current,
-        [message.sectionId]: "generating",
-      }));
-      if (streamableSectionIds.has(message.sectionId)) {
-        setOutputs((current) => ({
-          ...current,
-          [message.sectionId]: {
-            sectionId: message.sectionId,
-            content: "",
-            generatedAt: new Date().toISOString(),
-            model: current[message.sectionId]?.model ?? "streaming",
-          },
-        }));
+        setSectionStatuses(mergedStatuses);
+        setOutputs(mergedOutputs);
+        setSectionHistories(mergedHistories);
+        setGateMessage(message.gateMessage);
+        setActiveSectionId(resolveActiveSection(mergedStatuses, mergedOutputs));
+        setErrorMessage(null);
+        return;
       }
-      setErrorMessage(null);
-      return;
-    }
 
-    if (message.type === "section:delta") {
-      if (streamableSectionIds.has(message.sectionId) && message.delta.length > 0) {
-        setOutputs((current) => {
-          const previous = current[message.sectionId];
-          return {
+      if (message.type === "section:start") {
+        setSectionStatuses((current) => ({
+          ...current,
+          [message.sectionId]: "generating",
+        }));
+        if (streamableSectionIds.has(message.sectionId)) {
+          setOutputs((current) => ({
             ...current,
             [message.sectionId]: {
               sectionId: message.sectionId,
-              content: `${previous?.content ?? ""}${message.delta}`,
-              generatedAt: previous?.generatedAt ?? new Date().toISOString(),
-              model: previous?.model ?? "streaming",
-              mimeType: previous?.mimeType,
-              assetUrl: previous?.assetUrl,
+              content: "",
+              generatedAt: new Date().toISOString(),
+              model: current[message.sectionId]?.model ?? "streaming",
             },
-          };
-        });
+          }));
+        }
+        setErrorMessage(null);
+        return;
       }
-      return;
-    }
 
-    if (message.type === "section:error") {
-      setSectionStatuses((current) => ({
-        ...current,
-        [message.sectionId]: "error",
-      }));
-      setErrorMessage(message.error);
-      return;
-    }
+      if (message.type === "section:delta") {
+        if (streamableSectionIds.has(message.sectionId) && message.delta.length > 0) {
+          setOutputs((current) => {
+            const previous = current[message.sectionId];
+            return {
+              ...current,
+              [message.sectionId]: {
+                sectionId: message.sectionId,
+                content: `${previous?.content ?? ""}${message.delta}`,
+                generatedAt: previous?.generatedAt ?? new Date().toISOString(),
+                model: previous?.model ?? "streaming",
+                mimeType: previous?.mimeType,
+                assetUrl: previous?.assetUrl,
+              },
+            };
+          });
+        }
+        return;
+      }
 
-    if (message.type === "section:complete") {
-      const completedSection = message.sectionId;
-      const completedSectionIndex = sectionOrder.indexOf(completedSection);
-      const firstNextSection = sectionOrder[completedSectionIndex + 1];
-      const nextSection =
-        firstNextSection && hiddenSectionIds.has(firstNextSection)
-          ? sectionOrder[completedSectionIndex + 2]
-          : firstNextSection;
+      if (message.type === "section:error") {
+        setSectionStatuses((current) => ({
+          ...current,
+          [message.sectionId]: "error",
+        }));
+        setErrorMessage(message.error);
+        return;
+      }
 
-      setOutputs((current) => ({
-        ...current,
-        [completedSection]: message.output,
-      }));
-      setSectionStatuses((current) => ({
-        ...current,
-        [completedSection]: "complete",
-        ...(nextSection ? { [nextSection]: "ready" } : {}),
-      }));
-      setErrorMessage(null);
-      setActiveSectionId(nextSection ?? completedSection);
-      return;
-    }
+      if (message.type === "section:complete") {
+        const completedSection = message.sectionId;
+        const completedSectionIndex = sectionOrder.indexOf(completedSection);
+        const firstNextSection = sectionOrder[completedSectionIndex + 1];
+        const nextSection =
+          firstNextSection && hiddenSectionIds.has(firstNextSection)
+            ? sectionOrder[completedSectionIndex + 2]
+            : firstNextSection;
 
-    if (message.type === "pipeline:gate") {
-      setGateMessage(message.message);
-      return;
-    }
+        setOutputs((current) => ({
+          ...current,
+          [completedSection]: message.output,
+        }));
+        setSectionStatuses((current) => ({
+          ...current,
+          [completedSection]: "complete",
+          ...(nextSection ? { [nextSection]: "ready" } : {}),
+        }));
+        setErrorMessage(null);
+        setActiveSectionId(nextSection ?? completedSection);
+        return;
+      }
 
-    if (message.type === "pipeline:complete") {
-      setGateMessage(null);
-    }
-  }, []);
+      if (message.type === "pipeline:gate") {
+        setGateMessage(message.message);
+        return;
+      }
+
+      if (message.type === "pipeline:complete") {
+        setGateMessage(null);
+        return;
+      }
+
+      if (message.type === "pipeline:cost-update") {
+        window.dispatchEvent(
+          new CustomEvent(getWizardCostUpdateEventName(fighterId), {
+            detail: {
+              fighterId: message.fighterId,
+              totalCostUsd: message.totalCostUsd,
+              latestRunCorrelationId: message.latestRunCorrelationId,
+              latestRunSectionCosts: message.latestRunSectionCosts,
+            },
+          }),
+        );
+      }
+    },
+    [fighterId],
+  );
 
   const wsUrl = useMemo(() => {
     if (!token) {

@@ -5,6 +5,9 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Label } from "../../components/ui/label";
+import { Skeleton } from "../../components/ui/skeleton";
+import { CostsContextController } from "../../context/Costs/CostsContextController";
+import { useCostsContext } from "../../context/Costs/useCostsContext";
 import { useNavbarBreadcrumbContext } from "../../context/NavbarBreadcrumb/useNavbarBreadcrumbContext";
 import { useWizardContext } from "../../context/Wizard/useWizardContext";
 import type { SectionId, SectionStatus } from "../../context/Wizard/WizardContext.types";
@@ -180,6 +183,26 @@ const OriginalBriefingCard = ({ originalBriefing }: { originalBriefing: string |
     </CardContent>
   </Card>
 );
+
+const WizardCostSummary = () => {
+  const { errorMessage, formatUsd, isLoading, totalCostUsd } = useCostsContext();
+
+  return (
+    <div className="rounded-sm border border-primary/50 bg-primary/10 px-3 py-2.5 text-right">
+      <p className="text-[10px] font-semibold tracking-[0.14em] text-primary/90 uppercase">
+        Total LLM Spend
+      </p>
+      {isLoading ? (
+        <Skeleton className="mt-2 h-7 w-24" />
+      ) : (
+        <p className="mt-1 text-2xl font-black tracking-tight text-primary">
+          {formatUsd(totalCostUsd)}
+        </p>
+      )}
+      {errorMessage ? <p className="mt-1 text-[10px] text-destructive">{errorMessage}</p> : null}
+    </div>
+  );
+};
 
 const WizardLayout = () => {
   const {
@@ -496,9 +519,10 @@ const WizardLayout = () => {
                 ) : null}
               </section>
               <aside className="w-full lg:sticky lg:top-6">
-                <Card className="border-border/80 bg-card/70">
+                <Card className="border-0 bg-transparent">
                   <CardContent className="space-y-3">
-                    <div className="space-y-2">
+                    <WizardCostSummary />
+                    <div className="border-border/80 bg-card/70">
                       {sectionNavItems.map((item) => {
                         const status = isSectionId(item.id) ? sectionStatuses[item.id] : null;
                         const isActive = isSectionId(item.id) && activeSectionId === item.id;
@@ -578,7 +602,9 @@ export const FighterWizardPage = () => {
 
   return (
     <WizardContextController fighterId={fighterId} key={fighterId}>
-      <WizardLayout />
+      <CostsContextController fighterId={fighterId}>
+        <WizardLayout />
+      </CostsContextController>
     </WizardContextController>
   );
 };
