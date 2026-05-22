@@ -122,8 +122,6 @@ body {
 }
 
 #arena {
-  border: 1px solid #334155;
-  border-radius: 10px;
   width: 100%;
   max-width: 1200px;
   align-self: center;

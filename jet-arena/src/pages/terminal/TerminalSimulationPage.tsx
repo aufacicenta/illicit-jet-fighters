@@ -228,7 +228,7 @@ export const TerminalSimulationPage = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             {isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading fighters...</p>
+              <p className="text-sm text-muted-foreground p-4">Loading fighters...</p>
             ) : null}
 
             {!isLoading && fighters.length === 0 ? (
