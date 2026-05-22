@@ -49,15 +49,19 @@ export const Navbar = () => {
           >
             <img alt="Illicit Jet Fighters" className="w-full max-w-[280px]" src="/ijf-logo.svg" />
           </Link>
-          <div className="justify-self-end">
-            <NavbarWalletTray />
-          </div>
+          <div className="justify-self-end"></div>
         </div>
       </div>
-      <div className="w-full border-t border-border/70 px-4 py-1">
-        <p className="w-full text-xs tracking-widest text-muted-foreground uppercase">
-          {breadcrumbLabel}
-        </p>
+      <div className="w-full border-t border-border/70 px-4 py-1 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <div>
+          <p className="w-full text-xs tracking-widest text-muted-foreground uppercase">
+            {breadcrumbLabel}
+          </p>
+        </div>
+        <div aria-hidden />
+        <div className="justify-self-end">
+          <NavbarWalletTray />
+        </div>
       </div>
     </nav>
   );
