@@ -5,11 +5,15 @@ export {
   resolveFighterName,
 } from "./fighter-name";
 export {
+  battlefieldPipelineStartSchema,
+  battlefieldSectionIdSchema,
   fighterAgentVersionsResponseSchema,
   myFightersResponseSchema,
   pipelineStartSchema,
 } from "./fighters";
 export type {
+  BattlefieldPipelineStartPayload,
+  BattlefieldSectionId,
   FighterAgentVersion,
   FighterAgentVersionsResponse,
   FighterSectionStatus,

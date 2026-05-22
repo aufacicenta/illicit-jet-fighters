@@ -1,10 +1,9 @@
 import { Badge } from "../../../components/ui/badge";
-import type { SectionStatus } from "../../../context/Wizard/WizardContext.types";
+import type { BattlefieldSectionStatus } from "../../../context/BattlefieldWizard/BattlefieldWizardContext.types";
 
 export const wizardCardHeaderClassName = "border-b border-border/70 px-5 py-2.5";
-export const wizardCardTitleClassName = "text-sm text-primary";
 
-const sectionStatusLabelMap: Record<SectionStatus, string> = {
+const sectionStatusLabelMap: Record<BattlefieldSectionStatus, string> = {
   locked: "Locked",
   ready: "Pending",
   generating: "Generating",
@@ -13,7 +12,7 @@ const sectionStatusLabelMap: Record<SectionStatus, string> = {
   blocked: "Blocked",
 };
 
-const sectionStatusClassNameMap: Record<SectionStatus, string> = {
+const sectionStatusClassNameMap: Record<BattlefieldSectionStatus, string> = {
   locked: "border-border/60 bg-muted text-muted-foreground",
   ready: "border-secondary/70 bg-secondary/20 text-secondary",
   generating: "border-accent/80 bg-accent/20 text-accent animate-pulse",
@@ -22,7 +21,9 @@ const sectionStatusClassNameMap: Record<SectionStatus, string> = {
   blocked: "border-amber-500/80 bg-amber-500/20 text-amber-200",
 };
 
-export const resolveSectionStatus = (statuses: SectionStatus[]): SectionStatus => {
+export const resolveBattlefieldSectionStatus = (
+  statuses: BattlefieldSectionStatus[],
+): BattlefieldSectionStatus => {
   if (statuses.some((status) => status === "error")) {
     return "error";
   }
@@ -41,7 +42,7 @@ export const resolveSectionStatus = (statuses: SectionStatus[]): SectionStatus =
   return "locked";
 };
 
-export const SectionStatusBadge = ({ status }: { status: SectionStatus }) => (
+export const BattlefieldSectionStatusBadge = ({ status }: { status: BattlefieldSectionStatus }) => (
   <Badge className={sectionStatusClassNameMap[status]} variant="secondary">
     {sectionStatusLabelMap[status]}
   </Badge>

@@ -1,3 +1,5 @@
+export * from "./api/battlefield-pipeline";
+export * from "./api/battlefields";
 export * from "./api/client";
 export * from "./api/costs";
 export * from "./api/fighters";

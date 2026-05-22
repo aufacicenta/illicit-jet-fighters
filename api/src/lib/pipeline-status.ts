@@ -1,8 +1,8 @@
-import type { SectionId, SectionOutput } from "./types";
+import type { FighterSectionId, SectionOutput } from "./types";
 
 export type SectionStatus = "locked" | "ready" | "generating" | "complete" | "error";
 
-const sectionOrder: SectionId[] = [
+const sectionOrder: FighterSectionId[] = [
   "character-description",
   "specsheet-prompt",
   "specsheet-image",
@@ -17,17 +17,17 @@ const sectionOrder: SectionId[] = [
 ];
 
 export type PipelineSnapshot = {
-  outputs: Partial<Record<SectionId, SectionOutput>>;
-  activeSectionIds: SectionId[];
-  lastErrorSectionId: SectionId | null;
+  outputs: Partial<Record<FighterSectionId, SectionOutput>>;
+  activeSectionIds: FighterSectionId[];
+  lastErrorSectionId: FighterSectionId | null;
 };
 
 export const deriveSectionStatuses = ({
   outputs,
   activeSectionIds,
   lastErrorSectionId,
-}: PipelineSnapshot): Record<SectionId, SectionStatus> => {
-  const statuses: Record<SectionId, SectionStatus> = {
+}: PipelineSnapshot): Record<FighterSectionId, SectionStatus> => {
+  const statuses: Record<FighterSectionId, SectionStatus> = {
     "character-description": "ready",
     "specsheet-prompt": "locked",
     "specsheet-image": "locked",

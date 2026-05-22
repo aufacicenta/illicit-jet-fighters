@@ -44,7 +44,7 @@ import {
   strikecraftSpriteObjectKey,
 } from "./r2";
 import { normalizeSpritesheetManifest } from "./spritesheet-manifest";
-import type { ChatMessage, SectionId, SectionOutput } from "./types";
+import type { ChatMessage, FighterSectionId as SectionId, SectionOutput } from "./types";
 import { InsufficientBalanceError, requirePreflightBalance } from "./wallet";
 
 export type PipelineTenant = {

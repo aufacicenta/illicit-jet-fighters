@@ -52,7 +52,7 @@ export const Navbar = () => {
           <div className="justify-self-end"></div>
         </div>
       </div>
-      <div className="w-full border-t border-border/70 px-4 py-1 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+      <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-3 border-t border-border/70 px-4 py-1">
         <div>
           <p className="w-full text-xs tracking-widest text-muted-foreground uppercase">
             {breadcrumbLabel}

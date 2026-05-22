@@ -1,6 +1,17 @@
 import { Elysia, t } from "elysia";
 
 import { verifyJwt } from "../lib/auth";
+import {
+  battlefieldKeyFromId,
+  getOwnedBattlefield,
+  parseBattlefieldIdParam,
+} from "../lib/battlefield-access";
+import {
+  bindBattlefieldPipelineTenant,
+  continueBattlefieldPipeline,
+  hydrateBattlefieldPipelineFromBucket,
+  syncBattlefieldPipelineState,
+} from "../lib/battlefield-pipeline-runner";
 import { createCorrelationId } from "../lib/correlation-id";
 import { fighterKeyFromId, getOwnedFighter, parseFighterIdParam } from "../lib/fighter-access";
 import { logger } from "../lib/logger";
@@ -12,13 +23,33 @@ import {
   refineSection,
   syncPipelineState,
 } from "../lib/pipeline-runner";
+import type { FighterSectionId } from "../lib/types";
 import {
+  registerBattlefieldSocket,
   registerSocket,
   registerUserSocket,
+  unregisterBattlefieldSocket,
   unregisterSocket,
   unregisterUserSocket,
 } from "./store";
 import type { ClientMessage } from "./types";
+
+const fighterSectionIds = new Set<FighterSectionId>([
+  "character-description",
+  "specsheet-prompt",
+  "specsheet-image",
+  "spritesheet-prompt",
+  "spritesheet-image",
+  "spritesheet-manifest",
+  "agent-code",
+  "strikecraft-specsheet-prompt",
+  "strikecraft-specsheet-image",
+  "strikecraft-sprite-prompt",
+  "strikecraft-sprite-image",
+]);
+
+const isFighterSectionId = (sectionId: string): sectionId is FighterSectionId =>
+  fighterSectionIds.has(sectionId as FighterSectionId);
 
 export const wsHandler = new Elysia()
   .ws("/ws/user", {
@@ -58,6 +89,141 @@ export const wsHandler = new Elysia()
     },
     message() {
       // User channel is server-push only.
+    },
+  })
+  .ws("/ws/battlefield/:battlefieldId", {
+    query: t.Object({
+      token: t.String(),
+    }),
+    async open(ws) {
+      const battlefieldParam = ws.data.params.battlefieldId;
+      const token = ws.data.query.token;
+      const path = `/ws/battlefield/${battlefieldParam}`;
+
+      try {
+        const auth = await verifyJwt(token);
+        const battlefieldId = parseBattlefieldIdParam(battlefieldParam);
+
+        if (!battlefieldId) {
+          ws.send(
+            JSON.stringify({
+              type: "section:error",
+              sectionId: "battlefield-description",
+              error: "Invalid battlefield identifier.",
+            }),
+          );
+          ws.close();
+          return;
+        }
+
+        const owned = await getOwnedBattlefield(battlefieldId, auth.userId);
+        if (!owned) {
+          ws.send(
+            JSON.stringify({
+              type: "section:error",
+              sectionId: "battlefield-description",
+              error: "Battlefield unavailable for this pilot.",
+            }),
+          );
+          ws.close();
+          return;
+        }
+
+        const battlefieldKey = battlefieldKeyFromId(battlefieldId);
+        bindBattlefieldPipelineTenant(battlefieldKey, { battlefieldId, userId: auth.userId });
+        registerBattlefieldSocket(battlefieldKey, ws);
+        logger.info("battlefield websocket connected", { battlefieldKey, path });
+
+        await hydrateBattlefieldPipelineFromBucket(battlefieldKey, {
+          battlefieldId,
+          userId: auth.userId,
+        });
+        await syncBattlefieldPipelineState(battlefieldKey);
+      } catch {
+        ws.send(
+          JSON.stringify({
+            type: "section:error",
+            sectionId: "battlefield-description",
+            error: "Unauthorized websocket connection.",
+          }),
+        );
+        ws.close();
+      }
+    },
+    close(ws) {
+      const parsedId = parseBattlefieldIdParam(ws.data.params.battlefieldId);
+      if (!parsedId) {
+        logger.warn("battlefield websocket disconnected with invalid battlefield id", {
+          path: `/ws/battlefield/${ws.data.params.battlefieldId}`,
+        });
+        return;
+      }
+
+      const battlefieldKey = String(parsedId);
+      unregisterBattlefieldSocket(battlefieldKey, ws);
+      logger.info("battlefield websocket disconnected", {
+        battlefieldId: battlefieldKey,
+        path: `/ws/battlefield/${battlefieldKey}`,
+      });
+    },
+    async message(ws, rawMessage) {
+      const parsedId = parseBattlefieldIdParam(ws.data.params.battlefieldId);
+      if (!parsedId) {
+        return;
+      }
+
+      const battlefieldKey = String(parsedId);
+      const path = `/ws/battlefield/${battlefieldKey}`;
+
+      let message: ClientMessage;
+      try {
+        message =
+          typeof rawMessage === "string"
+            ? (JSON.parse(rawMessage) as ClientMessage)
+            : (rawMessage as ClientMessage);
+      } catch {
+        ws.send(
+          JSON.stringify({
+            type: "section:error",
+            sectionId: "battlefield-description",
+            error: "Invalid websocket payload.",
+          }),
+        );
+        return;
+      }
+
+      const correlationId = createCorrelationId(`battlefield-pipeline-${message.type}`);
+
+      try {
+        if (message.type === "pipeline:continue") {
+          await continueBattlefieldPipeline(battlefieldKey, correlationId);
+          await syncBattlefieldPipelineState(battlefieldKey);
+          return;
+        }
+
+        ws.send(
+          JSON.stringify({
+            type: "section:error",
+            sectionId: "battlefield-description",
+            error: "Unsupported battlefield websocket message type.",
+          }),
+        );
+      } catch (error) {
+        logger.error("battlefield websocket handler failed", {
+          battlefieldId: battlefieldKey,
+          path,
+          correlationId,
+          type: message.type,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        ws.send(
+          JSON.stringify({
+            type: "section:error",
+            sectionId: "battlefield-description",
+            error: error instanceof Error ? error.message : "Unknown websocket operation error.",
+          }),
+        );
+      }
     },
   })
   .ws("/ws/:fighterId", {
@@ -184,6 +350,9 @@ export const wsHandler = new Elysia()
         }
 
         if (message.type === "refine") {
+          if (!isFighterSectionId(message.sectionId)) {
+            throw new Error(`Unsupported fighter section "${message.sectionId}" for refine.`);
+          }
           await refineSection(
             fighterKey,
             message.sectionId,
@@ -195,6 +364,9 @@ export const wsHandler = new Elysia()
         }
 
         if (message.type === "edit") {
+          if (!isFighterSectionId(message.sectionId)) {
+            throw new Error(`Unsupported fighter section "${message.sectionId}" for edit.`);
+          }
           await editSection(fighterKey, message.sectionId, message.content, correlationId);
         }
       } catch (error) {

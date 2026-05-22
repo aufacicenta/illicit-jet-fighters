@@ -14,7 +14,11 @@ export type SectionId =
   | "strikecraft-specsheet-prompt"
   | "strikecraft-specsheet-image"
   | "strikecraft-sprite-prompt"
-  | "strikecraft-sprite-image";
+  | "strikecraft-sprite-image"
+  | "battlefield-description"
+  | "battlefield-sheet-prompt"
+  | "battlefield-sheet-image"
+  | "battlefield-config";
 
 export type SectionOutput = {
   sectionId: SectionId;
@@ -24,3 +28,19 @@ export type SectionOutput = {
   mimeType?: string;
   assetUrl?: string;
 };
+
+export type FighterSectionId = Exclude<
+  SectionId,
+  | "battlefield-description"
+  | "battlefield-sheet-prompt"
+  | "battlefield-sheet-image"
+  | "battlefield-config"
+>;
+
+export type BattlefieldSectionId = Extract<
+  SectionId,
+  | "battlefield-description"
+  | "battlefield-sheet-prompt"
+  | "battlefield-sheet-image"
+  | "battlefield-config"
+>;

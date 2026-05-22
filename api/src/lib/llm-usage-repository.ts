@@ -1,11 +1,12 @@
 import { and, db, desc, eq, llmUsageEvents, sql } from "@ijf/database";
 
-import type { SectionId } from "./types";
+import type { BattlefieldSectionId, FighterSectionId, SectionId } from "./types";
 
 export type LlmUsageEvent = {
   id: string;
   userId: string;
   fighterId: number | null;
+  battlefieldId: number | null;
   sectionId: string;
   correlationId: string | null;
   openrouterGenerationId: string | null;
@@ -23,10 +24,17 @@ export type FighterCostSnapshot = {
   fighterId: number;
   totalCostUsd: string;
   latestRunCorrelationId: string | null;
-  latestRunSectionCosts: Partial<Record<SectionId, string>>;
+  latestRunSectionCosts: Partial<Record<FighterSectionId, string>>;
 };
 
-const allSectionIds: SectionId[] = [
+export type BattlefieldCostSnapshot = {
+  battlefieldId: number;
+  totalCostUsd: string;
+  latestRunCorrelationId: string | null;
+  latestRunSectionCosts: Partial<Record<BattlefieldSectionId, string>>;
+};
+
+const fighterSectionIds: FighterSectionId[] = [
   "character-description",
   "specsheet-prompt",
   "specsheet-image",
@@ -40,9 +48,18 @@ const allSectionIds: SectionId[] = [
   "strikecraft-sprite-image",
 ];
 
-const buildZeroSectionCosts = (): Partial<Record<SectionId, string>> => {
-  const costs: Partial<Record<SectionId, string>> = {};
-  for (const sectionId of allSectionIds) {
+const battlefieldSectionIds: BattlefieldSectionId[] = [
+  "battlefield-description",
+  "battlefield-sheet-prompt",
+  "battlefield-sheet-image",
+  "battlefield-config",
+];
+
+const buildZeroSectionCosts = <TSectionId extends SectionId>(
+  sectionIds: TSectionId[],
+): Partial<Record<TSectionId, string>> => {
+  const costs: Partial<Record<TSectionId, string>> = {};
+  for (const sectionId of sectionIds) {
     costs[sectionId] = "0";
   }
   return costs;
@@ -52,6 +69,7 @@ export const insertLlmUsageEvent = async ({
   executor,
   userId,
   fighterId,
+  battlefieldId,
   sectionId,
   correlationId,
   openrouterGenerationId,
@@ -66,6 +84,7 @@ export const insertLlmUsageEvent = async ({
   executor?: typeof db;
   userId: string;
   fighterId?: number | null;
+  battlefieldId?: number | null;
   sectionId: string;
   correlationId?: string;
   openrouterGenerationId?: string;
@@ -83,6 +102,7 @@ export const insertLlmUsageEvent = async ({
     .values({
       userId,
       fighterId: fighterId ?? null,
+      battlefieldId: battlefieldId ?? null,
       sectionId,
       correlationId: correlationId ?? null,
       openrouterGenerationId: openrouterGenerationId ?? null,
@@ -98,6 +118,7 @@ export const insertLlmUsageEvent = async ({
       id: llmUsageEvents.id,
       userId: llmUsageEvents.userId,
       fighterId: llmUsageEvents.fighterId,
+      battlefieldId: llmUsageEvents.battlefieldId,
       sectionId: llmUsageEvents.sectionId,
       correlationId: llmUsageEvents.correlationId,
       openrouterGenerationId: llmUsageEvents.openrouterGenerationId,
@@ -131,6 +152,7 @@ export const getLlmUsageEventsForFighter = async ({
       id: llmUsageEvents.id,
       userId: llmUsageEvents.userId,
       fighterId: llmUsageEvents.fighterId,
+      battlefieldId: llmUsageEvents.battlefieldId,
       sectionId: llmUsageEvents.sectionId,
       correlationId: llmUsageEvents.correlationId,
       openrouterGenerationId: llmUsageEvents.openrouterGenerationId,
@@ -161,6 +183,7 @@ export const getLlmUsageEventsForUser = async ({
       id: llmUsageEvents.id,
       userId: llmUsageEvents.userId,
       fighterId: llmUsageEvents.fighterId,
+      battlefieldId: llmUsageEvents.battlefieldId,
       sectionId: llmUsageEvents.sectionId,
       correlationId: llmUsageEvents.correlationId,
       openrouterGenerationId: llmUsageEvents.openrouterGenerationId,
@@ -234,7 +257,10 @@ export const getLatestRunSectionCosts = async ({
 }: {
   userId: string;
   fighterId: number;
-}): Promise<{ correlationId: string | null; sectionCosts: Partial<Record<SectionId, string>> }> => {
+}): Promise<{
+  correlationId: string | null;
+  sectionCosts: Partial<Record<FighterSectionId, string>>;
+}> => {
   const latestEventRows = await db
     .select({
       sectionId: llmUsageEvents.sectionId,
@@ -247,23 +273,23 @@ export const getLatestRunSectionCosts = async ({
 
   const latestEventCorrelationId = latestEventRows[0]?.correlationId ?? null;
   if (latestEventRows.length === 0) {
-    return { correlationId: null, sectionCosts: buildZeroSectionCosts() };
+    return { correlationId: null, sectionCosts: buildZeroSectionCosts(fighterSectionIds) };
   }
 
-  const sectionCosts = buildZeroSectionCosts();
-  const latestCorrelationBySection: Partial<Record<SectionId, string | null>> = {};
+  const sectionCosts = buildZeroSectionCosts(fighterSectionIds);
+  const latestCorrelationBySection: Partial<Record<FighterSectionId, string | null>> = {};
 
   for (const row of latestEventRows) {
-    const sectionId = row.sectionId as SectionId;
+    const sectionId = row.sectionId as FighterSectionId;
     if (latestCorrelationBySection[sectionId] === undefined) {
       latestCorrelationBySection[sectionId] = row.correlationId;
     }
   }
 
-  const sectionTotals = new Map<SectionId, number>();
+  const sectionTotals = new Map<FighterSectionId, number>();
 
   for (const row of latestEventRows) {
-    const sectionId = row.sectionId as SectionId;
+    const sectionId = row.sectionId as FighterSectionId;
     const latestSectionCorrelationId = latestCorrelationBySection[sectionId];
     if (
       latestSectionCorrelationId === undefined ||
@@ -309,6 +335,106 @@ export const buildFighterCostSnapshot = async ({
 
   return {
     fighterId,
+    totalCostUsd,
+    latestRunCorrelationId: latestRun.correlationId,
+    latestRunSectionCosts: latestRun.sectionCosts,
+  };
+};
+
+export const sumCostForBattlefield = async ({
+  userId,
+  battlefieldId,
+}: {
+  userId: string;
+  battlefieldId: number;
+}): Promise<string> => {
+  const rows = await db
+    .select({
+      totalCostCredits: sql<string>`coalesce(sum(${llmUsageEvents.costCredits}), 0)`,
+    })
+    .from(llmUsageEvents)
+    .where(and(eq(llmUsageEvents.userId, userId), eq(llmUsageEvents.battlefieldId, battlefieldId)))
+    .limit(1);
+
+  return rows[0]?.totalCostCredits ?? "0";
+};
+
+export const getLatestRunSectionCostsForBattlefield = async ({
+  userId,
+  battlefieldId,
+}: {
+  userId: string;
+  battlefieldId: number;
+}): Promise<{
+  correlationId: string | null;
+  sectionCosts: Partial<Record<BattlefieldSectionId, string>>;
+}> => {
+  const latestEventRows = await db
+    .select({
+      sectionId: llmUsageEvents.sectionId,
+      correlationId: llmUsageEvents.correlationId,
+      costCredits: llmUsageEvents.costCredits,
+    })
+    .from(llmUsageEvents)
+    .where(and(eq(llmUsageEvents.userId, userId), eq(llmUsageEvents.battlefieldId, battlefieldId)))
+    .orderBy(desc(llmUsageEvents.createdAt));
+
+  const latestEventCorrelationId = latestEventRows[0]?.correlationId ?? null;
+  if (latestEventRows.length === 0) {
+    return { correlationId: null, sectionCosts: buildZeroSectionCosts(battlefieldSectionIds) };
+  }
+
+  const sectionCosts = buildZeroSectionCosts(battlefieldSectionIds);
+  const latestCorrelationBySection: Partial<Record<BattlefieldSectionId, string | null>> = {};
+
+  for (const row of latestEventRows) {
+    const sectionId = row.sectionId as BattlefieldSectionId;
+    if (latestCorrelationBySection[sectionId] === undefined) {
+      latestCorrelationBySection[sectionId] = row.correlationId;
+    }
+  }
+
+  const sectionTotals = new Map<BattlefieldSectionId, number>();
+
+  for (const row of latestEventRows) {
+    const sectionId = row.sectionId as BattlefieldSectionId;
+    const latestSectionCorrelationId = latestCorrelationBySection[sectionId];
+    if (
+      latestSectionCorrelationId === undefined ||
+      latestSectionCorrelationId !== row.correlationId
+    ) {
+      continue;
+    }
+
+    const cost = Number.parseFloat(row.costCredits);
+    if (!Number.isFinite(cost)) {
+      continue;
+    }
+
+    sectionTotals.set(sectionId, (sectionTotals.get(sectionId) ?? 0) + cost);
+  }
+
+  for (const [sectionId, totalCost] of sectionTotals.entries()) {
+    sectionCosts[sectionId] = totalCost.toFixed(8);
+  }
+
+  return { correlationId: latestEventCorrelationId, sectionCosts };
+};
+
+export const buildBattlefieldCostSnapshot = async ({
+  userId,
+  battlefieldId,
+}: {
+  userId: string;
+  battlefieldId: number;
+}): Promise<BattlefieldCostSnapshot> => {
+  const [totalCostUsd, latestRun] = await Promise.all([
+    sumCostForBattlefield({ userId, battlefieldId }),
+    getLatestRunSectionCostsForBattlefield({ userId, battlefieldId }),
+  ]);
+
+  return {
+    battlefieldId,
     totalCostUsd,
     latestRunCorrelationId: latestRun.correlationId,
     latestRunSectionCosts: latestRun.sectionCosts,

@@ -1,8 +1,12 @@
 import { db } from "@ijf/database";
 
-import { sendToFighter, sendToUser } from "../ws/store";
+import { sendToBattlefield, sendToFighter, sendToUser } from "../ws/store";
 import { aiModels } from "./ai-models";
-import { buildFighterCostSnapshot, insertLlmUsageEvent } from "./llm-usage-repository";
+import {
+  buildBattlefieldCostSnapshot,
+  buildFighterCostSnapshot,
+  insertLlmUsageEvent,
+} from "./llm-usage-repository";
 import { logger } from "./logger";
 import { openrouter } from "./openrouter";
 import { skills } from "./skills";
@@ -14,6 +18,7 @@ type OpenRouterResult<T> = { ok: true; value: T } | { ok: false; error: unknown 
 export type LlmCallContext = {
   userId: string;
   fighterId?: number;
+  battlefieldId?: number;
   sectionId: SectionId;
   correlationId?: string;
 };
@@ -185,6 +190,7 @@ const trackLlmUsage = async ({
         executor: tx as unknown as typeof db,
         userId: context.userId,
         fighterId: context.fighterId ?? null,
+        battlefieldId: context.battlefieldId ?? null,
         sectionId: context.sectionId,
         correlationId: context.correlationId,
         openrouterGenerationId: generationId,
@@ -214,6 +220,16 @@ const trackLlmUsage = async ({
         fighterId: context.fighterId,
       });
       sendToFighter(String(context.fighterId), {
+        type: "pipeline:cost-update",
+        ...snapshot,
+      });
+    }
+    if (context.battlefieldId !== undefined) {
+      const snapshot = await buildBattlefieldCostSnapshot({
+        userId: context.userId,
+        battlefieldId: context.battlefieldId,
+      });
+      sendToBattlefield(String(context.battlefieldId), {
         type: "pipeline:cost-update",
         ...snapshot,
       });
@@ -734,4 +750,79 @@ export const generateStrikecraftSpriteImage = async (prompt: string, context?: L
     "Strikecraft sprite image generation",
     context,
   );
+};
+
+export const generateBattlefieldDescription = async (
+  prompt: string,
+  onDelta?: StreamDeltaHandler,
+  context?: LlmCallContext,
+) => {
+  const markdown = await generateTextWithModel({
+    model: aiModels.battlefieldDescription,
+    messages: [
+      { role: "system", content: skills.battlefieldDescription },
+      { role: "user", content: prompt },
+    ],
+    emptyErrorMessage: "Battlefield description generation returned empty output.",
+    onDelta,
+    context,
+  });
+
+  return {
+    markdown,
+    model: aiModels.battlefieldDescription,
+  };
+};
+
+export const generateBattlefieldSheetPrompt = async (
+  battlefieldDescription: string,
+  onDelta?: StreamDeltaHandler,
+  context?: LlmCallContext,
+) => {
+  const prompt = await generateTextWithModel({
+    model: aiModels.battlefieldSheetPrompt,
+    messages: [
+      { role: "system", content: skills.battlefieldSheetPrompt },
+      { role: "user", content: battlefieldDescription },
+    ],
+    emptyErrorMessage: "Battlefield sheet prompt generation returned empty output.",
+    onDelta,
+    context,
+  });
+
+  return {
+    prompt,
+    model: aiModels.battlefieldSheetPrompt,
+  };
+};
+
+export const generateBattlefieldSheetImage = async (prompt: string, context?: LlmCallContext) => {
+  return generateImageWithModel(
+    aiModels.battlefieldSheetImage,
+    prompt,
+    "Battlefield sheet image generation",
+    context,
+  );
+};
+
+export const generateBattlefieldConfig = async (
+  battlefieldDescription: string,
+  onDelta?: StreamDeltaHandler,
+  context?: LlmCallContext,
+) => {
+  const config = await generateTextWithModel({
+    model: aiModels.battlefieldConfig,
+    messages: [
+      { role: "system", content: skills.battlefieldConfig },
+      { role: "user", content: battlefieldDescription },
+    ],
+    emptyErrorMessage: "Battlefield config generation returned empty output.",
+    onDelta,
+    context,
+  });
+
+  return {
+    config,
+    model: aiModels.battlefieldConfig,
+  };
 };

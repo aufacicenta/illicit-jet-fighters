@@ -4,12 +4,14 @@ import { AppLayout } from "./components/AppLayout";
 import { RequireAuth } from "./context/Auth/RequireAuth";
 import { routes } from "./hooks/useRoutes";
 import { BroadcastPage } from "./pages/BroadcastPage";
+import { CreateBattlefieldPage } from "./pages/CreateBattlefieldPage";
 import { CreateFighterPage } from "./pages/CreateFighterPage";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
 import { MyFightersPage } from "./pages/terminal/MyFightersPage";
 import { TerminalSimulationPage } from "./pages/terminal/TerminalSimulationPage";
 import { WalletPage } from "./pages/terminal/WalletPage";
+import { BattlefieldWizardPage } from "./pages/wizard/BattlefieldWizardPage";
 import { FighterWizardPage } from "./pages/wizard/FighterWizardPage";
 
 export const router = createBrowserRouter([
@@ -41,6 +43,10 @@ export const router = createBrowserRouter([
         element: <CreateFighterPage />,
       },
       {
+        path: routes.createBattlefield(),
+        element: <CreateBattlefieldPage />,
+      },
+      {
         path: routes.terminalSimulation(),
         element: <TerminalSimulationPage />,
       },
@@ -55,6 +61,10 @@ export const router = createBrowserRouter([
       {
         path: routes.fighterWizard(":id"),
         element: <FighterWizardPage />,
+      },
+      {
+        path: routes.battlefieldWizard(":id"),
+        element: <BattlefieldWizardPage />,
       },
     ],
   },

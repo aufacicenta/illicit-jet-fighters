@@ -9,6 +9,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { battlefields } from "./battlefields";
 import { fighters } from "./fighters";
 
 const neonAuthSchema = pgSchema("neon_auth");
@@ -25,6 +26,9 @@ export const llmUsageEvents = pgTable(
       .notNull()
       .references(() => neonAuthUser.id, { onDelete: "cascade" }),
     fighterId: integer("fighter_id").references(() => fighters.id, { onDelete: "cascade" }),
+    battlefieldId: integer("battlefield_id").references(() => battlefields.id, {
+      onDelete: "cascade",
+    }),
     sectionId: text("section_id").notNull(),
     correlationId: text("correlation_id"),
     openrouterGenerationId: text("openrouter_generation_id"),
@@ -40,7 +44,9 @@ export const llmUsageEvents = pgTable(
   (table) => [
     index("llm_usage_events_user_id_idx").on(table.userId),
     index("llm_usage_events_fighter_id_idx").on(table.fighterId),
+    index("llm_usage_events_battlefield_id_idx").on(table.battlefieldId),
     index("llm_usage_events_section_id_idx").on(table.sectionId),
     index("llm_usage_events_user_fighter_idx").on(table.userId, table.fighterId),
+    index("llm_usage_events_user_battlefield_idx").on(table.userId, table.battlefieldId),
   ],
 );

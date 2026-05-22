@@ -17,14 +17,15 @@ export type ServerMessage =
   | { type: "pipeline:gate"; sectionId: SectionId; message: string }
   | {
       type: "pipeline:sync";
-      sectionStatuses: Record<SectionId, SectionStatus>;
+      sectionStatuses: Partial<Record<SectionId, SectionStatus>>;
       outputs: Partial<Record<SectionId, SectionOutput>>;
       histories: Partial<Record<SectionId, ChatMessage[]>>;
       gateMessage: string | null;
     }
   | {
       type: "pipeline:cost-update";
-      fighterId: number;
+      fighterId?: number;
+      battlefieldId?: number;
       totalCostUsd: string;
       latestRunCorrelationId: string | null;
       latestRunSectionCosts: Partial<Record<SectionId, string>>;

@@ -107,6 +107,33 @@ export const simulationReplayObjectKey = (userId: string, simulationId: string) 
 export const simulationBroadcastEventsObjectKey = (userId: string, simulationId: string) =>
   path.posix.join(`users/${userId}/simulations/${simulationId}`, `broadcast-events.ndjson.gz`);
 
+export const battlefieldDescriptionObjectKey = (userId: string, battlefieldId: number) =>
+  path.posix.join(
+    `users/${userId}/battlefields/${String(battlefieldId)}`,
+    "battlefield-description.md",
+  );
+
+export const battlefieldSheetPromptObjectKey = (userId: string, battlefieldId: number) =>
+  path.posix.join(
+    `users/${userId}/battlefields/${String(battlefieldId)}`,
+    "battlefield-sheet-gen.md",
+  );
+
+export const battlefieldSheetImageObjectKey = (userId: string, battlefieldId: number) =>
+  path.posix.join(`users/${userId}/battlefields/${String(battlefieldId)}`, "specsheet.jpeg");
+
+export const battlefieldConfigObjectKey = (userId: string, battlefieldId: number) =>
+  path.posix.join(
+    `users/${userId}/battlefields/${String(battlefieldId)}`,
+    "battlefield-config.json",
+  );
+
+export const battlefieldPipelineStateObjectKey = (userId: string, battlefieldId: number) =>
+  path.posix.join(
+    `users/${userId}/battlefields/${String(battlefieldId)}`,
+    "battlefield-pipeline-state.json",
+  );
+
 export const putObject = async (key: string, body: Buffer, contentType?: string) => {
   const client = getClient();
   const bucket = getBucket();

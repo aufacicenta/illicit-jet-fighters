@@ -10,6 +10,10 @@ export const aiModels = {
   strikecraftSpecsheetImage: "google/gemini-3.1-flash-image-preview",
   strikecraftSpritePrompt: "anthropic/claude-sonnet-4",
   strikecraftSpriteImage: "openai/gpt-5-image-mini",
+  battlefieldDescription: "anthropic/claude-sonnet-4",
+  battlefieldSheetPrompt: "anthropic/claude-sonnet-4",
+  battlefieldSheetImage: "google/gemini-3.1-flash-image-preview",
+  battlefieldConfig: "anthropic/claude-sonnet-4",
 } as const;
 
 export type AiModelKey = keyof typeof aiModels;

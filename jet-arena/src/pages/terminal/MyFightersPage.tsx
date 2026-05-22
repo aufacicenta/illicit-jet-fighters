@@ -256,8 +256,8 @@ export const MyFightersPage = () => {
               </Button>
             </div>
             <div>
-              <Button disabled type="button">
-                Create Battlefield
+              <Button asChild type="button">
+                <Link to={routes.createBattlefield()}>Create Battlefield</Link>
               </Button>
             </div>
           </header>

@@ -23,6 +23,12 @@ const strikecraftSpritePrompt = readFileSync(
   join(skillsDir, "strikecraft-spritesheet-generator.md"),
   "utf8",
 );
+const battlefieldDescription = readFileSync(join(skillsDir, "battlefield-description.md"), "utf8");
+const rawBattlefieldSheetPrompt = readFileSync(
+  join(skillsDir, "battlefield-sheet-generator.md"),
+  "utf8",
+);
+const battlefieldConfig = readFileSync(join(skillsDir, "battlefield-config-generator.md"), "utf8");
 
 const globalStylePrefix = readFileSync(
   join(skillsDir, "agent-character-sheet-global-style.md"),
@@ -40,6 +46,17 @@ const strikecraftSpecsheetPrompt = rawStrikecraftSpecsheetPrompt.replace(
   /\[GLOBAL PREFIX\]/g,
   strikecraftGlobalStylePrefix,
 );
+const battlefieldGlobalStylePrefix = globalStylePrefix
+  .replaceAll("character design reference sheet", "battlefield environment reference sheet")
+  .replaceAll("character", "battlefield")
+  .replaceAll("portrait", "panoramic vista")
+  .replaceAll("pilot design", "arena design")
+  .replaceAll("sprite sheet", "environment sheet")
+  .replaceAll("codec portrait aesthetic", "mission dossier landscape aesthetic");
+const battlefieldSheetPrompt = rawBattlefieldSheetPrompt.replace(
+  /\[GLOBAL PREFIX\]/g,
+  battlefieldGlobalStylePrefix,
+);
 
 export const skills = {
   characterDescription,
@@ -49,4 +66,7 @@ export const skills = {
   agentCode,
   strikecraftSpecsheetPrompt,
   strikecraftSpritePrompt,
+  battlefieldDescription,
+  battlefieldSheetPrompt,
+  battlefieldConfig,
 } as const;

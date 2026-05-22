@@ -20,8 +20,23 @@ export type ApiSectionId =
 
 export type ApiSectionStatus = "locked" | "ready" | "generating" | "complete" | "error";
 
+export type BattlefieldApiSectionId =
+  | "battlefield-description"
+  | "battlefield-sheet-prompt"
+  | "battlefield-sheet-image"
+  | "battlefield-config";
+
 export type ApiSectionOutput = {
   sectionId: ApiSectionId;
+  content: string;
+  generatedAt: string;
+  model: string;
+  mimeType?: string;
+  assetUrl?: string;
+};
+
+export type BattlefieldApiSectionOutput = {
+  sectionId: BattlefieldApiSectionId;
   content: string;
   generatedAt: string;
   model: string;
@@ -42,6 +57,21 @@ export type FighterCostSnapshot = {
   totalCostUsd: string;
   latestRunCorrelationId: string | null;
   latestRunSectionCosts: Partial<Record<ApiSectionId, string>>;
+};
+
+export type BattlefieldPipelineStateSnapshot = {
+  sectionStatuses: Record<BattlefieldApiSectionId, ApiSectionStatus>;
+  outputs: Partial<Record<BattlefieldApiSectionId, BattlefieldApiSectionOutput>>;
+  histories: Partial<Record<BattlefieldApiSectionId, ChatMessage[]>>;
+  gateMessage: string | null;
+  briefing: string | null;
+};
+
+export type BattlefieldCostSnapshot = {
+  battlefieldId: number;
+  totalCostUsd: string;
+  latestRunCorrelationId: string | null;
+  latestRunSectionCosts: Partial<Record<BattlefieldApiSectionId, string>>;
 };
 
 export type SimulationStartResponse = {

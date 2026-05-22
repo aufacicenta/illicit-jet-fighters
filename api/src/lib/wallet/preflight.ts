@@ -18,6 +18,10 @@ const estimatedSectionUsd: Record<SectionId, number> = {
   "strikecraft-specsheet-image": 0.012,
   "strikecraft-sprite-prompt": 0.003,
   "strikecraft-sprite-image": 0.014,
+  "battlefield-description": 0.004,
+  "battlefield-sheet-prompt": 0.004,
+  "battlefield-sheet-image": 0.014,
+  "battlefield-config": 0.004,
 };
 
 const estimateRequiredMist = async (sectionId: SectionId) => {
