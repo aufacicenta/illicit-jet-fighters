@@ -9,6 +9,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
 import { MyFightersPage } from "./pages/terminal/MyFightersPage";
 import { TerminalSimulationPage } from "./pages/terminal/TerminalSimulationPage";
+import { WalletPage } from "./pages/terminal/WalletPage";
 import { FighterWizardPage } from "./pages/wizard/FighterWizardPage";
 
 export const router = createBrowserRouter([
@@ -42,6 +43,10 @@ export const router = createBrowserRouter([
       {
         path: routes.terminalSimulation(),
         element: <TerminalSimulationPage />,
+      },
+      {
+        path: routes.terminalWallet(),
+        element: <WalletPage />,
       },
       {
         path: routes.terminalSimulation(),

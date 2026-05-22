@@ -14,7 +14,7 @@ export const WizardCardTitle = ({ children, className, ...props }: WizardCardTit
     <span>{children}</span>
     <span
       aria-hidden
-      className="mb-[0.25em] inline-block h-1 w-2 animate-pulse bg-current opacity-80 [animation-duration:900ms]"
+      className="inline-block h-1 w-2 animate-pulse bg-current opacity-80 [animation-duration:900ms]"
     />
   </CardTitle>
 );

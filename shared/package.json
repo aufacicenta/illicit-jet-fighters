@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./logger": "./src/logger/index.ts",
     "./simulation": "./src/simulation/index.ts"
   },
   "scripts": {

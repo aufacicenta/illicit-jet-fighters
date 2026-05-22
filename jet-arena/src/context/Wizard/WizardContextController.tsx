@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { wsRoutes } from "../../hooks/useRoutes";
+import { routes, wsRoutes } from "../../hooks/useRoutes";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import type { ChatMessage } from "../../lib/api";
 import {
@@ -149,6 +149,21 @@ const deriveStatusesFromOutputs = (
   }
 
   return statuses;
+};
+
+const applyBlockedStatuses = (
+  current: WizardContextType["sectionStatuses"],
+  sectionId: SectionId,
+): WizardContextType["sectionStatuses"] => {
+  const next = { ...current, [sectionId]: "error" as const };
+  const sectionIndex = sectionOrder.indexOf(sectionId);
+  for (let index = sectionIndex + 1; index < sectionOrder.length; index += 1) {
+    const downstream = sectionOrder[index]!;
+    if (next[downstream] !== "complete") {
+      next[downstream] = "blocked";
+    }
+  }
+  return next;
 };
 
 const mergeSyncStatuses = (
@@ -407,6 +422,14 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       }
 
       if (message.type === "section:error") {
+        if (message.code === "INSUFFICIENT_BALANCE") {
+          setSectionStatuses((current) => applyBlockedStatuses(current, message.sectionId));
+          setErrorMessage(
+            `${message.error} Top up your wallet at ${routes.terminalWallet()} and retry.`,
+          );
+          return;
+        }
+
         setSectionStatuses((current) => ({
           ...current,
           [message.sectionId]: "error",
@@ -458,6 +481,14 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
               latestRunSectionCosts: message.latestRunSectionCosts,
             },
           }),
+        );
+        return;
+      }
+
+      if (message.type === "wallet:insufficient-balance") {
+        setSectionStatuses((current) => applyBlockedStatuses(current, message.sectionId));
+        setErrorMessage(
+          `Insufficient balance for ${message.sectionId}. Top up your wallet at ${routes.terminalWallet()}.`,
         );
       }
     },

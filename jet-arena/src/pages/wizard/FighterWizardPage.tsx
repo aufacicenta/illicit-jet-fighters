@@ -162,6 +162,9 @@ const getSectionStatusClassName = (status: SectionStatus | null) => {
   if (status === "error") {
     return "bg-destructive";
   }
+  if (status === "blocked") {
+    return "bg-amber-500";
+  }
   if (status === "ready") {
     return "bg-secondary";
   }

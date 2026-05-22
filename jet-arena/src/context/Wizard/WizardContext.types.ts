@@ -20,7 +20,7 @@ export type SectionId =
   | "strikecraft-sprite-prompt"
   | "strikecraft-sprite-image";
 
-export type SectionStatus = "locked" | "ready" | "generating" | "complete" | "error";
+export type SectionStatus = "locked" | "ready" | "generating" | "complete" | "error" | "blocked";
 
 export type SectionOutput = {
   sectionId: SectionId;
@@ -35,7 +35,14 @@ export type ServerMessage =
   | { type: "section:start"; sectionId: SectionId }
   | { type: "section:delta"; sectionId: SectionId; delta: string }
   | { type: "section:complete"; sectionId: SectionId; output: SectionOutput }
-  | { type: "section:error"; sectionId: SectionId; error: string }
+  | {
+      type: "section:error";
+      sectionId: SectionId;
+      error: string;
+      code?: "INSUFFICIENT_BALANCE" | "BILLING_FAILED";
+      requiredMist?: string;
+      balanceMist?: string;
+    }
   | { type: "pipeline:complete" }
   | { type: "pipeline:gate"; sectionId: SectionId; message: string }
   | {
@@ -51,6 +58,12 @@ export type ServerMessage =
       totalCostUsd: string;
       latestRunCorrelationId: string | null;
       latestRunSectionCosts: Partial<Record<SectionId, string>>;
+    }
+  | {
+      type: "wallet:insufficient-balance";
+      sectionId: SectionId;
+      requiredMist: string;
+      balanceMist: string;
     };
 
 export type WebSocketConnectionStatus = "connecting" | "open" | "closed";

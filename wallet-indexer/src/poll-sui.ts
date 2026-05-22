@@ -1,0 +1,155 @@
+import { db, eq, userWallets } from "@ijf/database";
+import { createLogger, serializeUnknownError, truncateAddress } from "@ijf/shared/logger";
+import { SuiJsonRpcClient, getJsonRpcFullnodeUrl } from "@mysten/sui/jsonRpc";
+
+import { config } from "./config";
+import { notifyTopupRecorded } from "./notify-topup";
+import { recordTopup } from "./record-topup";
+
+const log = createLogger("poll-sui");
+
+const suiClient = new SuiJsonRpcClient({
+  network: config.suiNetwork,
+  url: config.suiRpcUrl || getJsonRpcFullnodeUrl(config.suiNetwork),
+});
+
+type BalanceChange = {
+  owner?: { AddressOwner?: string };
+  amount?: string;
+  coinType?: string;
+};
+
+const parseIncomingMist = (changes: BalanceChange[] | undefined, targetAddress: string): bigint => {
+  if (!changes?.length) {
+    return 0n;
+  }
+
+  return changes.reduce((acc, change) => {
+    if (change.coinType !== "0x2::sui::SUI") {
+      return acc;
+    }
+    if (change.owner?.AddressOwner?.toLowerCase() !== targetAddress.toLowerCase()) {
+      return acc;
+    }
+    if (!change.amount) {
+      return acc;
+    }
+
+    const mist = BigInt(change.amount);
+    return mist > 0n ? acc + mist : acc;
+  }, 0n);
+};
+
+export const pollSuiTopups = async () => {
+  const startedAt = performance.now();
+
+  const wallets = await db
+    .select({
+      id: userWallets.id,
+      address: userWallets.address,
+      topupCursor: userWallets.topupCursor,
+      topupCursorCheckpoint: userWallets.topupCursorCheckpoint,
+    })
+    .from(userWallets)
+    .where(eq(userWallets.network, "sui"));
+
+  log.info("polling SUI topups", { walletCount: wallets.length });
+
+  let topupsRecorded = 0;
+  let topupsSkipped = 0;
+  let blocksScanned = 0;
+
+  for (const wallet of wallets) {
+    try {
+      const txBlocks = await suiClient.queryTransactionBlocks({
+        filter: { ToAddress: wallet.address },
+        cursor: wallet.topupCursor ?? undefined,
+        options: {
+          showBalanceChanges: true,
+        },
+      });
+
+      blocksScanned += txBlocks.data.length;
+
+      log.debug("queried wallet transactions", {
+        walletId: wallet.id,
+        address: truncateAddress(wallet.address),
+        cursor: wallet.topupCursor ?? null,
+        blockCount: txBlocks.data.length,
+        hasNextCursor: Boolean(txBlocks.nextCursor),
+      });
+
+      for (const block of txBlocks.data) {
+        const digest = block.digest;
+        if (!digest) {
+          continue;
+        }
+        const amountMist = parseIncomingMist(
+          (block.balanceChanges as BalanceChange[] | undefined) ?? [],
+          wallet.address,
+        );
+        if (amountMist <= 0n) {
+          continue;
+        }
+
+        log.info("incoming SUI topup detected", {
+          walletId: wallet.id,
+          address: truncateAddress(wallet.address),
+          amountMist: amountMist.toString(),
+          txHash: digest,
+        });
+
+        const recorded = await recordTopup({
+          walletId: wallet.id,
+          amountMist,
+          txHash: digest,
+        });
+
+        if (recorded.inserted) {
+          topupsRecorded += 1;
+          await notifyTopupRecorded({
+            walletId: wallet.id,
+            txHash: digest,
+            amountMist,
+            amountUsd: recorded.amountUsdSnapshot,
+          });
+        } else {
+          topupsSkipped += 1;
+        }
+      }
+
+      if (txBlocks.nextCursor) {
+        await db
+          .update(userWallets)
+          .set({
+            topupCursor: txBlocks.nextCursor,
+            topupCursorCheckpoint: wallet.topupCursorCheckpoint,
+            updatedAt: new Date(),
+          })
+          .where(eq(userWallets.id, wallet.id));
+
+        log.debug("advanced topup cursor", {
+          walletId: wallet.id,
+          address: truncateAddress(wallet.address),
+          nextCursor: txBlocks.nextCursor,
+        });
+      }
+    } catch (error) {
+      const details = serializeUnknownError(error);
+      log.error("wallet poll failed", {
+        walletId: wallet.id,
+        address: truncateAddress(wallet.address),
+        error: details.message ?? details.summary,
+        errorDetails: details,
+      });
+    }
+  }
+
+  log.info("SUI topup poll completed", {
+    walletCount: wallets.length,
+    blocksScanned,
+    topupsRecorded,
+    topupsSkipped,
+    durationMs: Math.round(performance.now() - startedAt),
+  });
+};

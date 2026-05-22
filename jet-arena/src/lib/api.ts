@@ -5,3 +5,4 @@ export * from "./api/generate";
 export * from "./api/pipeline";
 export * from "./api/simulation";
 export * from "./api/types";
+export * from "./api/wallet";

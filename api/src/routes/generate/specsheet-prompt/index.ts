@@ -13,7 +13,7 @@ import type {
 
 export const specsheetPromptRoute = new Elysia()
   .post("/specsheet-prompt", async ({ body, request, headers }) => {
-    await requireBearerAuth(request, headers);
+    const auth = await requireBearerAuth(request, headers);
     const startedAt = Date.now();
     const correlationId = createCorrelationId("generate-specsheet-prompt");
     const { characterDescription } = body as SpecsheetPromptRequest;
@@ -22,7 +22,11 @@ export const specsheetPromptRoute = new Elysia()
       withCorrelationContext(correlationId, { path: "/generate/specsheet-prompt" }),
     );
     try {
-      const generated = await generateSpecsheetPrompt(characterDescription);
+      const generated = await generateSpecsheetPrompt(characterDescription, undefined, {
+        userId: auth.userId,
+        sectionId: "specsheet-prompt",
+        correlationId,
+      });
       logger.info(
         "generate specsheet prompt completed",
         withCorrelationContext(correlationId, {
@@ -47,7 +51,7 @@ export const specsheetPromptRoute = new Elysia()
     }
   })
   .post("/specsheet-prompt/refine", async ({ body, request, headers }) => {
-    await requireBearerAuth(request, headers);
+    const auth = await requireBearerAuth(request, headers);
     const startedAt = Date.now();
     const correlationId = createCorrelationId("generate-specsheet-prompt-refine");
     const { message, history } = body as SpecsheetPromptRefineRequest;
@@ -56,7 +60,11 @@ export const specsheetPromptRoute = new Elysia()
       withCorrelationContext(correlationId, { path: "/generate/specsheet-prompt/refine" }),
     );
     try {
-      const refined = await generateSpecsheetPromptRefine(history, message);
+      const refined = await generateSpecsheetPromptRefine(history, message, {
+        userId: auth.userId,
+        sectionId: "specsheet-prompt",
+        correlationId,
+      });
       logger.info(
         "refine specsheet prompt completed",
         withCorrelationContext(correlationId, {

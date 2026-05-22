@@ -9,7 +9,7 @@ import type { SpecsheetImageRequest, SpecsheetImageResponse } from "./types";
 
 export const specsheetImageRoute = new Elysia()
   .post("/specsheet-image", async ({ body, request, headers }) => {
-    await requireBearerAuth(request, headers);
+    const auth = await requireBearerAuth(request, headers);
     const startedAt = Date.now();
     const correlationId = createCorrelationId("generate-specsheet-image");
     const { prompt } = body as SpecsheetImageRequest;
@@ -18,7 +18,11 @@ export const specsheetImageRoute = new Elysia()
       withCorrelationContext(correlationId, { path: "/generate/specsheet-image" }),
     );
     try {
-      const generated = await generateSpecsheetImage(prompt);
+      const generated = await generateSpecsheetImage(prompt, {
+        userId: auth.userId,
+        sectionId: "specsheet-image",
+        correlationId,
+      });
       logger.info(
         "generate specsheet image completed",
         withCorrelationContext(correlationId, {
@@ -44,7 +48,7 @@ export const specsheetImageRoute = new Elysia()
     }
   })
   .post("/specsheet-image/refine", async ({ body, request, headers }) => {
-    await requireBearerAuth(request, headers);
+    const auth = await requireBearerAuth(request, headers);
     const startedAt = Date.now();
     const correlationId = createCorrelationId("generate-specsheet-image-refine");
     const { prompt } = body as SpecsheetImageRequest;
@@ -53,7 +57,11 @@ export const specsheetImageRoute = new Elysia()
       withCorrelationContext(correlationId, { path: "/generate/specsheet-image/refine" }),
     );
     try {
-      const generated = await generateSpecsheetImage(prompt);
+      const generated = await generateSpecsheetImage(prompt, {
+        userId: auth.userId,
+        sectionId: "specsheet-image",
+        correlationId,
+      });
       logger.info(
         "refine specsheet image completed",
         withCorrelationContext(correlationId, {

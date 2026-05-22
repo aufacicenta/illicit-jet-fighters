@@ -3,6 +3,7 @@ import { Link, matchPath, useLocation } from "react-router-dom";
 
 import { useNavbarBreadcrumbContext } from "../context/NavbarBreadcrumb/useNavbarBreadcrumbContext";
 import { routes } from "../hooks/useRoutes";
+import { NavbarWalletTray } from "./Navbar/NavbarWalletTray";
 
 const getBaseBreadcrumb = (pathname: string) => {
   if (matchPath(routes.broadcast(":id"), pathname)) {
@@ -16,6 +17,9 @@ const getBaseBreadcrumb = (pathname: string) => {
   }
   if (pathname === routes.createFighter()) {
     return "Terminal / New Fighter";
+  }
+  if (pathname === routes.terminalWallet()) {
+    return "Terminal / Wallet";
   }
   return "Terminal";
 };
@@ -45,7 +49,9 @@ export const Navbar = () => {
           >
             <img alt="Illicit Jet Fighters" className="w-full max-w-[280px]" src="/ijf-logo.svg" />
           </Link>
-          <div aria-hidden className="justify-self-end" />
+          <div className="justify-self-end">
+            <NavbarWalletTray />
+          </div>
         </div>
       </div>
       <div className="w-full border-t border-border/70 px-4 py-1">

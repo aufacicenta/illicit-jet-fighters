@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 import { parseFighterNameAndEpithet } from "@ijf/shared";
 
-import { clearPendingForFighter, sendToFighter } from "../ws/store";
+import { clearPendingForFighter, sendToFighter, sendToUser } from "../ws/store";
 import {
   createFighterAgentVersion,
   getNextFighterAgentVersionNumber,
@@ -45,6 +45,7 @@ import {
 } from "./r2";
 import { normalizeSpritesheetManifest } from "./spritesheet-manifest";
 import type { ChatMessage, SectionId, SectionOutput } from "./types";
+import { InsufficientBalanceError, requirePreflightBalance } from "./wallet";
 
 export type PipelineTenant = {
   userId: string;
@@ -583,6 +584,33 @@ const emitSectionError = (
   const errorMessage = error instanceof Error ? error.message : "Unknown pipeline error.";
   state.activeSectionIds = state.activeSectionIds.filter((id) => id !== sectionId);
   state.lastErrorSectionId = sectionId;
+  if (error instanceof InsufficientBalanceError) {
+    const tenant = tenantByFighter.get(fighterKey);
+    sendToFighter(fighterKey, {
+      type: "wallet:insufficient-balance",
+      sectionId,
+      requiredMist: error.requiredMist.toString(),
+      balanceMist: error.balanceMist.toString(),
+    });
+    sendToFighter(fighterKey, {
+      type: "section:error",
+      sectionId,
+      error: errorMessage,
+      code: "INSUFFICIENT_BALANCE",
+      requiredMist: error.requiredMist.toString(),
+      balanceMist: error.balanceMist.toString(),
+    });
+    if (tenant) {
+      sendToUser(tenant.userId, {
+        type: "wallet:insufficient-balance",
+        sectionId,
+        requiredMist: error.requiredMist.toString(),
+        balanceMist: error.balanceMist.toString(),
+      });
+    }
+    return;
+  }
+
   sendToFighter(fighterKey, {
     type: "section:error",
     sectionId,
@@ -723,6 +751,9 @@ const runTextSectionStep = async ({
   const tenant = tenantByFighter.get(fighterKey);
   const sectionStartedAt = Date.now();
   const llmCallContext = buildLlmCallContext({ tenant, sectionId, correlationId });
+  if (tenant) {
+    await requirePreflightBalance({ userId: tenant.userId, sectionId });
+  }
 
   markSectionStarted(state, fighterKey, sectionId);
   const generated = await generator(
@@ -851,6 +882,9 @@ const runImageSectionStep = async ({
   const requireTransparentBackground =
     sectionId === "spritesheet-image" || sectionId === "strikecraft-sprite-image";
   const maxAttempts = requireTransparentBackground ? 2 : 1;
+  if (tenant) {
+    await requirePreflightBalance({ userId: tenant.userId, sectionId });
+  }
   markSectionStarted(state, fighterKey, sectionId);
 
   try {
@@ -978,6 +1012,7 @@ const runSpritesheetManifestStep = async ({
   const tenant = requireTenant(fighterKey);
   const state = getState(fighterKey, correlationId);
   const sectionId: SectionId = "spritesheet-manifest";
+  await requirePreflightBalance({ userId: tenant.userId, sectionId });
   markSectionStarted(state, fighterKey, sectionId);
 
   try {

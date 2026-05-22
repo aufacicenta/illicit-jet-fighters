@@ -1,0 +1,23 @@
+import path from "node:path";
+
+import { config as loadDotEnv } from "dotenv";
+
+const workspaceRoot = path.resolve(import.meta.dir, "..", "..");
+loadDotEnv({ path: path.join(workspaceRoot, ".env.local"), override: false });
+loadDotEnv({ path: path.join(workspaceRoot, ".env"), override: false });
+loadDotEnv({ path: path.join(workspaceRoot, "api", ".env.local"), override: false });
+
+const parseIntStrict = (value: string | undefined, fallback: number) => {
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+export const config = {
+  suiNetwork: (process.env.SUI_NETWORK?.trim() || "testnet") as "testnet" | "devnet" | "mainnet",
+  suiRpcUrl: process.env.SUI_RPC_URL?.trim(),
+  walletIndexerPollMs: Math.max(5_000, parseIntStrict(process.env.WALLET_INDEXER_POLL_MS, 15_000)),
+  walletMasterMnemonic: process.env.WALLET_MASTER_MNEMONIC?.trim(),
+  apiBaseUrl: process.env.API_BASE_URL?.trim() || "http://127.0.0.1:4000",
+  walletIndexerSecret: process.env.WALLET_INDEXER_SECRET?.trim(),
+};

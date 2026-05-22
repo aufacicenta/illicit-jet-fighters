@@ -7,7 +7,8 @@
     "jet-arena",
     "database",
     "shared",
-    "simulator"
+    "simulator",
+    "wallet-indexer"
   ],
   "scripts": {
     "lint": "bun run --workspaces lint:fix",
@@ -19,7 +20,8 @@
     "check": "F=0; bun run lint || F=1; bun run format || F=1; bun run typecheck || F=1; exit $F",
     "dev:api": "bun run --filter '@ijf/api' dev",
     "dev:arena": "bun run --filter 'illicit-jet-fighters' dev",
-    "dev:simulator": "bun run --filter '@ijf/simulator' dev"
+    "dev:simulator": "bun run --filter '@ijf/simulator' dev",
+    "dev:indexer": "bun run --filter '@ijf/wallet-indexer' dev"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -39,6 +41,7 @@
     "@openrouter/sdk@0.12.35": "patches/@openrouter%2Fsdk@0.12.35.patch"
   },
   "dependencies": {
+    "@mysten/sui": "^2.17.0",
     "@radix-ui/react-dialog": "^1.1.15",
     "dotenv": "^17.4.2",
     "highlight.js": "^11.11.1",

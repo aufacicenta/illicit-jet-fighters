@@ -30,6 +30,7 @@ export const routes = {
   createFighter: () => `/fighters/new`,
   fighterWizard: (id: string) => `/wizard/fighter/${id}`,
   terminalFighters: () => `/terminal/fighters`,
+  terminalWallet: () => `/terminal/wallet`,
   /** Deprecated singular route kept only for backward-compatible redirects. */
   terminalSimulation: () => `/terminal/simulation`,
   login: () => `/login`,
@@ -59,10 +60,16 @@ export const apiRoutes = {
   refineSpecsheetPrompt: `${API_BASE}/generate/specsheet-prompt/refine`,
   generateSpecsheetImage: `${API_BASE}/generate/specsheet-image`,
   refineSpecsheetImage: `${API_BASE}/generate/specsheet-image/refine`,
+  walletMe: `${API_BASE}/wallet/me`,
+  walletLedger: `${API_BASE}/wallet/me/ledger`,
+  walletWithdrawals: `${API_BASE}/wallet/me/withdrawals`,
+  walletCancelWithdrawal: (groupId: string) =>
+    `${API_BASE}/wallet/me/withdrawals/${encodeURIComponent(groupId)}/cancel`,
 };
 
 export const wsRoutes = {
   fighter: (id: string) => `${WS_BASE}/ws/${id}`,
+  user: () => `${WS_BASE}/ws/user`,
   broadcast: (id: string) => `${WS_BASE}/broadcast/${id}`,
 };
 

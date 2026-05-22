@@ -49,6 +49,7 @@ const buildZeroSectionCosts = (): Partial<Record<SectionId, string>> => {
 };
 
 export const insertLlmUsageEvent = async ({
+  executor,
   userId,
   fighterId,
   sectionId,
@@ -62,6 +63,7 @@ export const insertLlmUsageEvent = async ({
   costCredits,
   durationMs,
 }: {
+  executor?: typeof db;
   userId: string;
   fighterId?: number | null;
   sectionId: string;
@@ -75,7 +77,8 @@ export const insertLlmUsageEvent = async ({
   costCredits?: string;
   durationMs: number;
 }): Promise<LlmUsageEvent> => {
-  const inserted = await db
+  const run = executor ?? db;
+  const inserted = await run
     .insert(llmUsageEvents)
     .values({
       userId,

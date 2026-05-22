@@ -5,6 +5,7 @@ type SocketLike = {
 };
 
 const fighterSockets = new Map<string, Set<SocketLike>>();
+const userSockets = new Map<string, Set<SocketLike>>();
 const pendingByFighter = new Map<string, ServerMessage[]>();
 
 const deliverToSockets = (fighterId: string, payload: ServerMessage): boolean => {
@@ -73,4 +74,37 @@ export const sendToFighter = (fighterId: string, payload: ServerMessage) => {
   const pending = pendingByFighter.get(fighterId) ?? [];
   pending.push(payload);
   pendingByFighter.set(fighterId, pending);
+};
+
+export const registerUserSocket = (userId: string, socket: SocketLike) => {
+  const current = userSockets.get(userId);
+  if (current) {
+    current.add(socket);
+  } else {
+    userSockets.set(userId, new Set([socket]));
+  }
+};
+
+export const unregisterUserSocket = (userId: string, socket: SocketLike) => {
+  const current = userSockets.get(userId);
+  if (!current) {
+    return;
+  }
+
+  current.delete(socket);
+  if (current.size === 0) {
+    userSockets.delete(userId);
+  }
+};
+
+export const sendToUser = (userId: string, payload: ServerMessage) => {
+  const sockets = userSockets.get(userId);
+  if (!sockets || sockets.size === 0) {
+    return;
+  }
+
+  const serialized = JSON.stringify(payload);
+  for (const socket of sockets) {
+    socket.send(serialized);
+  }
 };

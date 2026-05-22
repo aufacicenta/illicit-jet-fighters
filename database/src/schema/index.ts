@@ -2,3 +2,6 @@ export * from "./fighter-agent-versions";
 export * from "./fighters";
 export * from "./llm-usage-events";
 export * from "./simulations";
+export * from "./user-wallets";
+export * from "./wallet-ledger-entries";
+export * from "./wallet-networks";

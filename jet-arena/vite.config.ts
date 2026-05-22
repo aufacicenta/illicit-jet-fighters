@@ -88,6 +88,7 @@ export default defineConfig(({ mode }) => {
         // API only exposes POST /agents/:id/package (see api/src/routes/storage/index.ts).
         "^/agents/[^/]+/package": { target: apiTarget, changeOrigin: true },
         "/pipeline": { target: apiTarget, changeOrigin: true },
+        "/wallet": { target: apiTarget, changeOrigin: true },
         "/generate": { target: apiTarget, changeOrigin: true },
         "/health": { target: apiTarget, changeOrigin: true },
         "/ws": { target: apiTarget, ws: true, changeOrigin: true },

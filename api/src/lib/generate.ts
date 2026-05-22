@@ -1,10 +1,13 @@
-import { sendToFighter } from "../ws/store";
+import { db } from "@ijf/database";
+
+import { sendToFighter, sendToUser } from "../ws/store";
 import { aiModels } from "./ai-models";
 import { buildFighterCostSnapshot, insertLlmUsageEvent } from "./llm-usage-repository";
 import { logger } from "./logger";
 import { openrouter } from "./openrouter";
 import { skills } from "./skills";
 import type { ChatMessage, SectionId } from "./types";
+import { chargeForUsage } from "./wallet";
 
 type StreamDeltaHandler = (delta: string) => void;
 type OpenRouterResult<T> = { ok: true; value: T } | { ok: false; error: unknown };
@@ -153,7 +156,7 @@ const getProviderFromModel = (model: string) => {
   return prefix && prefix.length > 0 ? prefix : "unknown";
 };
 
-const trackLlmUsage = ({
+const trackLlmUsage = async ({
   model,
   context,
   startedAt,
@@ -174,10 +177,12 @@ const trackLlmUsage = ({
 
   const usage = usageOverride ?? extractUsage(payload);
   const generationId = generationIdOverride ?? extractGenerationId(payload);
+  const costUsd = Number.parseFloat(usage?.costCredits ?? "0");
 
-  void (async () => {
-    try {
-      await insertLlmUsageEvent({
+  try {
+    const chargeResult = await db.transaction(async (tx) => {
+      const usageEvent = await insertLlmUsageEvent({
+        executor: tx as unknown as typeof db,
         userId: context.userId,
         fighterId: context.fighterId ?? null,
         sectionId: context.sectionId,
@@ -192,25 +197,45 @@ const trackLlmUsage = ({
         durationMs: Date.now() - startedAt,
       });
 
-      if (context.fighterId !== undefined) {
-        const snapshot = await buildFighterCostSnapshot({
-          userId: context.userId,
-          fighterId: context.fighterId,
-        });
-        sendToFighter(String(context.fighterId), {
-          type: "pipeline:cost-update",
-          ...snapshot,
-        });
-      }
-    } catch (error) {
-      logger.warn("llm usage event tracking failed", {
-        model,
-        sectionId: context.sectionId,
+      const billing = await chargeForUsage({
+        executor: tx as unknown as typeof db,
+        userId: context.userId,
+        llmUsageEventId: usageEvent.id,
+        costUsd: Number.isFinite(costUsd) ? costUsd : 0,
         correlationId: context.correlationId,
-        error: error instanceof Error ? error.message : String(error),
+      });
+
+      return { usageEvent, billing };
+    });
+
+    if (context.fighterId !== undefined) {
+      const snapshot = await buildFighterCostSnapshot({
+        userId: context.userId,
+        fighterId: context.fighterId,
+      });
+      sendToFighter(String(context.fighterId), {
+        type: "pipeline:cost-update",
+        ...snapshot,
       });
     }
-  })();
+
+    sendToUser(context.userId, {
+      type: "wallet:balance-update",
+      walletId: chargeResult.billing.wallet.id,
+      balanceMist: chargeResult.billing.balanceMist.toString(),
+      balanceUsd: chargeResult.billing.balanceUsd.toFixed(8),
+      fxNativePerUsd: chargeResult.billing.fxNativePerUsd.toFixed(12),
+      at: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.warn("llm usage event tracking failed", {
+      model,
+      sectionId: context.sectionId,
+      correlationId: context.correlationId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
 };
 
 const buildSpecsheetImageDiagnostic = (completion: unknown) => {
@@ -324,7 +349,7 @@ const generateImageWithModel = async (
       messages: [{ role: "user", content: prompt }],
     },
   });
-  trackLlmUsage({ model, context, payload: completion, startedAt });
+  await trackLlmUsage({ model, context, payload: completion, startedAt });
 
   const image = getSpecsheetImage(completion);
   if (!image) {
@@ -410,7 +435,7 @@ const generateTextWithModel = async ({
       streamedText += delta;
       onDelta(delta);
     }
-    trackLlmUsage({
+    await trackLlmUsage({
       model,
       context,
       startedAt,
@@ -431,7 +456,7 @@ const generateTextWithModel = async ({
       messages,
     },
   });
-  trackLlmUsage({ model, context, payload: completionResponse, startedAt });
+  await trackLlmUsage({ model, context, payload: completionResponse, startedAt });
   const completion = unwrapOpenRouterResult(completionResponse) as {
     choices?: Array<{ message?: { content?: unknown } }>;
   };
@@ -605,7 +630,7 @@ export const generateSpritesheetManifest = async ({
       ],
     },
   });
-  trackLlmUsage({
+  await trackLlmUsage({
     model: aiModels.spritesheetManifest,
     context,
     payload: completionResponse,

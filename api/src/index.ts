@@ -7,9 +7,11 @@ import { broadcastRoutes } from "./routes/broadcasts";
 import { costRoutes } from "./routes/costs";
 import { fighterSessionRoutes } from "./routes/fighters";
 import { generateRoutes } from "./routes/generate";
+import { internalWalletRoutes } from "./routes/internal/wallet";
 import { pipelineRoutes } from "./routes/pipeline";
 import { simulationRoutes } from "./routes/simulations";
 import { agentRoutes, assetRoutes } from "./routes/storage";
+import { walletRoutes } from "./routes/wallet";
 import { wsHandler } from "./ws";
 import { broadcastWsHandler } from "./ws/broadcast";
 
@@ -24,6 +26,7 @@ const guardedHttp = new Elysia({ name: "guarded-http" })
   .use(broadcastRoutes)
   .use(assetRoutes)
   .use(agentRoutes)
+  .use(walletRoutes)
   .use(generateRoutes);
 
 const app = withLogging(new Elysia())
@@ -35,6 +38,7 @@ const app = withLogging(new Elysia())
     }),
   )
   .get("/health", () => ({ ok: true }))
+  .use(internalWalletRoutes)
   .use(broadcastWsHandler)
   .use(wsHandler)
   .use(guardedHttp);

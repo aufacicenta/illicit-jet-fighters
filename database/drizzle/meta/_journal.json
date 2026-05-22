@@ -43,6 +43,13 @@
       "when": 1779414998658,
       "tag": "0005_dashing_argent",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779423702568,
+      "tag": "0006_glossy_william_stryker",
+      "breakpoints": true
     }
   ]
 }

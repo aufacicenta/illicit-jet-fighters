@@ -10,6 +10,7 @@ const sectionStatusLabelMap: Record<SectionStatus, string> = {
   generating: "Generating",
   complete: "Done",
   error: "Error",
+  blocked: "Blocked",
 };
 
 const sectionStatusClassNameMap: Record<SectionStatus, string> = {
@@ -18,11 +19,15 @@ const sectionStatusClassNameMap: Record<SectionStatus, string> = {
   generating: "border-accent/80 bg-accent/20 text-accent animate-pulse",
   complete: "border-secondary/80 bg-secondary/20 text-secondary",
   error: "border-destructive/80 bg-destructive/20 text-destructive",
+  blocked: "border-amber-500/80 bg-amber-500/20 text-amber-200",
 };
 
 export const resolveSectionStatus = (statuses: SectionStatus[]): SectionStatus => {
   if (statuses.some((status) => status === "error")) {
     return "error";
+  }
+  if (statuses.some((status) => status === "blocked")) {
+    return "blocked";
   }
   if (statuses.some((status) => status === "generating")) {
     return "generating";
