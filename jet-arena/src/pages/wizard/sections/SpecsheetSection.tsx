@@ -1,3 +1,4 @@
+import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { useWizardContext } from "../../../context/Wizard/useWizardContext";
@@ -10,12 +11,25 @@ import {
 import { WizardCardTitle } from "./WizardCardTitle";
 
 export const SpecsheetSection = () => {
-  const { outputs, sectionStatuses, activeSectionId, setActiveSection } = useWizardContext();
+  const {
+    outputs,
+    sectionStatuses,
+    activeSectionId,
+    setActiveSection,
+    requestRegenerateSpecsheet,
+  } = useWizardContext();
 
   const imageOutput = outputs["specsheet-image"];
   const imageStatus = sectionStatuses["specsheet-image"];
   const promptStatus = sectionStatuses["specsheet-prompt"];
+  const hasCharacterDescription = Boolean(outputs["character-description"]?.content);
   const isGeneratingSpecsheet = imageStatus === "generating" || promptStatus === "generating";
+  const isRetryDisabled =
+    promptStatus === "locked" ||
+    imageStatus === "locked" ||
+    isGeneratingSpecsheet ||
+    !hasCharacterDescription;
+  const actionLabel = imageStatus === "error" || promptStatus === "error" ? "Retry" : "Regenerate";
   const headerStatus = resolveSectionStatus([promptStatus, imageStatus]);
   return (
     <Card
@@ -26,6 +40,18 @@ export const SpecsheetSection = () => {
         <div className="flex items-center justify-between gap-2">
           <WizardCardTitle>Pilot Specsheet</WizardCardTitle>
           <div className="flex items-center gap-2">
+            <Button
+              disabled={isRetryDisabled}
+              onClick={(event) => {
+                event.stopPropagation();
+                void requestRegenerateSpecsheet();
+              }}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              {isGeneratingSpecsheet ? "Regenerating..." : actionLabel}
+            </Button>
             <SectionCostBadge sectionIds={["specsheet-prompt", "specsheet-image"]} />
             <SectionStatusBadge status={headerStatus} />
           </div>

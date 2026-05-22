@@ -1,3 +1,4 @@
+import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { useWizardContext } from "../../../context/Wizard/useWizardContext";
@@ -6,9 +7,19 @@ import { SectionStatusBadge, wizardCardHeaderClassName } from "./SectionStatusBa
 import { WizardCardTitle } from "./WizardCardTitle";
 
 export const StrikecraftSpecsheetSection = () => {
-  const { outputs, sectionStatuses, activeSectionId, setActiveSection } = useWizardContext();
+  const {
+    outputs,
+    sectionStatuses,
+    activeSectionId,
+    setActiveSection,
+    requestRegenerateStrikecraftSpecsheetImage,
+  } = useWizardContext();
   const imageOutput = outputs["strikecraft-specsheet-image"];
   const imageStatus = sectionStatuses["strikecraft-specsheet-image"];
+  const hasStrikecraftSpecsheetPrompt = Boolean(outputs["strikecraft-specsheet-prompt"]?.content);
+  const isRetryDisabled =
+    imageStatus === "locked" || imageStatus === "generating" || !hasStrikecraftSpecsheetPrompt;
+  const actionLabel = imageStatus === "error" ? "Retry" : "Regenerate";
 
   return (
     <Card
@@ -20,6 +31,18 @@ export const StrikecraftSpecsheetSection = () => {
       >
         <WizardCardTitle>Strikecraft Specsheet</WizardCardTitle>
         <div className="flex items-center gap-2">
+          <Button
+            disabled={isRetryDisabled}
+            onClick={(event) => {
+              event.stopPropagation();
+              void requestRegenerateStrikecraftSpecsheetImage();
+            }}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            {imageStatus === "generating" ? "Regenerating..." : actionLabel}
+          </Button>
           <SectionCostBadge
             sectionIds={["strikecraft-specsheet-prompt", "strikecraft-specsheet-image"]}
           />

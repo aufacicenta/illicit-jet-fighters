@@ -47,6 +47,11 @@ export const generatePipelineSpritesheetImage = (fighterId: number) =>
     id: fighterId,
   });
 
+export const generatePipelineStrikecraftSpecsheetImage = (fighterId: number) =>
+  post<{ status: "started" }>(apiRoutes.pipelineStrikecraftSpecsheetImage, {
+    id: fighterId,
+  });
+
 export const generatePipelineStrikecraftSpriteImage = (fighterId: number) =>
   post<{ status: "started" }>(apiRoutes.pipelineStrikecraftSpriteImage, {
     id: fighterId,

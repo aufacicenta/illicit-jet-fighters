@@ -14,6 +14,7 @@ import {
   generateAgentCodeFromCharacterDescription,
   generateSpecsheetFromCharacterDescription,
   generateSpritesheetImageFromPrompt,
+  generateStrikecraftSpecsheetImageFromPrompt,
   generateStrikecraftSpriteImageFromPrompt,
   serializeClientPipelineState,
   startPipeline,
@@ -24,6 +25,7 @@ import type {
   PipelineSpecsheetRequest,
   PipelineSpritesheetImageRequest,
   PipelineStartResponse,
+  PipelineStrikecraftSpecsheetImageRequest,
   PipelineStrikecraftSpriteImageRequest,
 } from "./types";
 
@@ -229,6 +231,48 @@ export const pipelineRoutes = new Elysia({ prefix: "/pipeline" })
         .catch((error) => {
           logger.error("pipeline spritesheet-image endpoint async execution failed", {
             path: "/pipeline/spritesheet-image",
+            fighterId: resolution.fighterId,
+            correlationId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+
+      return { status: "started" } satisfies PipelineStartResponse;
+    },
+    {
+      body: t.Object({
+        id: t.Number(),
+      }),
+    },
+  )
+  .post(
+    "/strikecraft-specsheet-image",
+    async ({ body, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const payload = body as PipelineStrikecraftSpecsheetImageRequest;
+      const resolution = await resolveFighterAccess(auth.userId, String(payload.id));
+      if ("error" in resolution) {
+        return status(404, resolution.error);
+      }
+
+      const correlationId = createCorrelationId("pipeline-strikecraft-specsheet-image");
+      logger.info("pipeline strikecraft-specsheet-image endpoint hit", {
+        path: "/pipeline/strikecraft-specsheet-image",
+        fighterId: resolution.fighterId,
+        correlationId,
+      });
+
+      void generateStrikecraftSpecsheetImageFromPrompt(resolution.fighterKey, correlationId)
+        .then(() => {
+          logger.info("pipeline strikecraft-specsheet-image endpoint async execution completed", {
+            path: "/pipeline/strikecraft-specsheet-image",
+            fighterId: resolution.fighterId,
+            correlationId,
+          });
+        })
+        .catch((error) => {
+          logger.error("pipeline strikecraft-specsheet-image endpoint async execution failed", {
+            path: "/pipeline/strikecraft-specsheet-image",
             fighterId: resolution.fighterId,
             correlationId,
             error: error instanceof Error ? error.message : String(error),

@@ -8,7 +8,9 @@ import type { ChatMessage } from "../../lib/api";
 import {
   fetchPipelineState,
   generatePipelineAgentCode,
+  generatePipelineSpecsheet,
   generatePipelineSpritesheetImage,
+  generatePipelineStrikecraftSpecsheetImage,
   generatePipelineStrikecraftSpriteImage,
   generateSpecsheetImage,
   refineCharacterDescription,
@@ -633,6 +635,37 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     setErrorMessage(null);
   }, [send]);
 
+  const requestRegenerateSpecsheet = useCallback(async () => {
+    if (!Number.isInteger(fighterNumericId) || fighterNumericId <= 0) {
+      setErrorMessage("Invalid fighter id for specsheet regeneration.");
+      return;
+    }
+
+    const characterDescription = outputs["character-description"]?.content?.trim();
+    if (!characterDescription) {
+      setErrorMessage("Character description is required before regenerating specsheet.");
+      return;
+    }
+
+    setErrorMessage(null);
+    setSectionStatuses((current) => ({
+      ...current,
+      "specsheet-prompt": "generating",
+      "specsheet-image": "generating",
+    }));
+
+    try {
+      await generatePipelineSpecsheet(fighterNumericId, characterDescription);
+    } catch (error) {
+      setSectionStatuses((current) => ({
+        ...current,
+        "specsheet-prompt": "error",
+        "specsheet-image": "error",
+      }));
+      setErrorMessage(error instanceof Error ? error.message : "Unable to regenerate specsheet.");
+    }
+  }, [fighterNumericId, outputs]);
+
   const requestRegenerateAgentCode = useCallback(async () => {
     if (!Number.isInteger(fighterNumericId) || fighterNumericId <= 0) {
       setErrorMessage("Invalid fighter id for agent regeneration.");
@@ -683,6 +716,31 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     }
   }, [fighterNumericId]);
 
+  const requestRegenerateStrikecraftSpecsheetImage = useCallback(async () => {
+    if (!Number.isInteger(fighterNumericId) || fighterNumericId <= 0) {
+      setErrorMessage("Invalid fighter id for strikecraft specsheet regeneration.");
+      return;
+    }
+
+    setErrorMessage(null);
+    setSectionStatuses((current) => ({
+      ...current,
+      "strikecraft-specsheet-image": "generating",
+    }));
+
+    try {
+      await generatePipelineStrikecraftSpecsheetImage(fighterNumericId);
+    } catch (error) {
+      setSectionStatuses((current) => ({
+        ...current,
+        "strikecraft-specsheet-image": "error",
+      }));
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to regenerate strikecraft specsheet.",
+      );
+    }
+  }, [fighterNumericId]);
+
   const requestRegenerateStrikecraftSpriteImage = useCallback(async () => {
     if (!Number.isInteger(fighterNumericId) || fighterNumericId <= 0) {
       setErrorMessage("Invalid fighter id for strikecraft sprite regeneration.");
@@ -726,7 +784,9 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       setActiveSection,
       submitPrompt,
       requestContinuePipeline,
+      requestRegenerateSpecsheet,
       requestRegenerateAgentCode,
+      requestRegenerateStrikecraftSpecsheetImage,
       requestRegenerateSpritesheetImage,
       requestRegenerateStrikecraftSpriteImage,
       saveEditedSection,
@@ -745,7 +805,9 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       setActiveSection,
       submitPrompt,
       requestContinuePipeline,
+      requestRegenerateSpecsheet,
       requestRegenerateAgentCode,
+      requestRegenerateStrikecraftSpecsheetImage,
       requestRegenerateSpritesheetImage,
       requestRegenerateStrikecraftSpriteImage,
       saveEditedSection,

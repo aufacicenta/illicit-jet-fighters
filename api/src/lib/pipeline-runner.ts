@@ -1416,6 +1416,66 @@ export const generateStrikecraftSpriteImageFromPrompt = async (
   });
 };
 
+export const generateStrikecraftSpecsheetImageFromPrompt = async (
+  fighterKey: string,
+  correlationId?: string,
+) => {
+  requireTenant(fighterKey);
+
+  const startedAt = Date.now();
+  const state = getState(fighterKey, correlationId);
+  const prompt = state.outputs["strikecraft-specsheet-prompt"]?.content?.trim();
+  logger.info("pipeline strikecraft-specsheet-image regeneration requested", {
+    ...withContext(fighterKey, correlationId),
+    promptLength: prompt?.length ?? 0,
+  });
+
+  if (!prompt) {
+    const error = new Error(
+      "Strikecraft specsheet prompt is required before regenerating strikecraft specsheet image.",
+    );
+    logger.error("pipeline strikecraft-specsheet-image regeneration failed", {
+      ...withContext(fighterKey, correlationId),
+      durationMs: Date.now() - startedAt,
+      error: error.message,
+    });
+    emitSectionError(fighterKey, "strikecraft-specsheet-image", error, correlationId);
+    return;
+  }
+
+  state.gateMessage = null;
+  state.lastErrorSectionId = null;
+  const tenant = tenantByFighter.get(fighterKey);
+
+  try {
+    await runImageSectionStep({
+      fighterKey,
+      sectionId: "strikecraft-specsheet-image",
+      prompt,
+      correlationId,
+      objectKeyBuilder: strikecraftSpecsheetObjectKey,
+      generator: generateStrikecraftSpecsheetImage,
+    });
+
+    if (tenant) {
+      await syncPipelineState(fighterKey);
+    }
+  } catch (error) {
+    logger.error("pipeline strikecraft-specsheet-image regeneration failed", {
+      ...withContext(fighterKey, correlationId),
+      durationMs: Date.now() - startedAt,
+      error: getErrorMessage(error),
+    });
+    emitSectionError(fighterKey, "strikecraft-specsheet-image", error, correlationId);
+    return;
+  }
+
+  logger.info("pipeline strikecraft-specsheet-image regeneration completed", {
+    ...withContext(fighterKey, correlationId),
+    durationMs: Date.now() - startedAt,
+  });
+};
+
 export const continuePipeline = async (fighterKey: string, correlationId?: string) => {
   logger.info("pipeline continue requested", withContext(fighterKey, correlationId));
   requireTenant(fighterKey);

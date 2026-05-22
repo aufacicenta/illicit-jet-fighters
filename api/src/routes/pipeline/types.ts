@@ -19,6 +19,10 @@ export type PipelineStrikecraftSpriteImageRequest = {
   id: number;
 };
 
+export type PipelineStrikecraftSpecsheetImageRequest = {
+  id: number;
+};
+
 export type PipelineStartResponse = {
   status: "started";
 };
