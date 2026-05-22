@@ -4,7 +4,6 @@ const MIN_MEANINGFUL_TRANSPARENCY_RATIO = 0.02;
 const EDGE_COLOR_TOLERANCE = 34;
 const COLOR_BUCKET_SIZE = 24;
 const MAX_EDGE_COLOR_SEEDS = 8;
-
 const distance = (a: { r: number; g: number; b: number }, b: { r: number; g: number; b: number }) =>
   Math.abs(a.r - b.r) + Math.abs(a.g - b.g) + Math.abs(a.b - b.b);
 

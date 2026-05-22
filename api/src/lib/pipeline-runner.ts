@@ -24,11 +24,7 @@ import {
   generateStrikecraftSpritePrompt,
 } from "./generate";
 import { decodeImagePayload } from "./image-payload";
-import {
-  canonicalizeSpritesheet,
-  getImageDimensions,
-  normalizeForStoragePng,
-} from "./image-processing";
+import { getImageDimensions, normalizeForStoragePng } from "./image-processing";
 import { withFighterContext as withContext } from "./log-context";
 import { logger } from "./logger";
 import type { SectionStatus } from "./pipeline-status";
@@ -962,32 +958,10 @@ const runSpritesheetManifestStep = async ({
       sheetWidth,
       sheetHeight,
     });
-    const spritesheetImageKey = spritesheetImageObjectKey(tenant.userId, tenant.fighterId, "png");
-    const spritesheetImageBuffer = await getObjectBuffer(spritesheetImageKey);
-    if (!spritesheetImageBuffer) {
-      throw new Error("Spritesheet image asset is missing when canonicalizing manifest.");
-    }
-    const canonicalized = await canonicalizeSpritesheet({
-      sourceBuffer: spritesheetImageBuffer,
-      manifest: normalized,
-    });
-    await putObject(spritesheetImageKey, canonicalized.buffer, "image/png");
-    const canonicalImageSignedUrl = await getSignedReadUrl(spritesheetImageKey);
-    const imageOutput = state.outputs["spritesheet-image"];
-    if (imageOutput) {
-      const updatedImageOutput = {
-        ...imageOutput,
-        content: spritesheetImageKey,
-        mimeType: "image/png",
-        assetUrl: canonicalImageSignedUrl,
-      };
-      state.outputs["spritesheet-image"] = updatedImageOutput;
-      await broadcastSectionComplete(fighterKey, "spritesheet-image", updatedImageOutput);
-    }
     const objectKey = spritesheetManifestObjectKey(tenant.userId, tenant.fighterId);
     await putObject(
       objectKey,
-      Buffer.from(JSON.stringify(canonicalized.manifest, null, 2)),
+      Buffer.from(JSON.stringify(normalized, null, 2)),
       "application/json",
     );
     const signedUrl = await getSignedReadUrl(objectKey);
