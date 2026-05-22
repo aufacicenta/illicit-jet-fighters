@@ -8,7 +8,7 @@ const sectionStatusLabelMap: Record<SectionStatus, string> = {
   locked: "Locked",
   ready: "Ready",
   generating: "Generating",
-  complete: "Complete",
+  complete: "Done",
   error: "Error",
 };
 

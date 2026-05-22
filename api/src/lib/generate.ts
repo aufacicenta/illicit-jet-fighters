@@ -1,4 +1,5 @@
 import { aiModels } from "./ai-models";
+import { insertLlmUsageEvent } from "./llm-usage-repository";
 import { logger } from "./logger";
 import { openrouter } from "./openrouter";
 import { skills } from "./skills";
@@ -6,6 +7,19 @@ import type { ChatMessage } from "./types";
 
 type StreamDeltaHandler = (delta: string) => void;
 type OpenRouterResult<T> = { ok: true; value: T } | { ok: false; error: unknown };
+export type LlmCallContext = {
+  userId: string;
+  fighterId?: number;
+  sectionId: string;
+  correlationId?: string;
+};
+
+type OpenRouterUsageSnapshot = {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  costCredits: string;
+};
 
 const getText = (content: unknown): string => {
   if (typeof content === "string") {
@@ -69,6 +83,118 @@ const getImageUrl = (image: Record<string, unknown>): string | undefined => {
   }
 
   return undefined;
+};
+
+const getNumber = (value: unknown): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number.parseFloat(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return undefined;
+};
+
+const getString = (value: unknown): string | undefined =>
+  typeof value === "string" && value.trim().length > 0 ? value : undefined;
+
+const extractGenerationId = (payload: unknown): string | undefined => {
+  if (!payload || typeof payload !== "object") {
+    return undefined;
+  }
+
+  const maybeId = "id" in payload ? getString(payload.id) : undefined;
+  return maybeId;
+};
+
+const extractUsage = (payload: unknown): OpenRouterUsageSnapshot | null => {
+  if (!payload || typeof payload !== "object" || !("usage" in payload)) {
+    return null;
+  }
+
+  const usageValue = payload.usage;
+  if (!usageValue || typeof usageValue !== "object") {
+    return null;
+  }
+  const usageRecord = usageValue as Record<string, unknown>;
+
+  const promptTokens =
+    ("prompt_tokens" in usageRecord ? getNumber(usageRecord.prompt_tokens) : undefined) ??
+    ("promptTokens" in usageRecord ? getNumber(usageRecord.promptTokens) : undefined) ??
+    0;
+  const completionTokens =
+    ("completion_tokens" in usageRecord ? getNumber(usageRecord.completion_tokens) : undefined) ??
+    ("completionTokens" in usageRecord ? getNumber(usageRecord.completionTokens) : undefined) ??
+    0;
+  const totalTokens =
+    ("total_tokens" in usageRecord ? getNumber(usageRecord.total_tokens) : undefined) ??
+    ("totalTokens" in usageRecord ? getNumber(usageRecord.totalTokens) : undefined) ??
+    promptTokens + completionTokens;
+  const cost =
+    ("cost" in usageRecord ? getNumber(usageRecord.cost) : undefined) ??
+    ("total_cost" in usageRecord ? getNumber(usageRecord.total_cost) : undefined) ??
+    ("totalCost" in usageRecord ? getNumber(usageRecord.totalCost) : undefined) ??
+    0;
+
+  return {
+    promptTokens,
+    completionTokens,
+    totalTokens,
+    costCredits: String(cost),
+  };
+};
+
+const getProviderFromModel = (model: string) => {
+  const prefix = model.split("/")[0];
+  return prefix && prefix.length > 0 ? prefix : "unknown";
+};
+
+const trackLlmUsage = ({
+  model,
+  context,
+  startedAt,
+  payload,
+  usageOverride,
+  generationIdOverride,
+}: {
+  model: string;
+  context?: LlmCallContext;
+  startedAt: number;
+  payload?: unknown;
+  usageOverride?: OpenRouterUsageSnapshot | null;
+  generationIdOverride?: string;
+}) => {
+  if (!context) {
+    return;
+  }
+
+  const usage = usageOverride ?? extractUsage(payload);
+  const generationId = generationIdOverride ?? extractGenerationId(payload);
+
+  void insertLlmUsageEvent({
+    userId: context.userId,
+    fighterId: context.fighterId ?? null,
+    sectionId: context.sectionId,
+    correlationId: context.correlationId,
+    openrouterGenerationId: generationId,
+    model,
+    provider: getProviderFromModel(model),
+    promptTokens: usage?.promptTokens ?? 0,
+    completionTokens: usage?.completionTokens ?? 0,
+    totalTokens: usage?.totalTokens ?? 0,
+    costCredits: usage?.costCredits ?? "0",
+    durationMs: Date.now() - startedAt,
+  }).catch((error) => {
+    logger.warn("llm usage event tracking failed", {
+      model,
+      sectionId: context.sectionId,
+      correlationId: context.correlationId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
 };
 
 const buildSpecsheetImageDiagnostic = (completion: unknown) => {
@@ -172,7 +298,9 @@ const generateImageWithModel = async (
   model: string,
   prompt: string,
   label: string,
+  context?: LlmCallContext,
 ): Promise<{ imageBase64: string; mimeType: string; model: string }> => {
+  const startedAt = Date.now();
   const completion = await openrouter.chat.send({
     chatRequest: {
       model,
@@ -180,6 +308,7 @@ const generateImageWithModel = async (
       messages: [{ role: "user", content: prompt }],
     },
   });
+  trackLlmUsage({ model, context, payload: completion, startedAt });
 
   const image = getSpecsheetImage(completion);
   if (!image) {
@@ -224,12 +353,15 @@ const generateTextWithModel = async ({
   messages,
   emptyErrorMessage,
   onDelta,
+  context,
 }: {
   model: string;
   messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
   emptyErrorMessage: string;
   onDelta?: StreamDeltaHandler;
+  context?: LlmCallContext;
 }) => {
+  const startedAt = Date.now();
   if (onDelta) {
     const streamResponse = await openrouter.chat.send({
       chatRequest: {
@@ -240,10 +372,21 @@ const generateTextWithModel = async ({
     });
     const stream = unwrapOpenRouterResult(streamResponse);
     let streamedText = "";
+    let streamUsage: OpenRouterUsageSnapshot | null = null;
+    let streamGenerationId: string | undefined;
 
     for await (const chunk of stream as AsyncIterable<{
       choices?: Array<{ delta?: { content?: string | null } }>;
     }>) {
+      const usage = extractUsage(chunk);
+      if (usage) {
+        streamUsage = usage;
+      }
+      const generationId = extractGenerationId(chunk);
+      if (generationId) {
+        streamGenerationId = generationId;
+      }
+
       const delta = chunk.choices?.[0]?.delta?.content;
       if (typeof delta !== "string" || delta.length === 0) {
         continue;
@@ -251,6 +394,13 @@ const generateTextWithModel = async ({
       streamedText += delta;
       onDelta(delta);
     }
+    trackLlmUsage({
+      model,
+      context,
+      startedAt,
+      usageOverride: streamUsage,
+      generationIdOverride: streamGenerationId,
+    });
 
     if (!streamedText.trim()) {
       throw new Error(emptyErrorMessage);
@@ -265,6 +415,7 @@ const generateTextWithModel = async ({
       messages,
     },
   });
+  trackLlmUsage({ model, context, payload: completionResponse, startedAt });
   const completion = unwrapOpenRouterResult(completionResponse) as {
     choices?: Array<{ message?: { content?: unknown } }>;
   };
@@ -280,6 +431,7 @@ const generateTextWithModel = async ({
 export const generateCharacterDescription = async (
   prompt: string,
   onDelta?: StreamDeltaHandler,
+  context?: LlmCallContext,
 ) => {
   const markdown = await generateTextWithModel({
     model: aiModels.characterDescription,
@@ -289,6 +441,7 @@ export const generateCharacterDescription = async (
     ],
     emptyErrorMessage: "Character description generation returned empty output.",
     onDelta,
+    context,
   });
 
   return {
@@ -300,6 +453,7 @@ export const generateCharacterDescription = async (
 export const generateCharacterDescriptionRefine = async (
   history: ChatMessage[],
   message: string,
+  context?: LlmCallContext,
 ) => {
   const markdown = await generateTextWithModel({
     model: aiModels.characterDescription,
@@ -309,6 +463,7 @@ export const generateCharacterDescriptionRefine = async (
       { role: "user", content: message },
     ],
     emptyErrorMessage: "Character description refinement returned empty output.",
+    context,
   });
 
   return {
@@ -320,6 +475,7 @@ export const generateCharacterDescriptionRefine = async (
 export const generateSpecsheetPrompt = async (
   characterDescription: string,
   onDelta?: StreamDeltaHandler,
+  context?: LlmCallContext,
 ) => {
   const prompt = await generateTextWithModel({
     model: aiModels.specsheetPrompt,
@@ -329,6 +485,7 @@ export const generateSpecsheetPrompt = async (
     ],
     emptyErrorMessage: "Specsheet prompt generation returned empty output.",
     onDelta,
+    context,
   });
 
   return {
@@ -337,7 +494,11 @@ export const generateSpecsheetPrompt = async (
   };
 };
 
-export const generateSpecsheetPromptRefine = async (history: ChatMessage[], message: string) => {
+export const generateSpecsheetPromptRefine = async (
+  history: ChatMessage[],
+  message: string,
+  context?: LlmCallContext,
+) => {
   const prompt = await generateTextWithModel({
     model: aiModels.specsheetPrompt,
     messages: [
@@ -346,6 +507,7 @@ export const generateSpecsheetPromptRefine = async (history: ChatMessage[], mess
       { role: "user", content: message },
     ],
     emptyErrorMessage: "Specsheet prompt refinement returned empty output.",
+    context,
   });
 
   return {
@@ -354,13 +516,19 @@ export const generateSpecsheetPromptRefine = async (history: ChatMessage[], mess
   };
 };
 
-export const generateSpecsheetImage = async (prompt: string) => {
-  return generateImageWithModel(aiModels.specsheetImage, prompt, "Specsheet image generation");
+export const generateSpecsheetImage = async (prompt: string, context?: LlmCallContext) => {
+  return generateImageWithModel(
+    aiModels.specsheetImage,
+    prompt,
+    "Specsheet image generation",
+    context,
+  );
 };
 
 export const generateSpritesheetPrompt = async (
   characterDescription: string,
   onDelta?: StreamDeltaHandler,
+  context?: LlmCallContext,
 ) => {
   const prompt = await generateTextWithModel({
     model: aiModels.spritesheetPrompt,
@@ -370,6 +538,7 @@ export const generateSpritesheetPrompt = async (
     ],
     emptyErrorMessage: "Spritesheet prompt generation returned empty output.",
     onDelta,
+    context,
   });
 
   return {
@@ -378,19 +547,27 @@ export const generateSpritesheetPrompt = async (
   };
 };
 
-export const generateSpritesheetImage = async (prompt: string) => {
-  return generateImageWithModel(aiModels.spritesheetImage, prompt, "Spritesheet image generation");
+export const generateSpritesheetImage = async (prompt: string, context?: LlmCallContext) => {
+  return generateImageWithModel(
+    aiModels.spritesheetImage,
+    prompt,
+    "Spritesheet image generation",
+    context,
+  );
 };
 
 export const generateSpritesheetManifest = async ({
   imageUrl,
   sheetWidth,
   sheetHeight,
+  context,
 }: {
   imageUrl: string;
   sheetWidth: number;
   sheetHeight: number;
+  context?: LlmCallContext;
 }) => {
+  const startedAt = Date.now();
   const completionResponse = await openrouter.chat.send({
     chatRequest: {
       model: aiModels.spritesheetManifest,
@@ -412,6 +589,12 @@ export const generateSpritesheetManifest = async ({
       ],
     },
   });
+  trackLlmUsage({
+    model: aiModels.spritesheetManifest,
+    context,
+    payload: completionResponse,
+    startedAt,
+  });
   const completion = unwrapOpenRouterResult(completionResponse) as {
     choices?: Array<{ message?: { content?: unknown } }>;
   };
@@ -428,6 +611,7 @@ export const generateSpritesheetManifest = async ({
 export const generateAgentCode = async (
   characterDescription: string,
   onDelta?: StreamDeltaHandler,
+  context?: LlmCallContext,
 ) => {
   const code = await generateTextWithModel({
     model: aiModels.agentCode,
@@ -437,6 +621,7 @@ export const generateAgentCode = async (
     ],
     emptyErrorMessage: "Agent code generation returned empty output.",
     onDelta,
+    context,
   });
 
   return {
@@ -448,6 +633,7 @@ export const generateAgentCode = async (
 export const generateStrikecraftSpecsheetPrompt = async (
   characterDescription: string,
   onDelta?: StreamDeltaHandler,
+  context?: LlmCallContext,
 ) => {
   const prompt = await generateTextWithModel({
     model: aiModels.strikecraftSpecsheetPrompt,
@@ -457,6 +643,7 @@ export const generateStrikecraftSpecsheetPrompt = async (
     ],
     emptyErrorMessage: "Strikecraft specsheet prompt generation returned empty output.",
     onDelta,
+    context,
   });
 
   return {
@@ -465,17 +652,22 @@ export const generateStrikecraftSpecsheetPrompt = async (
   };
 };
 
-export const generateStrikecraftSpecsheetImage = async (prompt: string) => {
+export const generateStrikecraftSpecsheetImage = async (
+  prompt: string,
+  context?: LlmCallContext,
+) => {
   return generateImageWithModel(
     aiModels.strikecraftSpecsheetImage,
     prompt,
     "Strikecraft specsheet image generation",
+    context,
   );
 };
 
 export const generateStrikecraftSpritePrompt = async (
   strikecraftSpecsheet: string,
   onDelta?: StreamDeltaHandler,
+  context?: LlmCallContext,
 ) => {
   const prompt = await generateTextWithModel({
     model: aiModels.strikecraftSpritePrompt,
@@ -485,6 +677,7 @@ export const generateStrikecraftSpritePrompt = async (
     ],
     emptyErrorMessage: "Strikecraft sprite prompt generation returned empty output.",
     onDelta,
+    context,
   });
 
   return {
@@ -493,10 +686,11 @@ export const generateStrikecraftSpritePrompt = async (
   };
 };
 
-export const generateStrikecraftSpriteImage = async (prompt: string) => {
+export const generateStrikecraftSpriteImage = async (prompt: string, context?: LlmCallContext) => {
   return generateImageWithModel(
     aiModels.strikecraftSpriteImage,
     prompt,
     "Strikecraft sprite image generation",
+    context,
   );
 };

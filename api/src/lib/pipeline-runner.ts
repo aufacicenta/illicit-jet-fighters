@@ -8,6 +8,7 @@ import {
   getNextFighterAgentVersionNumber,
 } from "./agent-version-repository";
 import { saveFighterName, touchFighterUpdatedAt } from "./fighter-access";
+import type { LlmCallContext } from "./generate";
 import {
   generateAgentCode,
   generateCharacterDescription,
@@ -669,6 +670,27 @@ const syncFighterNameFromCharacterDescription = async ({
   await saveFighterName(tenant.fighterId, parsedName);
 };
 
+const buildLlmCallContext = ({
+  tenant,
+  sectionId,
+  correlationId,
+}: {
+  tenant?: PipelineTenant;
+  sectionId: SectionId;
+  correlationId?: string;
+}): LlmCallContext | undefined => {
+  if (!tenant) {
+    return undefined;
+  }
+
+  return {
+    userId: tenant.userId,
+    fighterId: tenant.fighterId,
+    sectionId,
+    correlationId,
+  };
+};
+
 type TextSectionResult = {
   content: string;
   model: string;
@@ -691,15 +713,22 @@ const runTextSectionStep = async ({
     | "strikecraft-sprite-prompt";
   input: string;
   correlationId?: string;
-  generator: (input: string, onDelta?: (delta: string) => void) => Promise<TextSectionResult>;
+  generator: (
+    input: string,
+    onDelta?: (delta: string) => void,
+    context?: LlmCallContext,
+  ) => Promise<TextSectionResult>;
 }) => {
   const state = getState(fighterKey, correlationId);
   const tenant = tenantByFighter.get(fighterKey);
   const sectionStartedAt = Date.now();
+  const llmCallContext = buildLlmCallContext({ tenant, sectionId, correlationId });
 
   markSectionStarted(state, fighterKey, sectionId);
-  const generated = await generator(input, (delta) =>
-    emitSectionDelta(fighterKey, sectionId, delta),
+  const generated = await generator(
+    input,
+    (delta) => emitSectionDelta(fighterKey, sectionId, delta),
+    llmCallContext,
   );
 
   const output = setOutput(
@@ -803,7 +832,10 @@ const runImageSectionStep = async ({
   correlationId?: string;
   startedAt?: number;
   objectKeyBuilder: (userId: string, fighterId: number, extension: string) => string;
-  generator: (prompt: string) => Promise<{ imageBase64: string; mimeType: string; model: string }>;
+  generator: (
+    prompt: string,
+    context?: LlmCallContext,
+  ) => Promise<{ imageBase64: string; mimeType: string; model: string }>;
   emitGateOnComplete?: boolean;
 }): Promise<{
   objectKey: string;
@@ -815,6 +847,7 @@ const runImageSectionStep = async ({
   const tenant = tenantByFighter.get(fighterKey);
   const state = getState(fighterKey, correlationId);
   const imageStartedAt = Date.now();
+  const llmCallContext = buildLlmCallContext({ tenant, sectionId, correlationId });
   const requireTransparentBackground =
     sectionId === "spritesheet-image" || sectionId === "strikecraft-sprite-image";
   const maxAttempts = requireTransparentBackground ? 2 : 1;
@@ -845,7 +878,7 @@ CRITICAL TECHNICAL OUTPUT REQUIREMENTS:
           : prompt;
 
       try {
-        const image = await generator(effectivePrompt);
+        const image = await generator(effectivePrompt, llmCallContext);
         const committed = await commitImageAsset({
           fighterKey,
           sectionId,
@@ -952,6 +985,7 @@ const runSpritesheetManifestStep = async ({
       imageUrl,
       sheetWidth,
       sheetHeight,
+      context: buildLlmCallContext({ tenant, sectionId, correlationId }),
     });
     const normalized = normalizeSpritesheetManifest({
       raw: generated.manifest,
@@ -998,8 +1032,8 @@ const runPhase2Pipeline = async (fighterKey: string, correlationId?: string) => 
       sectionId: "spritesheet-prompt",
       input: characterDescription,
       correlationId,
-      generator: async (input, onDelta) => {
-        const generated = await generateSpritesheetPrompt(input, onDelta);
+      generator: async (input, onDelta, context) => {
+        const generated = await generateSpritesheetPrompt(input, onDelta, context);
         return { content: generated.prompt, model: generated.model };
       },
     }),
@@ -1008,8 +1042,8 @@ const runPhase2Pipeline = async (fighterKey: string, correlationId?: string) => 
       sectionId: "agent-code",
       input: characterDescription,
       correlationId,
-      generator: async (input, onDelta) => {
-        const generated = await generateAgentCode(input, onDelta);
+      generator: async (input, onDelta, context) => {
+        const generated = await generateAgentCode(input, onDelta, context);
         return { content: generated.code, model: generated.model };
       },
     }),
@@ -1018,8 +1052,8 @@ const runPhase2Pipeline = async (fighterKey: string, correlationId?: string) => 
       sectionId: "strikecraft-specsheet-prompt",
       input: characterDescription,
       correlationId,
-      generator: async (input, onDelta) => {
-        const generated = await generateStrikecraftSpecsheetPrompt(input, onDelta);
+      generator: async (input, onDelta, context) => {
+        const generated = await generateStrikecraftSpecsheetPrompt(input, onDelta, context);
         return { content: generated.prompt, model: generated.model };
       },
     }),
@@ -1047,8 +1081,8 @@ const runPhase2Pipeline = async (fighterKey: string, correlationId?: string) => 
       sectionId: "strikecraft-sprite-prompt",
       input: strikecraftSpecsheetPrompt.content,
       correlationId,
-      generator: async (input, onDelta) => {
-        const generated = await generateStrikecraftSpritePrompt(input, onDelta);
+      generator: async (input, onDelta, context) => {
+        const generated = await generateStrikecraftSpritePrompt(input, onDelta, context);
         return { content: generated.prompt, model: generated.model };
       },
     }),
@@ -1104,8 +1138,8 @@ export const startPipeline = async (fighterKey: string, prompt: string, correlat
       sectionId: "character-description",
       input: prompt,
       correlationId,
-      generator: async (input, onDelta) => {
-        const generated = await generateCharacterDescription(input, onDelta);
+      generator: async (input, onDelta, context) => {
+        const generated = await generateCharacterDescription(input, onDelta, context);
         return { content: generated.markdown, model: generated.model };
       },
     });
@@ -1115,8 +1149,8 @@ export const startPipeline = async (fighterKey: string, prompt: string, correlat
       sectionId: "specsheet-prompt",
       input: character.content,
       correlationId,
-      generator: async (input, onDelta) => {
-        const generated = await generateSpecsheetPrompt(input, onDelta);
+      generator: async (input, onDelta, context) => {
+        const generated = await generateSpecsheetPrompt(input, onDelta, context);
         return { content: generated.prompt, model: generated.model };
       },
     });
@@ -1164,8 +1198,8 @@ export const generateSpecsheetFromCharacterDescription = async (
       sectionId: "specsheet-prompt",
       input: characterDescription,
       correlationId,
-      generator: async (input, onDelta) => {
-        const generated = await generateSpecsheetPrompt(input, onDelta);
+      generator: async (input, onDelta, context) => {
+        const generated = await generateSpecsheetPrompt(input, onDelta, context);
         return { content: generated.prompt, model: generated.model };
       },
     });
@@ -1226,8 +1260,8 @@ export const generateAgentCodeFromCharacterDescription = async (
       sectionId: "agent-code",
       input: resolvedCharacterDescription,
       correlationId,
-      generator: async (input, onDelta) => {
-        const generated = await generateAgentCode(input, onDelta);
+      generator: async (input, onDelta, context) => {
+        const generated = await generateAgentCode(input, onDelta, context);
         return { content: generated.code, model: generated.model };
       },
     });
@@ -1437,7 +1471,11 @@ export const refineSection = async (
 
   try {
     if (sectionId === "character-description") {
-      const refined = await generateCharacterDescriptionRefine(history, message);
+      const refined = await generateCharacterDescriptionRefine(
+        history,
+        message,
+        buildLlmCallContext({ tenant, sectionId, correlationId }),
+      );
       const outputRecord = setOutput(
         fighterKey,
         sectionId,
@@ -1471,7 +1509,11 @@ export const refineSection = async (
         model: refined.model,
       });
     } else if (sectionId === "specsheet-prompt") {
-      const refined = await generateSpecsheetPromptRefine(history, message);
+      const refined = await generateSpecsheetPromptRefine(
+        history,
+        message,
+        buildLlmCallContext({ tenant, sectionId, correlationId }),
+      );
       const outputRecord = setOutput(
         fighterKey,
         sectionId,
@@ -1500,7 +1542,10 @@ export const refineSection = async (
         model: refined.model,
       });
     } else if (sectionId === "specsheet-image") {
-      const generated = await generateSpecsheetImage(message);
+      const generated = await generateSpecsheetImage(
+        message,
+        buildLlmCallContext({ tenant, sectionId, correlationId }),
+      );
       const committed = await commitImageAsset({
         fighterKey,
         sectionId,
