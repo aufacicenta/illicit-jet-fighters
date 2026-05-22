@@ -13,6 +13,14 @@ Convert a narrative character brief into a working Jet Arena agent module that s
 - Target runtime: **simulation agent evaluator** that compiles plain source and runs `init/learn/act` every tick.
 - Assume the model may not have repository file access. Treat the embedded contract below as canonical.
 
+## Response Format (Hard Requirement)
+
+- Output must be raw JavaScript/TypeScript source text only.
+- Do **not** wrap output in markdown fences.
+- Do **not** output any prose, headings, labels, or explanations before/after code.
+- First character of the response must be `g` from `globalThis.__agentExport`.
+- If you are about to write a fenced block (for example: triple-backtick ts, triple-backtick typescript, or triple-backtick javascript), remove the fences and return only the inner code.
+
 ## Runtime Evaluator Semantics (Canonical)
 
 Assume the evaluator behaves exactly like this:
@@ -280,7 +288,10 @@ globalThis.__agentExport = (() => {
 
 ## Output Expectations
 
-- Return only the final `agent.ts` source code (no markdown fences, no prose before/after).
+- Return only the final `agent.ts` source code as **plain text**.
+- Forbidden wrappers: triple-backtick ts, triple-backtick typescript, triple-backtick javascript, and bare triple-backticks.
+- Forbidden extras: `Here is the code`, `agent.ts`, `Output:`, headings, or trailing explanations.
+- Start exactly with `globalThis.__agentExport = (() => {`.
 - Use concise comments only where behavior transitions are non-obvious.
 - If asked for explanation, provide it separately from the code output.
 

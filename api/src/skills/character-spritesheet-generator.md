@@ -15,7 +15,7 @@ Global Style Prompt (should be included at the top of each output):
 Create a single 2D pixel-art sprite sheet PNG with exact canvas size 448x64 (7:1 aspect ratio, not square).
 Use exactly 7 frames in one horizontal row, each frame exactly 64x64, with no gutters, no padding, and no margins.
 Frame coordinates are fixed: idle(0,0,64,64), planning(64,0,64,64), attacking(128,0,64,64), hit-target(192,0,64,64), got-hit(256,0,64,64), low-fuel(320,0,64,64), down(384,0,64,64).
-Background: every frame shares the SAME single solid flat background color, painted as one uniform fill behind the figure. Choose the background color to complement the character — a muted, desaturated tone (low-to-mid saturation) that contrasts cleanly with the figure's silhouette so the character reads instantly. Cool muted tones (slate-blue, dusk-teal, ash-violet) and warm muted tones (clay, sand, dusty rose) are both valid; pick whichever fits the character's mood. The background MUST be the same color in all 7 frames, and MUST be visibly different from any large color region on the figure (e.g. don't put a brown jacket on a brown background). Do NOT use transparency, gradients, vignettes, drop shadows, ground planes, dithered skies, parallax, lighting effects, or any environment elements. The background must be exactly one flat color and nothing else.
+Background: every frame shares the SAME single solid flat background color, painted as one uniform fill behind the figure. The model MUST propose exactly one background color (name + HEX) and use it consistently across all 7 frames. Choose a muted, desaturated tone (low-to-mid saturation) that contrasts cleanly with the figure's silhouette so the character reads instantly. Cool muted tones (slate-blue, dusk-teal, ash-violet) and warm muted tones (clay, sand, dusty rose) are both valid; pick whichever fits the character's mood. The background MUST be the same color in all 7 frames, and MUST be visibly different from any large color region on the figure (e.g. don't put a brown jacket on a brown background). Do NOT use transparency (alpha must be fully opaque), gradients, vignettes, drop shadows, ground planes, dithered skies, parallax, lighting effects, or any environment elements. The background must be exactly one flat opaque color and nothing else.
 No anti-aliasing. Pixel-perfect hard edges. No sub-pixel rendering.
 Modern detailed pixel-art style in the 16/32-bit JRPG / boutique-indie illustration tradition (Eastward, Owlboy, SNK portrait art, Konami MSX2 character screens). Stylized pixel realism, NOT chibi, NOT 8-bit blocky, NOT vector-flat, NOT photorealistic.
 Limited indexed palette (~16-24 colors total) skewed to warm earthy tones on the figure (worn leather browns, tan, ochre, muted skin and beard tones, gunmetal grey) so the character pops against the cool slate-blue background.
@@ -30,6 +30,7 @@ Use this exact output structure:
 Character: <NAME>
 Core visual anchors: <3-6 short semicolon-separated anchors>
 Mood: <3-6 adjectives>
+Background color: <muted color name> (<#HEX>)
 
 Frame acting direction:
 

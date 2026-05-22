@@ -70,7 +70,7 @@ export const SpecsheetSection = () => {
             src={imageOutput.assetUrl ?? imageOutput.content}
           />
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className="p-4 text-sm text-muted-foreground">
             Specsheet image will appear here after generation.
           </p>
         )}

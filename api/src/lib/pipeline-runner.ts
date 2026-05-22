@@ -879,8 +879,7 @@ const runImageSectionStep = async ({
   const state = getState(fighterKey, correlationId);
   const imageStartedAt = Date.now();
   const llmCallContext = buildLlmCallContext({ tenant, sectionId, correlationId });
-  const requireTransparentBackground =
-    sectionId === "spritesheet-image" || sectionId === "strikecraft-sprite-image";
+  const requireTransparentBackground = sectionId === "strikecraft-sprite-image";
   const maxAttempts = requireTransparentBackground ? 2 : 1;
   if (tenant) {
     await requirePreflightBalance({ userId: tenant.userId, sectionId });
