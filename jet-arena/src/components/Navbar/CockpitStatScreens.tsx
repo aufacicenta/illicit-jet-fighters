@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { SendHorizontal } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { CockpitStatAnimationVariant } from "../../context/CockpitStats/CockpitStatsContext.types";
 import { useCockpitStatsContext } from "../../context/CockpitStats/useCockpitStatsContext";
+import { Button } from "../ui/button";
+import { Textarea } from "../ui/textarea";
 
 type SlotTextProps = {
   text: string;
@@ -78,8 +81,80 @@ const SlotText = ({ text, variant, revision }: SlotTextProps) => {
   );
 };
 
+const BottomCenterPromptSlot = () => {
+  const { bottomCenterPrompt } = useCockpitStatsContext();
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    if (bottomCenterPrompt?.visible && bottomCenterPrompt.autoFocus) {
+      textareaRef.current?.focus();
+    }
+  }, [bottomCenterPrompt?.autoFocus, bottomCenterPrompt?.visible]);
+
+  if (!bottomCenterPrompt?.visible) {
+    return null;
+  }
+
+  const handleSubmit = () => {
+    void bottomCenterPrompt.onSubmit();
+  };
+
+  return (
+    <div className="pointer-events-auto absolute top-[5px] right-0 left-0 z-20 flex justify-center px-4">
+      <div className="w-full max-w-[652px] p-2.5">
+        <div className="flex flex-col gap-2">
+          {bottomCenterPrompt.gateMessage ? (
+            <div className="flex items-center justify-between gap-2 rounded-sm border border-secondary/40 bg-muted/40 p-2 text-[10px] tracking-wide text-foreground uppercase">
+              <span>{bottomCenterPrompt.gateMessage}</span>
+              <Button size="sm" onClick={bottomCenterPrompt.onContinue} type="button">
+                Continue
+              </Button>
+            </div>
+          ) : null}
+
+          {bottomCenterPrompt.contextLabel ? (
+            <div className="text-[10px] tracking-widest text-muted-foreground uppercase">
+              {bottomCenterPrompt.contextLabel}
+            </div>
+          ) : null}
+
+          <div className="relative">
+            <Textarea
+              ref={textareaRef}
+              className="h-[117px] w-full resize-y border-none! bg-background pr-20 text-sm focus-visible:border-none! focus-visible:ring-0!"
+              disabled={bottomCenterPrompt.disabled}
+              onChange={(event) => bottomCenterPrompt.onChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" || event.shiftKey) {
+                  return;
+                }
+                event.preventDefault();
+                handleSubmit();
+              }}
+              placeholder={bottomCenterPrompt.placeholder}
+              value={bottomCenterPrompt.value}
+            />
+            <div className="absolute right-[-40px] bottom-[2px]">
+              <Button
+                className="size-9 rounded-full p-0"
+                disabled={bottomCenterPrompt.disabled}
+                onClick={handleSubmit}
+                size="sm"
+                type="button"
+              >
+                <SendHorizontal className="size-4" />
+                <span className="sr-only">{bottomCenterPrompt.submitLabel}</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const CockpitStatScreens = () => {
-  const { slots } = useCockpitStatsContext();
+  const { slots, bottomCenterPrompt } = useCockpitStatsContext();
   const topLeft = slots["top-left"];
   const topCenter = slots["top-center"];
   const topRight = slots["top-right"];
@@ -133,23 +208,24 @@ export const CockpitStatScreens = () => {
       </div>
 
       {/* Screen Bottom */}
-      <div
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-10 w-full"
-        id="cockpit-stats-bottom-center-screen"
-      >
+      <div className="fixed inset-x-0 bottom-0 z-10 w-full" id="cockpit-stats-bottom-center-screen">
         <div
           aria-hidden
-          className="h-[159px] bg-[url('/cockpit-bottom-frame.png')] bg-center bg-no-repeat"
+          className="pointer-events-none h-[159px] bg-[url('/cockpit-bottom-frame.png')] bg-center bg-no-repeat"
         />
-        <div className="overlay-text absolute bottom-[33px] flex w-screen justify-center text-center">
-          <div className="flex h-[106px] w-[652px] flex-col items-center justify-center overflow-hidden px-2">
-            <SlotText
-              revision={bottomCenter.revision}
-              text={bottomCenter.text}
-              variant={bottomCenter.variant}
-            />
+        {bottomCenterPrompt?.visible ? (
+          <BottomCenterPromptSlot />
+        ) : (
+          <div className="overlay-text pointer-events-none absolute bottom-[33px] flex w-screen justify-center text-center">
+            <div className="flex h-[106px] w-[652px] flex-col items-center justify-center overflow-hidden px-2">
+              <SlotText
+                revision={bottomCenter.revision}
+                text={bottomCenter.text}
+                variant={bottomCenter.variant}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );

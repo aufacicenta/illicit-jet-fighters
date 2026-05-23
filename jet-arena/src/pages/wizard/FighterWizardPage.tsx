@@ -15,7 +15,6 @@ import type { SectionId, SectionStatus } from "../../context/Wizard/WizardContex
 import { WizardContextController } from "../../context/Wizard/WizardContextController";
 import { routes } from "../../hooks/useRoutes";
 import { ProgressHud } from "./ProgressHud";
-import { PromptBar } from "./PromptBar";
 import { AgentCodeSection } from "./sections/AgentCodeSection";
 import { DescriptionSection } from "./sections/DescriptionSection";
 import { wizardCardHeaderClassName } from "./sections/SectionStatusBadge";
@@ -38,6 +37,20 @@ type StorySegment = {
   className?: string;
   delayMs?: number;
 };
+
+const promptSectionLabels = {
+  "character-description": "Pilot Briefing",
+  "specsheet-prompt": "Specsheet Targeting",
+  "specsheet-image": "Image Render",
+  "spritesheet-prompt": "Spritesheet Prompt",
+  "spritesheet-image": "Spritesheet Render",
+  "spritesheet-manifest": "Spritesheet Manifest",
+  "agent-code": "Agent Source",
+  "strikecraft-specsheet-prompt": "Strikecraft Specsheet Prompt",
+  "strikecraft-specsheet-image": "Strikecraft Specsheet Render",
+  "strikecraft-sprite-prompt": "Strikecraft Sprite Prompt",
+  "strikecraft-sprite-image": "Strikecraft Sprite Render",
+} as const satisfies Record<SectionId, string>;
 
 const SETTING_STORY_DISMISSED_STORAGE_KEY = "ijf:wizard-setting-story-dismissed";
 const settingStoryDoNotShowAgainId = "wizard-setting-story-do-not-show-again";
@@ -211,14 +224,24 @@ const WizardLayout = () => {
     connectionStatus,
     originalBriefing,
     gateMessage,
+    promptInput,
+    setPromptInput,
+    submitPrompt,
     requestContinuePipeline,
     setActiveSection,
     activeSectionId,
   } = useWizardContext();
   const navigate = useNavigate();
   const { setCurrentSectionLabel, clearCurrentSectionLabel } = useNavbarBreadcrumbContext();
-  const { setTopLeftSlot, setTopCenterSlot, setTopRightSlot, setBottomCenterSlot, resetSlots } =
-    useCockpitStatsContext();
+  const {
+    setTopLeftSlot,
+    setTopCenterSlot,
+    setTopRightSlot,
+    setBottomCenterSlot,
+    setBottomCenterPrompt,
+    clearBottomCenterPrompt,
+    resetSlots,
+  } = useCockpitStatsContext();
   const contentContainerRef = useRef<HTMLDivElement | null>(null);
   const [briefingMinHeightPx, setBriefingMinHeightPx] = useState<number | null>(null);
   const [settingStoryDismissed, setSettingStoryDismissed] = useState(readSettingStoryDismissed);
@@ -248,6 +271,8 @@ const WizardLayout = () => {
   }, [outputs, sectionStatuses]);
 
   const isGenerating = Object.values(sectionStatuses).some((status) => status === "generating");
+  const hasGeneratedDetails = Object.keys(outputs).length > 0;
+  const isRefining = hasGeneratedDetails && Boolean(activeSectionId);
   const showConnectionHint = connectionStatus !== "open";
   const showPhaseTwo =
     sectionStatuses["spritesheet-prompt"] === "generating" ||
@@ -295,6 +320,46 @@ const WizardLayout = () => {
       clearCurrentSectionLabel();
     };
   }, [activeBreadcrumbSectionLabel, clearCurrentSectionLabel, setCurrentSectionLabel]);
+
+  useEffect(() => {
+    const placeholder = isRefining
+      ? "Refine your fighter..."
+      : "Describe your fighter. Role, personality, visual vibe...";
+
+    setBottomCenterPrompt({
+      visible: true,
+      disabled: isGenerating,
+      autoFocus: view === "briefing" && (storyFinished || settingStoryDismissed),
+      gateMessage,
+      contextLabel:
+        isRefining && activeSectionId ? `Refining: ${promptSectionLabels[activeSectionId]}` : "",
+      placeholder,
+      submitLabel: "",
+      value: promptInput,
+      onChange: setPromptInput,
+      onSubmit: submitPrompt,
+      onContinue: requestContinuePipeline,
+    });
+
+    return () => {
+      clearBottomCenterPrompt();
+    };
+  }, [
+    activeSectionId,
+    clearBottomCenterPrompt,
+    gateMessage,
+    hasGeneratedDetails,
+    isGenerating,
+    isRefining,
+    promptInput,
+    requestContinuePipeline,
+    setBottomCenterPrompt,
+    setPromptInput,
+    settingStoryDismissed,
+    storyFinished,
+    submitPrompt,
+    view,
+  ]);
 
   useEffect(() => {
     if (view === "briefing") {
@@ -475,12 +540,10 @@ const WizardLayout = () => {
             className="flex w-full flex-col items-center justify-center"
             style={briefingMinHeightPx ? { minHeight: `${briefingMinHeightPx}px` } : undefined}
           >
-            <div className="relative mx-auto w-full max-w-2xl">
-              <PromptBar
-                mode="briefing"
-                disabled={isGenerating}
-                autoFocus={storyFinished || settingStoryDismissed}
-              />
+            <div className="relative mx-auto w-full max-w-2xl rounded-sm border border-border bg-card/30 p-6">
+              <p className="text-sm tracking-wide text-muted-foreground uppercase">
+                Prompt input moved to cockpit console
+              </p>
               {!settingStoryDismissed ? (
                 <div
                   className={`absolute inset-0 z-10 flex flex-col rounded-sm border border-[#7f1d1d]/80 bg-[#17090a]/95 px-5 py-4 text-lg leading-relaxed tracking-wide text-[#fda4af] shadow-[0_0_0_1px_rgba(127,29,29,0.25),0_0_28px_rgba(127,29,29,0.2)] transition-opacity duration-700 md:px-6 md:text-xl md:leading-loose ${storyFinished ? "pointer-events-none opacity-0" : "opacity-100"}`}

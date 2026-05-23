@@ -7,7 +7,9 @@ export const AppLayout = () => (
   <div className="app-fuselage-background min-h-screen text-foreground">
     <WalletContextController>
       <Navbar />
-      <Outlet />
+      <main className="page-with-navbar-offset page-with-screen-bottom-offset">
+        <Outlet />
+      </main>
     </WalletContextController>
   </div>
 );

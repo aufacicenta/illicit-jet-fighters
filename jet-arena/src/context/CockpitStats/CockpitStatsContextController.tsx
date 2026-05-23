@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import { CockpitStatsContext } from "./CockpitStatsContext";
 import type {
+  CockpitBottomCenterPrompt,
   CockpitStatsContextControllerProps,
   CockpitStatsContextType,
   CockpitStatSlot,
@@ -30,6 +31,9 @@ const normalizeSlotText = (value: string | undefined) => (typeof value === "stri
 
 export const CockpitStatsContextController = ({ children }: CockpitStatsContextControllerProps) => {
   const [slots, setSlots] = useState<CockpitStatsSlots>(() => createDefaultSlots());
+  const [bottomCenterPrompt, setBottomCenterPrompt] = useState<CockpitBottomCenterPrompt | null>(
+    null,
+  );
 
   const setSlot = useCallback((slotId: CockpitStatSlotId, slot: Partial<CockpitStatSlot>) => {
     setSlots((previousSlots) => ({
@@ -99,9 +103,14 @@ export const CockpitStatsContextController = ({ children }: CockpitStatsContextC
     setSlots(createDefaultSlots());
   }, []);
 
+  const clearBottomCenterPrompt = useCallback(() => {
+    setBottomCenterPrompt(null);
+  }, []);
+
   const props = useMemo<CockpitStatsContextType>(
     () => ({
       slots,
+      bottomCenterPrompt,
       setSlot,
       clearSlot,
       setTopLeftSlot,
@@ -110,9 +119,13 @@ export const CockpitStatsContextController = ({ children }: CockpitStatsContextC
       setBottomLeftSlot,
       setBottomCenterSlot,
       setBottomRightSlot,
+      setBottomCenterPrompt,
+      clearBottomCenterPrompt,
       resetSlots,
     }),
     [
+      bottomCenterPrompt,
+      clearBottomCenterPrompt,
       clearSlot,
       resetSlots,
       setBottomCenterSlot,

@@ -40,7 +40,13 @@ export const Navbar = () => {
   }, [currentSectionLabel, location.pathname]);
 
   return (
-    <nav className="fixed mb-[120px] w-screen border-b border-border">
+    <nav
+      className="fixed w-screen border-b border-border z-20"
+      style={{
+        backgroundImage: "url('/fuselage-army-green.png')",
+        backgroundRepeat: "repeat",
+      }}
+    >
       <CockpitStatScreens />
 
       <div className="mx-auto flex w-full max-w-6xl flex-col">
