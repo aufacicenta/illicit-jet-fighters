@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from "../../components/ui/card";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Label } from "../../components/ui/label";
 import { Skeleton } from "../../components/ui/skeleton";
+import { useCockpitStatsContext } from "../../context/CockpitStats/useCockpitStatsContext";
 import { CostsContextController } from "../../context/Costs/CostsContextController";
 import { useCostsContext } from "../../context/Costs/useCostsContext";
 import { useNavbarBreadcrumbContext } from "../../context/NavbarBreadcrumb/useNavbarBreadcrumbContext";
@@ -216,6 +217,8 @@ const WizardLayout = () => {
   } = useWizardContext();
   const navigate = useNavigate();
   const { setCurrentSectionLabel, clearCurrentSectionLabel } = useNavbarBreadcrumbContext();
+  const { setTopLeftSlot, setTopCenterSlot, setTopRightSlot, setBottomCenterSlot, resetSlots } =
+    useCockpitStatsContext();
   const contentContainerRef = useRef<HTMLDivElement | null>(null);
   const [briefingMinHeightPx, setBriefingMinHeightPx] = useState<number | null>(null);
   const [settingStoryDismissed, setSettingStoryDismissed] = useState(readSettingStoryDismissed);
@@ -292,6 +295,63 @@ const WizardLayout = () => {
       clearCurrentSectionLabel();
     };
   }, [activeBreadcrumbSectionLabel, clearCurrentSectionLabel, setCurrentSectionLabel]);
+
+  useEffect(() => {
+    if (view === "briefing") {
+      setTopRightSlot({
+        text: `Systems ${connectionStatus === "open" ? "Operational" : "degraded"}`,
+        variant: "typing",
+      });
+
+      setTopCenterSlot({
+        text: `Fighter Intake Terminal`,
+        variant: "rtl-scroll",
+      });
+
+      setBottomCenterSlot({
+        text: `Fighter Intake Terminal`,
+        variant: "rtl-scroll",
+      });
+    }
+
+    if (view === "generating" || view === "debrief") {
+      setTopRightSlot({
+        text: `Systems ${connectionStatus === "open" ? "Operational" : "degraded"}`,
+        variant: "typing",
+      });
+
+      setTopCenterSlot({
+        text: `Pilot ${name}${epithet ? ` // ${epithet}` : ""}`,
+        variant: "rtl-scroll",
+      });
+
+      setBottomCenterSlot({
+        text: `Pilot ${name}${epithet ? ` // ${epithet}` : ""}`,
+        variant: "rtl-scroll",
+      });
+    }
+
+    setTopLeftSlot({
+      text: activeBreadcrumbSectionLabel,
+      variant: "typing",
+    });
+  }, [
+    activeBreadcrumbSectionLabel,
+    connectionStatus,
+    epithet,
+    name,
+    setTopCenterSlot,
+    setTopLeftSlot,
+    setTopRightSlot,
+    setBottomCenterSlot,
+    view,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      resetSlots();
+    };
+  }, [resetSlots]);
 
   const updateBriefingMinHeight = useCallback(() => {
     const contentContainer = contentContainerRef.current;
@@ -563,25 +623,27 @@ const WizardLayout = () => {
         ) : null}
       </div>
 
-      <div
-        className="fixed right-0 bottom-0 left-0 z-30 border-t border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/90"
-        id="wizard-progress-hud"
-      >
-        <div className="mx-auto w-full px-4 py-3 md:px-6">
-          <ProgressHud
-            gateMessage={gateMessage}
-            onContinuePhaseOne={() => {
-              if (gateMessage) {
-                requestContinuePipeline();
-                return;
-              }
-              setActiveSection(nextPhaseOneSection);
-            }}
-            onContinuePhaseTwo={() => navigate(routes.terminalSimulation())}
-            sectionStatuses={sectionStatuses}
-          />
+      {(view === "debrief" || view === "generating") && (
+        <div
+          className="fixed right-0 bottom-0 left-0 z-30 border-t border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/90"
+          id="wizard-progress-hud"
+        >
+          <div className="mx-auto w-full px-4 py-3 md:px-6">
+            <ProgressHud
+              gateMessage={gateMessage}
+              onContinuePhaseOne={() => {
+                if (gateMessage) {
+                  requestContinuePipeline();
+                  return;
+                }
+                setActiveSection(nextPhaseOneSection);
+              }}
+              onContinuePhaseTwo={() => navigate(routes.terminalSimulation())}
+              sectionStatuses={sectionStatuses}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

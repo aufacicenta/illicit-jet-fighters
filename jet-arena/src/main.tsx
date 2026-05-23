@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 
 import { AuthContextController } from "./context/Auth/AuthContextController";
+import { CockpitStatsContextController } from "./context/CockpitStats/CockpitStatsContextController";
 import { NavbarBreadcrumbContextController } from "./context/NavbarBreadcrumb/NavbarBreadcrumbContextController";
 import { router } from "./router";
 
@@ -39,9 +40,11 @@ if (!(rootElement instanceof HTMLElement)) {
 
 createRoot(rootElement).render(
   <AuthContextController>
-    <NavbarBreadcrumbContextController>
-      <UnregisterLegacyServiceWorkers />
-      <RouterProvider router={router} />
-    </NavbarBreadcrumbContextController>
+    <CockpitStatsContextController>
+      <NavbarBreadcrumbContextController>
+        <UnregisterLegacyServiceWorkers />
+        <RouterProvider router={router} />
+      </NavbarBreadcrumbContextController>
+    </CockpitStatsContextController>
   </AuthContextController>,
 );
