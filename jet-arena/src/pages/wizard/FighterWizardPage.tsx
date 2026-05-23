@@ -67,35 +67,30 @@ const settingStorySegments: StorySegment[] = [
     delayMs: 500,
   },
   {
-    text: "Wazcania fractured Earth's into combat zones.\n\n",
+    text: "Wazscania fractured Earth into combat zones.\n\n",
   },
   {
-    text: "Law enforcement collapsed.\n\n",
-    delayMs: 120,
-  },
-  {
-    text: "Illicit Jet Fighters ",
+    text: "The IJF emerged.\n\n",
     delayMs: 150,
   },
   {
-    text: "emerged — ",
-    delayMs: 120,
+    text: "A network of bounty contractors, midflight in-cockpit, midflight in exchange.\n\n",
   },
   {
-    text: "an illicit network of bounty contractors, midflight in-cockpit, midflight exchange.\n\n\n",
-    delayMs: 98,
-  },
-  {
-    text: "Each hunter flies an Airmach.\n\n\n\n",
+    text: "Each hunter flies an Airmach.\n\n",
     delayMs: 120,
   },
   {
     text: "Part fighter jet, ",
-    delayMs: 120,
+    delayMs: 90,
   },
   {
-    text: "part expression of identity.",
-    delayMs: 150,
+    text: "part expression of identity",
+    delayMs: 112,
+  },
+  {
+    text: ".",
+    delayMs: 1500,
   },
 ];
 

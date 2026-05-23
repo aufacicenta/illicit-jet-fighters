@@ -6,9 +6,9 @@ disable-model-invocation: true
 
 # Setting
 
-2187 — Wazcania fractured Earth's atmosphere into layered combat zones, law enforcement collapsed.
+2187 — Wazscania fractured Earth into combat zones, law enforcement collapsed.
 
-The Bounty Exchange emerged — an illicit network where licensed hunters take contracts across aerial and ground theaters. Each hunter flies a personalized air-machine — part fighter jet, part expression of identity.
+The IJF emerged — a network of bounty contractors, midflight in-cockpit, midflight in exchange. Each hunter flies a personalized an Airmach — part fighter jet, part expression of identity.
 
 Visual DNA: The character art should blend Metal Gear's tactical grit and portrait-style realism with Star Fox's colorful, personality-driven cockpit energy and F-Zero's exaggerated silhouette design and speed-culture aesthetics. Think: sharp angular linework, muted military tones punctuated by neon accent colors, and portraits that look like they belong on wanted posters.
 
