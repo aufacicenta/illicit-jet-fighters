@@ -39,7 +39,50 @@ export const Navbar = () => {
   }, [currentSectionLabel, location.pathname]);
 
   return (
-    <nav className="border-b border-border">
+    <nav className="relative border-b border-border mb-[120px] w-screen">
+      <div className="w-screen relative" id="navbar-top-screens-frame">
+        <div
+          className="z-10 top-0 w-full pointer-events-none absolute inset-x-0 bottom-0"
+          id="navbar-top-center-screen"
+        >
+          <div
+            aria-hidden
+            className="h-[259px] bg-[url('/navbar-bottom-frame.png')] bg-center bg-no-repeat"
+          />
+          <div className="absolute overlay-text text-center w-screen top-[173px] flex justify-center">
+            <div className="w-[470px] h-[68px] flex flex-col justify-center">
+              <p className="text-xs">this is an overlay text</p>
+            </div>
+          </div>
+        </div>
+        <div
+          aria-hidden
+          className="z-9 top-[158px] left-0 w-screen pointer-events-none absolute inset-x-0"
+          id="navbar-left-center-screen"
+        >
+          <div
+            aria-hidden
+            className="left-0 top-0 pointer-events-none absolute w-[397px] h-[81px] bg-[url('/navbar-bottom-left-screen.png')] bg-center bg-no-repeat"
+          />
+          <div className="absolute overlay-text text-center w-[345px] top-[10px] left-[17px] h-[68px]">
+            <p className="text-xs">this is an overlay text</p>
+          </div>
+        </div>
+        <div
+          aria-hidden
+          className="z-9 top-[158px] right-0 pointer-events-none absolute inset-x-0 w-full"
+          id="navbar-top-right-screen"
+        >
+          <div
+            aria-hidden
+            className="top-0 right-0 pointer-events-none absolute w-[397px] h-[81px] bg-[url('/navbar-bottom-right-screen.png')] bg-center bg-no-repeat"
+          />
+          <div className="absolute overlay-text text-center w-[345px] top-[10px] right-[17px] h-[68px]">
+            <p className="text-xs">this is an overlay text</p>
+          </div>
+        </div>
+      </div>
+
       <div className="mx-auto flex w-full max-w-6xl flex-col">
         <div className="grid max-h-[100px] w-full grid-cols-[1fr_auto_1fr] items-center gap-3 pb-3">
           <div aria-hidden />
