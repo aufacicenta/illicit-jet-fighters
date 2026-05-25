@@ -181,7 +181,7 @@ export const MyFightersPage = () => {
   }, [activeTab, hasFetchedTab, loadBattlefields, loadFighters, loadSimulations]);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 md:px-6">
+    <div className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 md:px-6">
       <Tabs onValueChange={(value) => setActiveTab(value as MyTab)} value={activeTab}>
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start lg:gap-8">
           <aside className="w-full lg:sticky lg:top-6 lg:order-2">

@@ -1,8 +1,6 @@
 import type { ReactNode } from "react";
 import { Children, cloneElement, isValidElement, useEffect, useMemo, useState } from "react";
 
-import { Navbar } from "../Navbar";
-
 type CockpitSlotProps = {
   children: ReactNode;
 };
@@ -215,93 +213,74 @@ export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
   const customSlots = useMemo(() => resolveCockpitSlots(children), [children]);
 
   return (
-    <div
-      className="fixed top-0 right-0 bottom-0 left-0 z-20 h-screen w-screen"
-      id="cockpit-stats-screens"
-    >
-      <Navbar />
-
-      {customSlots.topLeft !== undefined ? (
-        <div
-          aria-hidden
-          className="cockpit-panel-slide-down pointer-events-none absolute inset-x-0 top-[158px] left-0 z-9 w-screen"
-          id="cockpit-stats-top-left-panel"
-        >
+    <>
+      <section
+        className="fixed top-[calc(var(--navbar-height)+23px)] right-0 left-0 z-10 flex w-screen justify-between"
+        id="cockpit-top-screens"
+      >
+        {customSlots.topLeft !== undefined ? (
           <div
             aria-hidden
-            className="pointer-events-none absolute top-0 left-0 h-[81px] w-[397px] bg-[url('/navbar-bottom-left-screen.png')] bg-center bg-no-repeat"
-          />
-          <div className="overlay-text absolute top-[2px] left-[17px] flex h-[68px] w-[345px] items-center justify-center overflow-hidden px-2 text-center">
+            className="cockpit-panel-slide-down cockpit-panel-slide-start-delay flex h-[81px] w-[397px] items-center justify-center overflow-hidden bg-[url('/navbar-bottom-left-screen.png')] bg-center bg-no-repeat pt-2 pr-9 pb-2 pl-6 text-center"
+            id="cockpit-stats-top-left-panel"
+          >
             {customSlots.topLeft}
           </div>
-        </div>
-      ) : null}
-      {customSlots.topCenter !== undefined ? (
-        <div
-          className="cockpit-panel-slide-down pointer-events-none absolute inset-x-0 top-0 bottom-0 z-10 w-full"
-          id="cockpit-stats-top-center-panel"
-        >
+        ) : null}
+        {customSlots.topCenter !== undefined ? (
           <div
-            aria-hidden
-            className="h-[259px] bg-[url('/navbar-bottom-frame.png')] bg-center bg-no-repeat"
-          />
-          <div className="overlay-text absolute top-[173px] flex w-screen justify-center text-center">
-            <div className="flex h-[68px] w-[470px] flex-col items-center justify-center overflow-hidden px-2">
-              {customSlots.topCenter}
-            </div>
+            className="cockpit-panel-slide-down flex h-[102px] w-[584px] items-center justify-center overflow-hidden bg-[url('/cockpit-top-center-box.png')] bg-center bg-no-repeat px-10 py-2 text-center"
+            id="cockpit-stats-top-center-panel"
+          >
+            {customSlots.topCenter}
           </div>
-        </div>
-      ) : null}
-      {customSlots.topRight !== undefined ? (
-        <div
-          aria-hidden
-          className="cockpit-panel-slide-down pointer-events-none absolute inset-x-0 top-[158px] right-0 z-9 w-full"
-          id="cockpit-stats-top-right-panel"
-        >
+        ) : null}
+        {customSlots.topRight !== undefined ? (
           <div
             aria-hidden
-            className="pointer-events-none absolute top-0 right-0 h-[81px] w-[397px] bg-[url('/navbar-bottom-right-screen.png')] bg-center bg-no-repeat"
-          />
-          <div className="overlay-text absolute top-[2px] right-[17px] flex h-[68px] w-[345px] items-center justify-center overflow-hidden px-2 text-center">
+            className="cockpit-panel-slide-down cockpit-panel-slide-start-delay flex h-[81px] w-[397px] items-center justify-center overflow-hidden bg-[url('/navbar-bottom-right-screen.png')] bg-center bg-no-repeat pt-2 pr-6 pb-2 pl-9 text-center"
+            id="cockpit-stats-top-right-panel"
+          >
             {customSlots.topRight}
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </section>
 
-      <section className="absolute right-0 bottom-0 left-0 flex w-full justify-between">
+      <section
+        className="fixed right-0 bottom-0 left-0 z-10 flex w-screen justify-between bg-[url('/cockpit-bottom-frame.png')] bg-bottom bg-no-repeat"
+        id="cockpit-bottom-screens"
+      >
         {customSlots.bottomLeft !== undefined ? (
-          <div
-            aria-hidden
-            className="cockpit-panel-slide-up mb-[21px] h-[83px] w-[398px] bg-[url('/cockpit-bottom-left-box.png')] bg-center bg-no-repeat"
-            id="cockpit-stats-bottom-left-panel"
-          >
-            <div className="overlay-text flex h-full w-full items-center justify-center overflow-hidden px-6 py-4 text-center">
+          <div className="flex flex-col justify-end">
+            <div
+              aria-hidden
+              className="cockpit-panel-slide-up cockpit-panel-slide-start-delay mb-[21px] flex h-[83px] w-[398px] items-center justify-center overflow-hidden bg-[url('/cockpit-bottom-left-box.png')] bg-center bg-no-repeat pt-2 pr-9 pb-2 pl-6 text-center"
+              id="cockpit-stats-bottom-left-panel"
+            >
               {customSlots.bottomLeft}
             </div>
           </div>
         ) : null}
         {customSlots.bottomCenter !== undefined ? (
           <div
-            className="cockpit-panel-slide-up absolute bottom-0 h-[159px] w-full bg-[url('/cockpit-bottom-frame.png')] bg-center bg-no-repeat"
+            className="cockpit-panel-slide-up mb-[21px] flex h-[136px] w-[797px] items-center justify-center overflow-hidden bg-[url('/cockpit-bottom-center-box.png')] bg-center bg-no-repeat px-6 py-4 text-center"
             id="cockpit-stats-bottom-center-panel"
           >
-            <div aria-hidden className="pointer-events-none">
-              {customSlots.bottomCenter}
-            </div>
+            {customSlots.bottomCenter}
           </div>
         ) : null}
         {customSlots.bottomRight !== undefined ? (
-          <div
-            aria-hidden
-            className="cockpit-panel-slide-up mb-[21px] h-[83px] w-[398px] bg-[url('/cockpit-bottom-right-box.png')] bg-center bg-no-repeat"
-            id="cockpit-stats-bottom-right-panel"
-          >
-            <div className="overlay-text flex h-full w-full items-center justify-center overflow-hidden px-6 py-4 text-center">
+          <div className="flex flex-col justify-end">
+            <div
+              aria-hidden
+              className="cockpit-panel-slide-up cockpit-panel-slide-start-delay mb-[21px] flex h-[83px] w-[398px] items-center justify-center overflow-hidden bg-[url('/cockpit-bottom-right-box.png')] bg-center bg-no-repeat pt-2 pr-6 pb-2 pl-9 text-center"
+              id="cockpit-stats-bottom-right-panel"
+            >
               {customSlots.bottomRight}
             </div>
           </div>
         ) : null}
       </section>
-    </div>
+    </>
   );
 };

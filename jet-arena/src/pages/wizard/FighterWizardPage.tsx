@@ -248,7 +248,6 @@ const WizardLayout = () => {
   const navigate = useNavigate();
   const { setCurrentSectionLabel, clearCurrentSectionLabel } = useNavbarBreadcrumbContext();
   const contentContainerRef = useRef<HTMLDivElement | null>(null);
-  const [briefingMinHeightPx, setBriefingMinHeightPx] = useState<number | null>(null);
   const [settingStoryDismissed, setSettingStoryDismissed] = useState(readSettingStoryDismissed);
   const [visibleStoryChars, setVisibleStoryChars] = useState(0);
   const [storyFinished, setStoryFinished] = useState(false);
@@ -342,54 +341,6 @@ const WizardLayout = () => {
     void submitPrompt();
   }, [submitPrompt]);
 
-  const updateBriefingMinHeight = useCallback(() => {
-    const contentContainer = contentContainerRef.current;
-    if (!contentContainer) {
-      return;
-    }
-
-    const navHeight = document.querySelector("nav")?.getBoundingClientRect().height ?? 0;
-    const hudHeight =
-      document.getElementById("wizard-progress-hud")?.getBoundingClientRect().height ?? 0;
-    const containerStyles = window.getComputedStyle(contentContainer);
-    const verticalPadding =
-      Number.parseFloat(containerStyles.paddingTop) +
-      Number.parseFloat(containerStyles.paddingBottom);
-    const usableHeight = window.innerHeight - navHeight - hudHeight - verticalPadding;
-    setBriefingMinHeightPx(Math.max(Math.floor(usableHeight), 0));
-  }, []);
-
-  useEffect(() => {
-    if (view !== "briefing") {
-      return;
-    }
-
-    updateBriefingMinHeight();
-
-    const navElement = document.querySelector("nav");
-    const hudElement = document.getElementById("wizard-progress-hud");
-    const resizeObserver = new ResizeObserver(() => {
-      updateBriefingMinHeight();
-    });
-
-    if (contentContainerRef.current) {
-      resizeObserver.observe(contentContainerRef.current);
-    }
-    if (navElement) {
-      resizeObserver.observe(navElement);
-    }
-    if (hudElement) {
-      resizeObserver.observe(hudElement);
-    }
-
-    window.addEventListener("resize", updateBriefingMinHeight);
-
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener("resize", updateBriefingMinHeight);
-    };
-  }, [updateBriefingMinHeight, view]);
-
   useEffect(() => {
     if (view !== "briefing") {
       setVisibleStoryChars(settingStoryTextLength);
@@ -455,133 +406,123 @@ const WizardLayout = () => {
 
   return (
     <>
-      <CockpitStatScreens>
-        <CockpitTopLeftSlot>
-          <TypingEffect>
-            <p className="text-xs text-highlight">{topLeftLabel}</p>
-          </TypingEffect>
-        </CockpitTopLeftSlot>
-        <CockpitTopCenterSlot>
-          <RTLScrollEffect>
-            <p className="text-2xl">{centerTitle}</p>
-          </RTLScrollEffect>
-        </CockpitTopCenterSlot>
-        <CockpitTopRightSlot>
-          <div className="pointer-events-auto flex w-full justify-end pr-2">
+      {storyFinished && (
+        <CockpitStatScreens>
+          <CockpitTopLeftSlot>
+            <TypingEffect>
+              <p className="text-xs text-highlight">{topLeftLabel}</p>
+            </TypingEffect>
+          </CockpitTopLeftSlot>
+          <CockpitTopCenterSlot>
+            <RTLScrollEffect>
+              <p className="text-2xl">{centerTitle}</p>
+            </RTLScrollEffect>
+          </CockpitTopCenterSlot>
+          <CockpitTopRightSlot>
             <NavbarWalletTray variant="cockpit" />
-          </div>
-        </CockpitTopRightSlot>
+          </CockpitTopRightSlot>
 
-        <CockpitBottomLeftSlot>
-          <TypingEffect>
-            <p className="text-xs text-highlight">{statusLabel}</p>
-          </TypingEffect>
-        </CockpitBottomLeftSlot>
-        <CockpitBottomCenterSlot>
-          <div className="pointer-events-auto absolute top-[5px] right-0 left-0 z-20 flex justify-center px-4">
-            <div className="w-full max-w-[652px] p-2.5">
-              <div className="flex flex-col gap-2">
-                {gateMessage ? (
-                  <div className="flex items-center justify-between gap-2 rounded-sm border border-secondary/40 bg-muted/40 p-2 text-[10px] tracking-wide text-foreground uppercase">
-                    <span>{gateMessage}</span>
-                    <Button onClick={requestContinuePipeline} size="sm" type="button">
-                      Continue
-                    </Button>
-                  </div>
-                ) : null}
+          <CockpitBottomLeftSlot>
+            <TypingEffect>
+              <p className="text-xs text-highlight">{statusLabel}</p>
+            </TypingEffect>
+          </CockpitBottomLeftSlot>
+          <CockpitBottomCenterSlot>
+            <div className="pointer-events-auto absolute top-[5px] right-0 left-0 z-20 flex justify-center px-4">
+              <div className="w-full max-w-[652px] p-2.5">
+                <div className="flex flex-col gap-2">
+                  {gateMessage ? (
+                    <div className="flex items-center justify-between gap-2 rounded-sm border border-secondary/40 bg-muted/40 p-2 text-[10px] tracking-wide text-foreground uppercase">
+                      <span>{gateMessage}</span>
+                      <Button onClick={requestContinuePipeline} size="sm" type="button">
+                        Continue
+                      </Button>
+                    </div>
+                  ) : null}
 
-                {promptContextLabel ? (
-                  <div className="text-[10px] tracking-widest text-muted-foreground uppercase">
-                    {promptContextLabel}
-                  </div>
-                ) : null}
+                  {promptContextLabel ? (
+                    <div className="text-[10px] tracking-widest text-muted-foreground uppercase">
+                      {promptContextLabel}
+                    </div>
+                  ) : null}
 
-                <div className="relative">
-                  <Textarea
-                    autoFocus={shouldAutoFocusPrompt}
-                    className="h-[117px] w-full resize-y border-none! bg-background pr-20 text-sm focus-visible:border-none! focus-visible:ring-0!"
-                    disabled={isGenerating}
-                    onChange={(event) => setPromptInput(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key !== "Enter" || event.shiftKey) {
-                        return;
-                      }
-                      event.preventDefault();
-                      handlePromptSubmit();
-                    }}
-                    placeholder={promptPlaceholder}
-                    value={promptInput}
-                  />
-                  <div className="absolute right-[-40px] bottom-[2px]">
-                    <Button
-                      className="size-9 rounded-full p-0"
+                  <div className="relative">
+                    <Textarea
+                      autoFocus={shouldAutoFocusPrompt}
+                      className="h-[116px] w-full resize-y border-none! bg-background text-sm focus-visible:border-none! focus-visible:ring-0!"
                       disabled={isGenerating}
-                      onClick={handlePromptSubmit}
-                      size="sm"
-                      type="button"
-                    >
-                      <SendHorizontal className="size-4" />
-                      <span className="sr-only">Submit prompt</span>
-                    </Button>
+                      onChange={(event) => setPromptInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" || event.shiftKey) {
+                          return;
+                        }
+                        event.preventDefault();
+                        handlePromptSubmit();
+                      }}
+                      placeholder={promptPlaceholder}
+                      value={promptInput}
+                    />
+                    <div className="absolute right-[-40px] bottom-[2px]">
+                      <Button
+                        className="size-9 rounded-full p-0"
+                        disabled={isGenerating}
+                        onClick={handlePromptSubmit}
+                        size="sm"
+                        type="button"
+                      >
+                        <SendHorizontal className="size-4" />
+                        <span className="sr-only">Submit prompt</span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </CockpitBottomCenterSlot>
-        <CockpitBottomRightSlot>
-          <TypingEffect>
-            <p>Typing Effect</p>
-          </TypingEffect>
-        </CockpitBottomRightSlot>
-      </CockpitStatScreens>
+          </CockpitBottomCenterSlot>
+          <CockpitBottomRightSlot>
+            <TypingEffect>
+              <p>Typing Effect</p>
+            </TypingEffect>
+          </CockpitBottomRightSlot>
+        </CockpitStatScreens>
+      )}
 
       <div
-        className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 md:px-6"
+        className={`page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 md:px-6 min-h-screen ${view === "briefing" && "justify-center"}`}
         ref={contentContainerRef}
       >
         {view === "briefing" ? (
-          <section
-            className="flex w-full flex-col items-center justify-center"
-            style={briefingMinHeightPx ? { minHeight: `${briefingMinHeightPx}px` } : undefined}
-          >
-            <div className="relative mx-auto w-full max-w-2xl rounded-sm border border-border bg-card/30 p-6">
-              <p className="text-sm tracking-wide text-muted-foreground uppercase">
-                Prompt input moved to cockpit console
-              </p>
-              {!settingStoryDismissed ? (
-                <div
-                  className={`absolute inset-0 z-10 flex flex-col rounded-sm border border-[#7f1d1d]/80 bg-[#17090a]/95 px-5 py-4 text-lg leading-relaxed tracking-wide text-[#fda4af] shadow-[0_0_0_1px_rgba(127,29,29,0.25),0_0_28px_rgba(127,29,29,0.2)] transition-opacity duration-700 md:px-6 md:text-xl md:leading-loose ${storyFinished ? "pointer-events-none opacity-0" : "opacity-100"}`}
-                >
-                  <div className="flex flex-1 items-center">
-                    <p className="whitespace-pre-wrap">
-                      {settingStorySegments.map((segment, index) => {
-                        const charsBeforeSegment = settingStorySegments
-                          .slice(0, index)
-                          .reduce((length, priorSegment) => length + priorSegment.text.length, 0);
-                        const visibleSegmentChars = Math.max(
-                          0,
-                          Math.min(segment.text.length, visibleStoryChars - charsBeforeSegment),
-                        );
+          <section className="flex max-w-xl flex-col items-center justify-center mx-auto">
+            {!settingStoryDismissed ? (
+              <>
+                <p className="whitespace-pre-wrap text-xl">
+                  {settingStorySegments.map((segment, index) => {
+                    const charsBeforeSegment = settingStorySegments
+                      .slice(0, index)
+                      .reduce((length, priorSegment) => length + priorSegment.text.length, 0);
+                    const visibleSegmentChars = Math.max(
+                      0,
+                      Math.min(segment.text.length, visibleStoryChars - charsBeforeSegment),
+                    );
 
-                        if (visibleSegmentChars <= 0) {
-                          return null;
-                        }
+                    if (visibleSegmentChars <= 0) {
+                      return null;
+                    }
 
-                        return (
-                          <span className={segment.className} key={`${segment.text}-${index}`}>
-                            {segment.text.slice(0, visibleSegmentChars)}
-                          </span>
-                        );
-                      })}
-                      {visibleStoryChars < settingStoryTextLength ? (
-                        <span aria-hidden className="ml-0.5 animate-pulse text-[#fecaca]">
-                          ▋
-                        </span>
-                      ) : null}
-                    </p>
-                  </div>
-                  <div className="mt-4 flex shrink-0 items-center gap-2 border-t border-[#7f1d1d]/50 pt-3">
+                    return (
+                      <span className={segment.className} key={`${segment.text}-${index}`}>
+                        {segment.text.slice(0, visibleSegmentChars)}
+                      </span>
+                    );
+                  })}
+                  {visibleStoryChars < settingStoryTextLength ? (
+                    <span aria-hidden className="ml-0.5 animate-pulse text-[#fecaca]">
+                      ▋
+                    </span>
+                  ) : null}
+                </p>
+                {storyFinished && (
+                  <div className="mt-4 flex shrink-0 items-center gap-2 pt-10">
                     <Checkbox
                       checked={settingStoryDismissed}
                       className="border-[#fecaca]/60 data-[state=checked]:border-[#fecaca] data-[state=checked]:bg-[#fecaca] data-[state=checked]:text-[#17090a]"
@@ -595,9 +536,9 @@ const WizardLayout = () => {
                       Do not show again
                     </Label>
                   </div>
-                </div>
-              ) : null}
-            </div>
+                )}
+              </>
+            ) : null}
           </section>
         ) : (
           <div className="space-y-6">

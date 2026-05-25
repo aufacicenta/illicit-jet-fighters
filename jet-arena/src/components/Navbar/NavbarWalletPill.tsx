@@ -65,11 +65,11 @@ export const NavbarWalletPill = ({ variant = "navbar" }: NavbarWalletPillProps) 
 
   if (isCockpit) {
     return (
-      <div className="flex w-full max-w-[305px] flex-col items-end gap-1">
+      <div className="w-full">
         <Link
           aria-label="Open wallet"
           className={cn(
-            "w-full rounded-sm px-3 py-2 text-right transition-colors",
+            "w-full text-right transition-colors",
             lastTopupHighlight ? "text-emerald-100" : "text-foreground",
           )}
           to={routes.terminalWallet()}
@@ -93,7 +93,7 @@ export const NavbarWalletPill = ({ variant = "navbar" }: NavbarWalletPillProps) 
           </p>
         </Link>
         {errorMessage ? (
-          <p className="max-w-[290px] truncate text-right text-[10px] tracking-wide text-destructive">
+          <p className="truncate text-right text-[10px] tracking-wide text-destructive">
             {errorMessage}
           </p>
         ) : null}

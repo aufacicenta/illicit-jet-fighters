@@ -347,6 +347,10 @@ body {
   animation: cockpit-panel-slide-down 500ms ease-out forwards;
 }
 
+.cockpit-panel-slide-start-delay {
+  animation-delay: 300ms;
+}
+
 @keyframes cockpit-stat-marquee {
   from {
     transform: translateX(0);
