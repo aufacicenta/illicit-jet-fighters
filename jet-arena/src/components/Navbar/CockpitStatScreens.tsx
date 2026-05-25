@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { CockpitStatAnimationVariant } from "../../context/CockpitStats/CockpitStatsContext.types";
 import { useCockpitStatsContext } from "../../context/CockpitStats/useCockpitStatsContext";
+import { Navbar } from "../Navbar";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 
@@ -161,72 +162,83 @@ export const CockpitStatScreens = () => {
   const bottomCenter = slots["bottom-center"];
 
   return (
-    <section className="relative w-screen" id="cockpit-stats-screens">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-[158px] left-0 z-9 w-screen"
-        id="cockpit-stats-top-left-screen"
-      >
+    <div className="z-20 fixed w-screen">
+      <Navbar />
+
+      <section className="w-screen" id="cockpit-stats-screens">
         <div
           aria-hidden
-          className="pointer-events-none absolute top-0 left-0 h-[81px] w-[397px] bg-[url('/navbar-bottom-left-screen.png')] bg-center bg-no-repeat"
-        />
-        <div className="overlay-text absolute top-[2px] left-[17px] flex h-[68px] w-[345px] items-center justify-center overflow-hidden px-2 text-center">
-          <SlotText revision={topLeft.revision} text={topLeft.text} variant={topLeft.variant} />
-        </div>
-      </div>
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 bottom-0 z-10 w-full"
-        id="cockpit-stats-top-center-screen"
-      >
-        <div
-          aria-hidden
-          className="h-[259px] bg-[url('/navbar-bottom-frame.png')] bg-center bg-no-repeat"
-        />
-        <div className="overlay-text absolute top-[173px] flex w-screen justify-center text-center">
-          <div className="flex h-[68px] w-[470px] flex-col items-center justify-center overflow-hidden px-2">
-            <SlotText
-              revision={topCenter.revision}
-              text={topCenter.text}
-              variant={topCenter.variant}
-            />
+          className="pointer-events-none absolute inset-x-0 top-[158px] left-0 z-9 w-screen"
+          id="cockpit-stats-top-left-screen"
+        >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute top-0 left-0 h-[81px] w-[397px] bg-[url('/navbar-bottom-left-screen.png')] bg-center bg-no-repeat"
+          />
+          <div className="overlay-text absolute top-[2px] left-[17px] flex h-[68px] w-[345px] items-center justify-center overflow-hidden px-2 text-center">
+            <SlotText revision={topLeft.revision} text={topLeft.text} variant={topLeft.variant} />
           </div>
         </div>
-      </div>
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-[158px] right-0 z-9 w-full"
-        id="cockpit-stats-top-right-screen"
-      >
         <div
-          aria-hidden
-          className="pointer-events-none absolute top-0 right-0 h-[81px] w-[397px] bg-[url('/navbar-bottom-right-screen.png')] bg-center bg-no-repeat"
-        />
-        <div className="overlay-text absolute top-[2px] right-[17px] flex h-[68px] w-[345px] items-center justify-center overflow-hidden px-2 text-center">
-          <SlotText revision={topRight.revision} text={topRight.text} variant={topRight.variant} />
-        </div>
-      </div>
-
-      {/* Screen Bottom */}
-      <div className="fixed inset-x-0 bottom-0 z-10 w-full" id="cockpit-stats-bottom-center-screen">
-        <div
-          aria-hidden
-          className="pointer-events-none h-[159px] bg-[url('/cockpit-bottom-frame.png')] bg-center bg-no-repeat"
-        />
-        {bottomCenterPrompt?.visible ? (
-          <BottomCenterPromptSlot />
-        ) : (
-          <div className="overlay-text pointer-events-none absolute bottom-[33px] flex w-screen justify-center text-center">
-            <div className="flex h-[106px] w-[652px] flex-col items-center justify-center overflow-hidden px-2">
+          className="pointer-events-none absolute inset-x-0 top-0 bottom-0 z-10 w-full"
+          id="cockpit-stats-top-center-screen"
+        >
+          <div
+            aria-hidden
+            className="h-[259px] bg-[url('/navbar-bottom-frame.png')] bg-center bg-no-repeat"
+          />
+          <div className="overlay-text absolute top-[173px] flex w-screen justify-center text-center">
+            <div className="flex h-[68px] w-[470px] flex-col items-center justify-center overflow-hidden px-2">
               <SlotText
-                revision={bottomCenter.revision}
-                text={bottomCenter.text}
-                variant={bottomCenter.variant}
+                revision={topCenter.revision}
+                text={topCenter.text}
+                variant={topCenter.variant}
               />
             </div>
           </div>
-        )}
-      </div>
-    </section>
+        </div>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-[158px] right-0 z-9 w-full"
+          id="cockpit-stats-top-right-screen"
+        >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute top-0 right-0 h-[81px] w-[397px] bg-[url('/navbar-bottom-right-screen.png')] bg-center bg-no-repeat"
+          />
+          <div className="overlay-text absolute top-[2px] right-[17px] flex h-[68px] w-[345px] items-center justify-center overflow-hidden px-2 text-center">
+            <SlotText
+              revision={topRight.revision}
+              text={topRight.text}
+              variant={topRight.variant}
+            />
+          </div>
+        </div>
+
+        {/* Screen Bottom */}
+        <div
+          className="fixed inset-x-0 bottom-0 z-10 w-full"
+          id="cockpit-stats-bottom-center-screen"
+        >
+          <div
+            aria-hidden
+            className="pointer-events-none h-[159px] bg-[url('/cockpit-bottom-frame.png')] bg-center bg-no-repeat"
+          />
+          {bottomCenterPrompt?.visible ? (
+            <BottomCenterPromptSlot />
+          ) : (
+            <div className="overlay-text pointer-events-none absolute bottom-[33px] flex w-screen justify-center text-center">
+              <div className="flex h-[106px] w-[652px] flex-col items-center justify-center overflow-hidden px-2">
+                <SlotText
+                  revision={bottomCenter.revision}
+                  text={bottomCenter.text}
+                  variant={bottomCenter.variant}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
   );
 };

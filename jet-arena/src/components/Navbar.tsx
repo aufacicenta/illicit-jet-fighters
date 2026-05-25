@@ -3,7 +3,6 @@ import { Link, matchPath, useLocation } from "react-router-dom";
 
 import { useNavbarBreadcrumbContext } from "../context/NavbarBreadcrumb/useNavbarBreadcrumbContext";
 import { routes } from "../hooks/useRoutes";
-import { CockpitStatScreens } from "./Navbar/CockpitStatScreens";
 import { NavbarWalletTray } from "./Navbar/NavbarWalletTray";
 
 const getBaseBreadcrumb = (pathname: string) => {
@@ -41,19 +40,17 @@ export const Navbar = () => {
 
   return (
     <nav
-      className="fixed z-20 w-screen border-b border-border"
+      className="w-screen border-b border-border"
       style={{
         backgroundImage: "url('/fuselage-army-green.png')",
         backgroundRepeat: "repeat",
       }}
     >
-      <CockpitStatScreens />
-
       <div className="mx-auto flex w-full max-w-6xl flex-col">
         <div className="grid max-h-[100px] w-full grid-cols-[1fr_auto_1fr] items-center gap-3 pb-3">
           <div aria-hidden />
           <Link
-            className="relative z-10 block justify-self-center pt-4"
+            className="relative z-30 block justify-self-center pt-4"
             to={routes.terminalFighters()}
           >
             <img alt="Illicit Jet Fighters" className="w-full max-w-[280px]" src="/ijf-logo.svg" />

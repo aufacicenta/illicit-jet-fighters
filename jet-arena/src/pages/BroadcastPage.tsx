@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { ArenaShape } from "../arena-shape";
-import { Navbar } from "../components/Navbar";
+import { CockpitStatScreens } from "../components/Navbar/CockpitStatScreens";
 import { useAuth } from "../context/Auth/useAuth";
 import { wsRoutes } from "../hooks/useRoutes";
 import { useWebSocket } from "../hooks/useWebSocket";
@@ -425,114 +425,116 @@ export const BroadcastPage = () => {
   };
 
   return (
-    <div className="app-fuselage-background min-h-screen text-foreground">
-      <Navbar />
-      <div id="app" style={{ gridTemplateColumns: "1fr", minHeight: "auto" }}>
-        <main id="stage">
-          <section className="relative w-full max-w-[1600px] self-center overflow-hidden rounded-[10px]">
-            <canvas id="arena" ref={canvasRef} style={{ maxWidth: "1600px" }} />
-            <section
-              aria-label="Jet stats panel"
-              className="pointer-events-none absolute inset-0 hidden justify-between p-2 md:flex"
-            >
-              <div className="grid w-[220px] content-evenly gap-1.5">
-                {leftJets.map((jet) => (
-                  <BroadcastJetCard
-                    key={jet.id}
-                    jet={jet}
-                    tick={currentFrame?.tick ?? 0}
-                    playerMeta={playerMetaById[jet.id]}
-                    side="left"
-                  />
-                ))}
-              </div>
-              <div className="grid w-[220px] content-evenly justify-items-end gap-1.5">
-                {rightJets.map((jet) => (
-                  <BroadcastJetCard
-                    key={jet.id}
-                    jet={jet}
-                    tick={currentFrame?.tick ?? 0}
-                    playerMeta={playerMetaById[jet.id]}
-                    side="right"
-                  />
-                ))}
-              </div>
-            </section>
-            <section
-              aria-label="Replay controls"
-              className="absolute inset-x-0 bottom-0 z-10 flex items-center gap-2.5 bg-slate-950/85 px-3 py-1.5 font-mono backdrop-blur-sm"
-            >
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={stepBack}
-                  className="flex h-7 w-7 cursor-pointer items-center justify-center rounded text-sm text-slate-300 hover:bg-slate-800 hover:text-white"
-                  aria-label="Step back"
-                >
-                  ⏮
-                </button>
-                <button
-                  onClick={() => setIsPlayingReplay((value) => !value)}
-                  className="flex h-7 w-7 cursor-pointer items-center justify-center rounded text-sm text-slate-300 hover:bg-slate-800 hover:text-white"
-                  aria-label={isPlayingReplay ? "Pause" : "Play"}
-                >
-                  {isPlayingReplay ? "⏸" : "▶"}
-                </button>
-                <button
-                  onClick={stepForward}
-                  className="flex h-7 w-7 cursor-pointer items-center justify-center rounded text-sm text-slate-300 hover:bg-slate-800 hover:text-white"
-                  aria-label="Step forward"
-                >
-                  ⏭
-                </button>
-              </div>
-
-              <input
-                id="frame-index"
-                type="range"
-                min={0}
-                max={Math.max(0, frames.length - 1)}
-                value={Math.min(frameIndex, Math.max(0, frames.length - 1))}
-                onChange={(event) => onSliderChange(Number(event.target.value))}
-                className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-slate-700 accent-sky-400 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-sky-400"
-              />
-
-              <span className="w-[90px] text-center text-[10px] text-slate-400 tabular-nums">
-                {frameIndex + 1} / {Math.max(1, frames.length)}
-              </span>
-
-              <button
-                onClick={cycleSpeed}
-                className="flex h-6 w-8 cursor-pointer items-center justify-center rounded border border-slate-700 text-[10px] text-slate-300 hover:border-sky-500 hover:text-white"
+    <>
+      <CockpitStatScreens />
+      <div className="app-fuselage-background min-h-screen text-foreground">
+        <div id="app" style={{ gridTemplateColumns: "1fr", minHeight: "auto" }}>
+          <main id="stage">
+            <section className="relative w-full max-w-[1600px] self-center overflow-hidden rounded-[10px]">
+              <canvas id="arena" ref={canvasRef} style={{ maxWidth: "1600px" }} />
+              <section
+                aria-label="Jet stats panel"
+                className="pointer-events-none absolute inset-0 hidden justify-between p-2 md:flex"
               >
-                {playbackSpeed}x
-              </button>
-
-              <button
-                onClick={jumpToLive}
-                disabled={!hasLiveFeed && endSummary === null}
-                className={`flex h-6 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-semibold ${
-                  hasLiveFeed && isFollowingLive
-                    ? "bg-red-500/20 text-red-300"
-                    : hasLiveFeed
-                      ? "cursor-pointer border border-slate-700 text-slate-400 hover:border-red-500 hover:text-red-300"
-                      : "cursor-not-allowed border border-slate-800 text-slate-500"
-                }`}
+                <div className="grid w-[220px] content-evenly gap-1.5">
+                  {leftJets.map((jet) => (
+                    <BroadcastJetCard
+                      key={jet.id}
+                      jet={jet}
+                      tick={currentFrame?.tick ?? 0}
+                      playerMeta={playerMetaById[jet.id]}
+                      side="left"
+                    />
+                  ))}
+                </div>
+                <div className="grid w-[220px] content-evenly justify-items-end gap-1.5">
+                  {rightJets.map((jet) => (
+                    <BroadcastJetCard
+                      key={jet.id}
+                      jet={jet}
+                      tick={currentFrame?.tick ?? 0}
+                      playerMeta={playerMetaById[jet.id]}
+                      side="right"
+                    />
+                  ))}
+                </div>
+              </section>
+              <section
+                aria-label="Replay controls"
+                className="absolute inset-x-0 bottom-0 z-10 flex items-center gap-2.5 bg-slate-950/85 px-3 py-1.5 font-mono backdrop-blur-sm"
               >
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    hasLiveFeed && isFollowingLive
-                      ? "animate-pulse bg-red-500"
-                      : endSummary
-                        ? "bg-amber-400"
-                        : "bg-slate-600"
-                  }`}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={stepBack}
+                    className="flex h-7 w-7 cursor-pointer items-center justify-center rounded text-sm text-slate-300 hover:bg-slate-800 hover:text-white"
+                    aria-label="Step back"
+                  >
+                    ⏮
+                  </button>
+                  <button
+                    onClick={() => setIsPlayingReplay((value) => !value)}
+                    className="flex h-7 w-7 cursor-pointer items-center justify-center rounded text-sm text-slate-300 hover:bg-slate-800 hover:text-white"
+                    aria-label={isPlayingReplay ? "Pause" : "Play"}
+                  >
+                    {isPlayingReplay ? "⏸" : "▶"}
+                  </button>
+                  <button
+                    onClick={stepForward}
+                    className="flex h-7 w-7 cursor-pointer items-center justify-center rounded text-sm text-slate-300 hover:bg-slate-800 hover:text-white"
+                    aria-label="Step forward"
+                  >
+                    ⏭
+                  </button>
+                </div>
+
+                <input
+                  id="frame-index"
+                  type="range"
+                  min={0}
+                  max={Math.max(0, frames.length - 1)}
+                  value={Math.min(frameIndex, Math.max(0, frames.length - 1))}
+                  onChange={(event) => onSliderChange(Number(event.target.value))}
+                  className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-slate-700 accent-sky-400 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-sky-400"
                 />
-                {liveLabel}
-              </button>
+
+                <span className="w-[90px] text-center text-[10px] text-slate-400 tabular-nums">
+                  {frameIndex + 1} / {Math.max(1, frames.length)}
+                </span>
+
+                <button
+                  onClick={cycleSpeed}
+                  className="flex h-6 w-8 cursor-pointer items-center justify-center rounded border border-slate-700 text-[10px] text-slate-300 hover:border-sky-500 hover:text-white"
+                >
+                  {playbackSpeed}x
+                </button>
+
+                <button
+                  onClick={jumpToLive}
+                  disabled={!hasLiveFeed && endSummary === null}
+                  className={`flex h-6 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-semibold ${
+                    hasLiveFeed && isFollowingLive
+                      ? "bg-red-500/20 text-red-300"
+                      : hasLiveFeed
+                        ? "cursor-pointer border border-slate-700 text-slate-400 hover:border-red-500 hover:text-red-300"
+                        : "cursor-not-allowed border border-slate-800 text-slate-500"
+                  }`}
+                >
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      hasLiveFeed && isFollowingLive
+                        ? "animate-pulse bg-red-500"
+                        : endSummary
+                          ? "bg-amber-400"
+                          : "bg-slate-600"
+                    }`}
+                  />
+                  {liveLabel}
+                </button>
+              </section>
             </section>
-          </section>
-        </main>
+          </main>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
