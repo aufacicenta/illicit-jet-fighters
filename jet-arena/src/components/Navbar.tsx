@@ -41,7 +41,7 @@ export const Navbar = () => {
 
   return (
     <nav
-      className="fixed w-screen border-b border-border z-20"
+      className="fixed z-20 w-screen border-b border-border"
       style={{
         backgroundImage: "url('/fuselage-army-green.png')",
         backgroundRepeat: "repeat",

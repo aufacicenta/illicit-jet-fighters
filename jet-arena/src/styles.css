@@ -27,7 +27,7 @@
   color-scheme: dark;
   font-family: "Space Mono", monospace;
   --navbar-height: 150px;
-  --page-navbar-offset: calc(var(--navbar-height) + 120px);
+  --page-navbar-offset: calc(var(--navbar-height) + 150px);
   --page-bottom-offset: 180px;
 }
 

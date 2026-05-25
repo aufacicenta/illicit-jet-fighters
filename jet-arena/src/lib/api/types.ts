@@ -74,6 +74,19 @@ export type BattlefieldCostSnapshot = {
   latestRunSectionCosts: Partial<Record<BattlefieldApiSectionId, string>>;
 };
 
+export type BattlefieldListItem = {
+  id: number;
+  name: string | null;
+  briefing: string | null;
+  specsheetImageUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BattlefieldListResponse = {
+  battlefields: BattlefieldListItem[];
+};
+
 export type SimulationStartResponse = {
   simulationId: string;
   broadcastId: string;

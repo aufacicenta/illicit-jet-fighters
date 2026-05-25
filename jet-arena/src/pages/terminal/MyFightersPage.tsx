@@ -1,4 +1,4 @@
-import type { MyFighter } from "@ijf/shared";
+import { type MyFighter } from "@ijf/shared";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -6,8 +6,15 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { routes } from "../../hooks/useRoutes";
-import { fetchMyFighters, fetchMySimulations, fetchSimulationReplay } from "../../lib/api";
-import type { SimulationListItem } from "../../lib/api/types";
+import {
+  fetchBattlefieldPipelineState,
+  fetchMyBattlefields,
+  fetchMyFighters,
+  fetchMySimulations,
+  fetchSimulationReplay,
+} from "../../lib/api";
+import type { BattlefieldListItem, SimulationListItem } from "../../lib/api/types";
+import { BattlefieldCard } from "./components/BattlefieldCard";
 import { FighterBadgeCard } from "./components/FighterBadgeCard";
 import { SimulationPreviewCard } from "./components/SimulationPreviewCard";
 
@@ -41,6 +48,7 @@ export const MyFightersPage = () => {
 
   const [isLoadingBattlefields, setIsLoadingBattlefields] = useState(false);
   const [battlefieldsError, setBattlefieldsError] = useState<string | null>(null);
+  const [battlefields, setBattlefields] = useState<BattlefieldListItem[]>([]);
 
   const [simulations, setSimulations] = useState<SimulationListItem[]>([]);
   const [simulationPreviewById, setSimulationPreviewById] = useState<SimulationPreviewById>({});
@@ -65,10 +73,25 @@ export const MyFightersPage = () => {
     setIsLoadingBattlefields(true);
     setBattlefieldsError(null);
     try {
-      // Battlefield persistence API is not available yet.
-      await Promise.resolve();
+      const response = await fetchMyBattlefields();
+      const battlefieldsWithSheet = await Promise.all(
+        response.battlefields.map(async (battlefield) => {
+          try {
+            const snapshot = await fetchBattlefieldPipelineState(String(battlefield.id));
+            const specsheetImageUrl =
+              snapshot?.outputs["battlefield-sheet-image"]?.assetUrl ??
+              snapshot?.outputs["battlefield-sheet-image"]?.content ??
+              null;
+            return { ...battlefield, specsheetImageUrl };
+          } catch {
+            return { ...battlefield, specsheetImageUrl: null };
+          }
+        }),
+      );
+      setBattlefields(battlefieldsWithSheet);
     } catch (error) {
       setBattlefieldsError(error instanceof Error ? error.message : "Unable to load battlefields.");
+      setBattlefields([]);
     } finally {
       setIsLoadingBattlefields(false);
     }
@@ -137,6 +160,10 @@ export const MyFightersPage = () => {
     navigate(routes.fighterWizard(String(fighterId)));
   };
 
+  const openBattlefieldWizard = (battlefieldId: number) => {
+    navigate(routes.battlefieldWizard(String(battlefieldId)));
+  };
+
   useEffect(() => {
     if (hasFetchedTab[activeTab]) {
       return;
@@ -154,227 +181,268 @@ export const MyFightersPage = () => {
   }, [activeTab, hasFetchedTab, loadBattlefields, loadFighters, loadSimulations]);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-6 md:pb-[170px]">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 md:px-6">
       <Tabs onValueChange={(value) => setActiveTab(value as MyTab)} value={activeTab}>
-        <TabsList className="w-full justify-start">
-          <TabsTrigger value="my-fighters">Fighters</TabsTrigger>
-          <TabsTrigger value="my-battlefields">Battlefields</TabsTrigger>
-          <TabsTrigger value="my-simulations">Simulations</TabsTrigger>
-        </TabsList>
-
-        <TabsContent className="space-y-6" value="my-fighters">
-          <header className="mb-2 flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:justify-end">
-            <div className="flex items-center gap-2">
-              <Button
-                disabled={isLoadingFighters}
-                onClick={() => void loadFighters()}
-                type="button"
-                variant="ghost"
-              >
-                Refresh
-              </Button>
-            </div>
-            <div>
-              <Button asChild className="tracking-[0.12em]">
-                <Link to={routes.createFighter()}>Create Fighter</Link>
-              </Button>
-            </div>
-          </header>
-
-          {fightersError ? (
-            <Card>
-              <CardContent className="space-y-3 p-5">
-                <p className="text-sm text-destructive">{fightersError}</p>
-                <Button
-                  onClick={() => void loadFighters()}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  Retry
-                </Button>
-              </CardContent>
-            </Card>
-          ) : null}
-
-          {isLoadingFighters ? (
-            <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {loadingSlots.map((_, index) => (
-                <Card className="animate-pulse overflow-hidden" key={index}>
-                  <CardContent className="p-0">
-                    <div className="aspect-4/5 w-full border-b border-border bg-muted/30" />
-                    <div className="space-y-2 p-3">
-                      <div className="h-3 w-2/3 rounded-sm bg-muted/30" />
-                      <div className="h-3 w-full rounded-sm bg-muted/20" />
-                      <div className="h-3 w-4/5 rounded-sm bg-muted/20" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </section>
-          ) : null}
-
-          {!isLoadingFighters && fighters.length === 0 ? (
-            <Card>
-              <CardContent className="space-y-4 p-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  You do not have any fighters yet. Start a new intake to build your first badge.
-                </p>
-                <div className="flex justify-center">
-                  <Button asChild>
-                    <Link to={routes.createFighter()}>Start First Fighter</Link>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start lg:gap-8">
+          <aside className="w-full lg:sticky lg:top-6 lg:order-2">
+            <div className="mb-4 flex flex-col gap-2 pt-3">
+              {activeTab === "my-fighters" ? (
+                <>
+                  <Button asChild className="tracking-[0.12em]" type="button">
+                    <Link to={routes.createFighter()}>Create Fighter</Link>
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
-
-          {!isLoadingFighters && fighters.length > 0 ? (
-            <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-2">
-              {fighters.map((fighter) => (
-                <FighterBadgeCard
-                  fighter={fighter}
-                  isSelected={false}
-                  key={fighter.id}
-                  onOpenWizard={openFighterWizard}
-                />
-              ))}
-            </section>
-          ) : null}
-        </TabsContent>
-
-        <TabsContent className="space-y-6" value="my-battlefields">
-          <header className="mb-2 flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:justify-end">
-            <div className="flex items-center gap-2">
-              <Button
-                disabled={isLoadingBattlefields}
-                onClick={() => void loadBattlefields()}
-                type="button"
-                variant="ghost"
-              >
-                Refresh
-              </Button>
-            </div>
-            <div>
-              <Button asChild type="button">
-                <Link to={routes.createBattlefield()}>Create Battlefield</Link>
-              </Button>
-            </div>
-          </header>
-
-          {battlefieldsError ? (
-            <Card>
-              <CardContent className="space-y-3 p-5">
-                <p className="text-sm text-destructive">{battlefieldsError}</p>
-                <Button
-                  onClick={() => void loadBattlefields()}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  Retry
-                </Button>
-              </CardContent>
-            </Card>
-          ) : null}
-
-          <Card>
-            <CardContent className="space-y-3 p-6">
-              <p className="text-sm text-muted-foreground">
-                Battlefield management is coming soon. You will be able to create and manage your
-                own battlefields here.
-              </p>
-              {isLoadingBattlefields ? (
-                <p className="text-xs text-muted-foreground">Refreshing battlefield data...</p>
+                  <Button
+                    variant="outline"
+                    disabled={isLoadingFighters}
+                    onClick={() => void loadFighters()}
+                    type="button"
+                  >
+                    Refresh
+                  </Button>
+                </>
               ) : null}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        <TabsContent className="space-y-6" value="my-simulations">
-          <header className="mb-2 flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:justify-end">
-            <div className="flex items-center gap-2">
-              <Button
-                disabled={isLoadingSimulations}
-                onClick={() => void loadSimulations()}
-                type="button"
-                variant="ghost"
-              >
-                Refresh
-              </Button>
-            </div>
-            <div>
-              <Button onClick={() => navigate(routes.terminalSimulation())} type="button">
-                Create Simulation
-              </Button>
-            </div>
-          </header>
+              {activeTab === "my-battlefields" ? (
+                <>
+                  <Button asChild type="button">
+                    <Link to={routes.createBattlefield()}>Create Battlefield</Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={isLoadingBattlefields}
+                    onClick={() => void loadBattlefields()}
+                    type="button"
+                  >
+                    Refresh
+                  </Button>
+                </>
+              ) : null}
 
-          {simulationsError ? (
-            <Card>
-              <CardContent className="space-y-3 p-5">
-                <p className="text-sm text-destructive">{simulationsError}</p>
-                <Button
-                  onClick={() => void loadSimulations()}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  Retry
-                </Button>
-              </CardContent>
-            </Card>
-          ) : null}
-
-          {isLoadingSimulations ? (
-            <section className="grid gap-3 md:grid-cols-2">
-              {simulationLoadingSlots.map((_, index) => (
-                <Card className="animate-pulse overflow-hidden" key={index}>
-                  <CardContent className="space-y-3 p-4">
-                    <div className="h-3 w-2/3 rounded-sm bg-muted/30" />
-                    <div className="h-44 rounded-sm bg-muted/20" />
-                    <div className="h-3 w-full rounded-sm bg-muted/20" />
-                    <div className="h-3 w-4/5 rounded-sm bg-muted/20" />
-                  </CardContent>
-                </Card>
-              ))}
-            </section>
-          ) : null}
-
-          {!isLoadingSimulations && simulations.length === 0 ? (
-            <Card>
-              <CardContent className="space-y-4 p-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  No simulations found yet. Create your first simulation to begin tracking battle
-                  history.
-                </p>
-                <div className="flex justify-center">
+              {activeTab === "my-simulations" ? (
+                <>
                   <Button onClick={() => navigate(routes.terminalSimulation())} type="button">
                     Create Simulation
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
+                  <Button
+                    variant="outline"
+                    disabled={isLoadingSimulations}
+                    onClick={() => void loadSimulations()}
+                    type="button"
+                  >
+                    Refresh
+                  </Button>
+                </>
+              ) : null}
+            </div>
 
-          {!isLoadingSimulations && simulations.length > 0 ? (
-            <section className="grid gap-3 md:grid-cols-2">
-              {simulations.map((simulation) => {
-                const preview = simulationPreviewById[simulation.simulationId];
-                return (
-                  <SimulationPreviewCard
-                    arenaBounds={preview?.arenaBounds ?? null}
-                    isPreviewLoading={preview?.isLoading ?? false}
-                    key={simulation.simulationId}
-                    previewError={preview?.error ?? null}
-                    previewFrame={preview?.frame ?? null}
-                    simulation={simulation}
-                  />
-                );
-              })}
-            </section>
-          ) : null}
-        </TabsContent>
+            <TabsList className="grid h-auto w-full grid-cols-1 gap-2 bg-background p-0">
+              <TabsTrigger className="w-full justify-start" value="my-fighters">
+                Fighters
+              </TabsTrigger>
+              <TabsTrigger className="w-full justify-start" value="my-battlefields">
+                Battlefields
+              </TabsTrigger>
+              <TabsTrigger className="w-full justify-start" value="my-simulations">
+                Simulations
+              </TabsTrigger>
+            </TabsList>
+          </aside>
+
+          <div className="space-y-6 lg:order-1">
+            <TabsContent className="space-y-6" value="my-fighters">
+              {fightersError ? (
+                <Card>
+                  <CardContent className="space-y-3 p-5">
+                    <p className="text-sm text-destructive">{fightersError}</p>
+                    <Button
+                      onClick={() => void loadFighters()}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      Retry
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {isLoadingFighters ? (
+                <section className="space-y-3">
+                  {loadingSlots.map((_, index) => (
+                    <Card className="animate-pulse overflow-hidden" key={index}>
+                      <CardContent className="p-0">
+                        <div className="aspect-4/5 w-full border-b border-border bg-muted/30" />
+                        <div className="space-y-2 p-3">
+                          <div className="h-3 w-2/3 rounded-sm bg-muted/30" />
+                          <div className="h-3 w-full rounded-sm bg-muted/20" />
+                          <div className="h-3 w-4/5 rounded-sm bg-muted/20" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </section>
+              ) : null}
+
+              {!isLoadingFighters && fighters.length === 0 ? (
+                <Card>
+                  <CardContent className="space-y-4 p-6 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      You do not have any fighters yet. Start a new intake to build your first
+                      badge.
+                    </p>
+                    <div className="flex justify-center">
+                      <Button asChild>
+                        <Link to={routes.createFighter()}>Start First Fighter</Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {!isLoadingFighters && fighters.length > 0 ? (
+                <section className="space-y-3">
+                  {fighters.map((fighter) => (
+                    <section className="scroll-mt-6" key={fighter.id}>
+                      <FighterBadgeCard
+                        fighter={fighter}
+                        isSelected={false}
+                        onOpenWizard={openFighterWizard}
+                      />
+                    </section>
+                  ))}
+                </section>
+              ) : null}
+            </TabsContent>
+
+            <TabsContent className="space-y-6" value="my-battlefields">
+              {battlefieldsError ? (
+                <Card>
+                  <CardContent className="space-y-3 p-5">
+                    <p className="text-sm text-destructive">{battlefieldsError}</p>
+                    <Button
+                      onClick={() => void loadBattlefields()}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      Retry
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {isLoadingBattlefields ? (
+                <section className="space-y-3">
+                  {loadingSlots.map((_, index) => (
+                    <Card className="animate-pulse overflow-hidden" key={index}>
+                      <CardContent className="space-y-2 p-4">
+                        <div className="h-4 w-1/2 rounded-sm bg-muted/30" />
+                        <div className="h-3 w-full rounded-sm bg-muted/20" />
+                        <div className="h-3 w-4/5 rounded-sm bg-muted/20" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </section>
+              ) : null}
+
+              {!isLoadingBattlefields && battlefields.length === 0 ? (
+                <Card>
+                  <CardContent className="space-y-4 p-6 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      You do not have any battlefields yet. Start a new intake to generate one.
+                    </p>
+                    <div className="flex justify-center">
+                      <Button asChild>
+                        <Link to={routes.createBattlefield()}>Start First Battlefield</Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {!isLoadingBattlefields && battlefields.length > 0 ? (
+                <section className="space-y-3">
+                  {battlefields.map((battlefield) => (
+                    <section className="scroll-mt-6" key={battlefield.id}>
+                      <BattlefieldCard
+                        battlefield={battlefield}
+                        onOpenWizard={openBattlefieldWizard}
+                      />
+                    </section>
+                  ))}
+                </section>
+              ) : null}
+            </TabsContent>
+
+            <TabsContent className="space-y-6" value="my-simulations">
+              {simulationsError ? (
+                <Card>
+                  <CardContent className="space-y-3 p-5">
+                    <p className="text-sm text-destructive">{simulationsError}</p>
+                    <Button
+                      onClick={() => void loadSimulations()}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      Retry
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {isLoadingSimulations ? (
+                <section className="space-y-3">
+                  {simulationLoadingSlots.map((_, index) => (
+                    <Card className="animate-pulse overflow-hidden" key={index}>
+                      <CardContent className="space-y-3 p-4">
+                        <div className="h-3 w-2/3 rounded-sm bg-muted/30" />
+                        <div className="h-44 rounded-sm bg-muted/20" />
+                        <div className="h-3 w-full rounded-sm bg-muted/20" />
+                        <div className="h-3 w-4/5 rounded-sm bg-muted/20" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </section>
+              ) : null}
+
+              {!isLoadingSimulations && simulations.length === 0 ? (
+                <Card>
+                  <CardContent className="space-y-4 p-6 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      No simulations found yet. Create your first simulation to begin tracking
+                      battle history.
+                    </p>
+                    <div className="flex justify-center">
+                      <Button onClick={() => navigate(routes.terminalSimulation())} type="button">
+                        Create Simulation
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {!isLoadingSimulations && simulations.length > 0 ? (
+                <section className="space-y-3">
+                  {simulations.map((simulation) => {
+                    const preview = simulationPreviewById[simulation.simulationId];
+                    return (
+                      <section className="scroll-mt-6" key={simulation.simulationId}>
+                        <SimulationPreviewCard
+                          arenaBounds={preview?.arenaBounds ?? null}
+                          isPreviewLoading={preview?.isLoading ?? false}
+                          previewError={preview?.error ?? null}
+                          previewFrame={preview?.frame ?? null}
+                          simulation={simulation}
+                        />
+                      </section>
+                    );
+                  })}
+                </section>
+              ) : null}
+            </TabsContent>
+          </div>
+        </div>
       </Tabs>
     </div>
   );

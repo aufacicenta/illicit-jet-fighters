@@ -30,3 +30,16 @@ export const post = async <TResponse>(
 
   return (await response.json()) as TResponse;
 };
+
+export const get = async <TResponse>(url: string): Promise<TResponse> => {
+  const response = await fetch(url, {
+    method: "GET",
+    headers: authHeadersJson(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorText(response));
+  }
+
+  return (await response.json()) as TResponse;
+};
