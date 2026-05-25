@@ -5,18 +5,22 @@ import { Skeleton } from "../ui/skeleton";
 import { NavbarPublicActions } from "./NavbarPublicActions";
 import { NavbarWalletPill } from "./NavbarWalletPill";
 
-const NavbarWalletPillWithProvider = () => (
+type NavbarWalletTrayProps = {
+  variant?: "navbar" | "cockpit";
+};
+
+const NavbarWalletPillWithProvider = ({ variant }: NavbarWalletTrayProps) => (
   <WalletContextController>
-    <NavbarWalletPill />
+    <NavbarWalletPill variant={variant} />
   </WalletContextController>
 );
 
-export const NavbarWalletTray = () => {
+export const NavbarWalletTray = ({ variant = "navbar" }: NavbarWalletTrayProps) => {
   const { isAuthenticated, isBootstrapping } = useAuth();
   const walletContext = useOptionalWalletContext();
 
   if (isBootstrapping) {
-    return <Skeleton className="h-8 w-[220px]" />;
+    return <Skeleton className={variant === "cockpit" ? "h-[62px] w-[290px]" : "h-8 w-[220px]"} />;
   }
 
   if (!isAuthenticated) {
@@ -24,8 +28,8 @@ export const NavbarWalletTray = () => {
   }
 
   if (walletContext === undefined) {
-    return <NavbarWalletPillWithProvider />;
+    return <NavbarWalletPillWithProvider variant={variant} />;
   }
 
-  return <NavbarWalletPill />;
+  return <NavbarWalletPill variant={variant} />;
 };

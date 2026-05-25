@@ -14,6 +14,7 @@ import {
   RTLScrollEffect,
   TypingEffect,
 } from "../../components/Navbar/CockpitStatScreens";
+import { NavbarWalletTray } from "../../components/Navbar/NavbarWalletTray";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
 import { Checkbox } from "../../components/ui/checkbox";
@@ -466,9 +467,9 @@ const WizardLayout = () => {
           </RTLScrollEffect>
         </CockpitTopCenterSlot>
         <CockpitTopRightSlot>
-          <TypingEffect>
-            <p className="text-xs text-highlight">{statusLabel}</p>
-          </TypingEffect>
+          <div className="pointer-events-auto flex w-full justify-end pr-2">
+            <NavbarWalletTray variant="cockpit" />
+          </div>
         </CockpitTopRightSlot>
 
         <CockpitBottomLeftSlot>
@@ -536,7 +537,7 @@ const WizardLayout = () => {
       </CockpitStatScreens>
 
       <div
-        className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 md:px-6 page-with-navbar-offset page-with-screen-bottom-offset"
+        className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 md:px-6"
         ref={contentContainerRef}
       >
         {view === "briefing" ? (

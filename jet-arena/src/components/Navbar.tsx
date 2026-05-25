@@ -27,16 +27,17 @@ const getBaseBreadcrumb = (pathname: string) => {
 export const Navbar = () => {
   const location = useLocation();
   const { currentSectionLabel } = useNavbarBreadcrumbContext();
+  const isWizardRoute = Boolean(matchPath(routes.fighterWizard(":id"), location.pathname));
 
   const breadcrumbLabel = useMemo(() => {
     const baseLabel = getBaseBreadcrumb(location.pathname);
 
-    if (!matchPath(routes.fighterWizard(":id"), location.pathname) || !currentSectionLabel) {
+    if (!isWizardRoute || !currentSectionLabel) {
       return baseLabel;
     }
 
     return `${baseLabel} / ${currentSectionLabel}`;
-  }, [currentSectionLabel, location.pathname]);
+  }, [currentSectionLabel, isWizardRoute, location.pathname]);
 
   return (
     <nav
@@ -65,9 +66,7 @@ export const Navbar = () => {
           </p>
         </div>
         <div aria-hidden />
-        <div className="justify-self-end">
-          <NavbarWalletTray />
-        </div>
+        <div className="justify-self-end">{isWizardRoute ? null : <NavbarWalletTray />}</div>
       </div>
     </nav>
   );
