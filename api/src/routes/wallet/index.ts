@@ -1,4 +1,4 @@
-import { and, db, desc, eq, lt, walletLedgerEntries } from "@ijf/database";
+import { and, db, desc, eq, lt, not, sql, walletLedgerEntries } from "@ijf/database";
 import { Elysia, t } from "elysia";
 
 import { requireBearerAuth } from "../../lib/require-bearer-auth";
@@ -76,6 +76,12 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
         targetAddress: walletLedgerEntries.targetAddress,
         errorMessage: walletLedgerEntries.errorMessage,
         metadata: walletLedgerEntries.metadata,
+        feeAmountNative: sql<string>`coalesce((
+          select sum(f.amount_native)::text
+          from wallet_ledger_entries f
+          where f.parent_id = ${walletLedgerEntries.id}
+            and f.kind = 'fee'
+        ), '0')`,
         createdAt: walletLedgerEntries.createdAt,
       };
 
@@ -87,6 +93,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
               and(
                 eq(walletLedgerEntries.walletId, wallet.id),
                 eq(walletLedgerEntries.networkEnv, networkEnv),
+                not(eq(walletLedgerEntries.kind, "fee")),
                 lt(walletLedgerEntries.createdAt, cursor),
               ),
             )
@@ -99,6 +106,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
               and(
                 eq(walletLedgerEntries.walletId, wallet.id),
                 eq(walletLedgerEntries.networkEnv, networkEnv),
+                not(eq(walletLedgerEntries.kind, "fee")),
               ),
             )
             .orderBy(desc(walletLedgerEntries.createdAt))

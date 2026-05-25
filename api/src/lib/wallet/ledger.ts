@@ -34,6 +34,7 @@ export const insertLedgerEntry = async ({
   fxNativePerUsd,
   correlationId,
   llmUsageEventId,
+  parentId,
   groupId,
   txHash,
   targetAddress,
@@ -49,6 +50,7 @@ export const insertLedgerEntry = async ({
   fxNativePerUsd: number;
   correlationId?: string;
   llmUsageEventId?: string;
+  parentId?: string;
   groupId?: string;
   txHash?: string;
   targetAddress?: string;
@@ -68,6 +70,7 @@ export const insertLedgerEntry = async ({
       fxNativePerUsd: fxNativePerUsd.toFixed(12),
       correlationId: correlationId ?? null,
       llmUsageEventId: llmUsageEventId ?? null,
+      parentId: parentId ?? null,
       groupId: groupId ?? null,
       txHash: txHash ?? null,
       targetAddress: targetAddress ?? null,

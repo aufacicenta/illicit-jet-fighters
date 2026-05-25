@@ -1,3 +1,4 @@
+import { formatCompactId } from "@ijf/shared";
 import { Link } from "react-router-dom";
 
 import { useWalletContext } from "../../context/Wallet/useWalletContext";
@@ -57,10 +58,7 @@ export const NavbarWalletPill = ({ variant = "navbar" }: NavbarWalletPillProps) 
     );
   }
 
-  const addressLabel =
-    wallet.address.length > 12
-      ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
-      : wallet.address;
+  const addressLabel = formatCompactId(wallet.address);
   const networkLabel = formatNetworkLabel(wallet.networkEnv);
 
   if (isCockpit) {

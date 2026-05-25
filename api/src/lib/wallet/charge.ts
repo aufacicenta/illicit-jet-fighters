@@ -68,9 +68,10 @@ export const chargeForUsage = async ({
   const fxNativePerUsd = MIST_PER_SUI / suiUsd;
   const chargeMist = toChargeMist(costUsd, suiUsd);
   const feeMist = applyFeeBps(chargeMist, getFeeBps());
+  let parentId: string | null = null;
 
   if (chargeMist > 0n) {
-    await insertLedgerEntry({
+    const chargeEntry = await insertLedgerEntry({
       executor: run,
       walletId: wallet.id,
       networkEnv,
@@ -81,9 +82,10 @@ export const chargeForUsage = async ({
       llmUsageEventId,
       correlationId,
     });
+    parentId = chargeEntry.id;
   }
 
-  if (feeMist > 0n) {
+  if (feeMist > 0n && parentId) {
     const feeUsd = (Number(feeMist) / MIST_PER_SUI) * suiUsd;
     await insertLedgerEntry({
       executor: run,
@@ -95,6 +97,7 @@ export const chargeForUsage = async ({
       fxNativePerUsd,
       llmUsageEventId,
       correlationId,
+      parentId,
     });
   }
 

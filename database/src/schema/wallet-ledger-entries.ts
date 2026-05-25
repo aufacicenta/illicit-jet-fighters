@@ -1,5 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
+  check,
   index,
   jsonb,
   numeric,
@@ -42,6 +44,9 @@ export const walletLedgerEntries = pgTable(
     llmUsageEventId: uuid("llm_usage_event_id").references(() => llmUsageEvents.id, {
       onDelete: "set null",
     }),
+    parentId: uuid("parent_id").references((): AnyPgColumn => walletLedgerEntries.id, {
+      onDelete: "set null",
+    }),
     groupId: uuid("group_id"),
     txHash: text("tx_hash"),
     targetAddress: text("target_address"),
@@ -65,6 +70,19 @@ export const walletLedgerEntries = pgTable(
     uniqueIndex("wallet_ledger_entries_usage_kind_charge_fee_key")
       .on(table.llmUsageEventId, table.kind)
       .where(sql`${table.kind} in ('charge', 'fee')`),
+    index("wallet_ledger_entries_parent_id_idx").on(table.parentId),
+    check(
+      "wallet_ledger_entries_fee_requires_parent_check",
+      sql`(${table.kind} <> 'fee') OR (${table.parentId} IS NOT NULL)`,
+    ),
+    check(
+      "wallet_ledger_entries_parent_id_kind_check",
+      sql`(${table.parentId} IS NULL) OR (${table.kind} in ('fee', 'adjustment'))`,
+    ),
+    check(
+      "wallet_ledger_entries_adjustment_requires_parent_check",
+      sql`(${table.kind} <> 'adjustment') OR (${table.parentId} IS NOT NULL)`,
+    ),
     uniqueIndex("wallet_ledger_entries_group_kind_terminal_key")
       .on(table.groupId, table.kind)
       .where(

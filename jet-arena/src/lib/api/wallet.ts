@@ -17,6 +17,7 @@ export type WalletLedgerEntry = {
   id: string;
   kind: string;
   amountNative: string;
+  feeAmountNative: string;
   amountUsdSnapshot: string;
   fxNativePerUsd: string;
   correlationId: string | null;

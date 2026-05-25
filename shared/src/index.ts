@@ -1,5 +1,12 @@
 export { formatDateTime, formatNullableDateTime } from "./datetime";
 export {
+  formatCompactId,
+  formatHighlightedId,
+  formatNullableCompactId,
+  formatNullableHighlightedId,
+} from "./identifiers";
+export type { HighlightedIdParts } from "./identifiers";
+export {
   formatFighterDisplayLabel,
   parseFighterNameAndEpithet,
   resolveFighterName,

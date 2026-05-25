@@ -1,4 +1,5 @@
 import type { NetworkEnvName } from "@ijf/shared";
+import { formatDateTime, formatNullableCompactId, formatNullableHighlightedId } from "@ijf/shared";
 import { useMemo, useState } from "react";
 
 import {
@@ -18,6 +19,21 @@ import { WizardCardTitle } from "../wizard/sections/WizardCardTitle";
 const formatSui = (mist: bigint) => (Number(mist) / 1_000_000_000).toFixed(6);
 const formatNetworkLabel = (network: NetworkEnvName) =>
   `${network.charAt(0).toUpperCase()}${network.slice(1)}`;
+const renderHighlightedId = (value: string | null | undefined, fallback = "—") => {
+  const { leading, middle, trailing, isHighlighted } = formatNullableHighlightedId(value, fallback);
+
+  if (!isHighlighted) {
+    return middle;
+  }
+
+  return (
+    <>
+      <span className="text-primary">{leading}</span>
+      {middle}
+      <span className="text-primary">{trailing}</span>
+    </>
+  );
+};
 
 type WalletSectionId = "deposit" | "activity" | "withdraw";
 
@@ -119,7 +135,7 @@ export const WalletPage = () => {
       <CockpitStatScreens>
         <CockpitTopCenterSlot>
           <RTLScrollEffect>
-            <p className="text-2xl">Wallet</p>
+            <p className="text-2xl">War Chest</p>
           </RTLScrollEffect>
         </CockpitTopCenterSlot>
         <CockpitTopRightSlot>
@@ -128,8 +144,8 @@ export const WalletPage = () => {
       </CockpitStatScreens>
 
       <div className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto w-full max-w-6xl space-y-6 px-4 py-6 md:px-6">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start lg:gap-8">
-          <div className="order-2 w-full space-y-4 lg:order-1">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+          <div className="order-2 w-full space-y-4 lg:order-1 lg:flex-1">
             <section className="scroll-mt-6" id="wallet-section-deposit">
               <Card>
                 <CardHeader className={`space-y-2 ${wizardCardHeaderClassName}`}>
@@ -140,7 +156,7 @@ export const WalletPage = () => {
                     </p>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 bg-background">
                   <div className="relative">
                     <Badge
                       className="pointer-events-none absolute top-2 right-2 z-10"
@@ -148,9 +164,12 @@ export const WalletPage = () => {
                     >
                       {networkBadgeLabel}
                     </Badge>
-                    <pre className="overflow-x-auto rounded-sm border border-border/70 bg-muted/40 px-3 py-2 pr-24 text-xs">
-                      {wallet?.address ?? "Loading..."}
-                    </pre>
+                    <h2
+                      className="px-4 py-2 pr-24 text-muted-foreground"
+                      title={wallet?.address ?? undefined}
+                    >
+                      {renderHighlightedId(wallet?.address, "Loading...")}
+                    </h2>
                   </div>
                 </CardContent>
               </Card>
@@ -174,14 +193,23 @@ export const WalletPage = () => {
                   ) : (
                     recentEntries.map((entry) => (
                       <div
-                        className="grid grid-cols-[100px_1fr_auto] items-center gap-2 rounded-sm border border-border/70 px-3 py-2 text-xs md:grid-cols-[140px_1fr_auto]"
+                        className="flex flex-wrap items-center gap-2 rounded-sm border border-border/70 px-3 py-2 text-xs"
                         key={entry.id}
                       >
-                        <span className="font-semibold uppercase">{entry.kind}</span>
-                        <span className="truncate text-muted-foreground">
-                          {entry.txHash ?? entry.targetAddress ?? entry.correlationId ?? "—"}
+                        <span className="shrink-0 font-semibold uppercase w-2/12">
+                          {entry.kind}
                         </span>
-                        <span className="font-mono tabular-nums">{entry.amountNative}</span>
+                        <span className="shrink-0 font-mono text-[10px] text-muted-foreground tabular-nums w-3/12">
+                          {formatDateTime(entry.createdAt)}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {formatNullableCompactId(
+                            entry.txHash ?? entry.targetAddress ?? entry.correlationId,
+                          )}
+                        </span>
+                        <span className="ml-auto shrink-0 font-mono tabular-nums">
+                          {(BigInt(entry.amountNative) + BigInt(entry.feeAmountNative)).toString()}
+                        </span>
                       </div>
                     ))
                   )}
@@ -248,15 +276,18 @@ export const WalletPage = () => {
                     ) : (
                       withdrawals.map((withdrawal) => (
                         <div
-                          className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-sm border border-border/70 px-3 py-2 text-xs"
+                          className="flex items-center gap-2 rounded-sm border border-border/70 px-3 py-2 text-xs"
                           key={withdrawal.groupId}
                         >
-                          <span className="truncate font-mono">
+                          <span className="min-w-0 flex-1 truncate font-mono">
                             {withdrawal.targetAddress || withdrawal.groupId}
                           </span>
-                          <span className="tracking-wide uppercase">{withdrawal.status}</span>
+                          <span className="shrink-0 tracking-wide uppercase">
+                            {withdrawal.status}
+                          </span>
                           {withdrawal.status === "pending" ? (
                             <Button
+                              className="shrink-0"
                               onClick={() => void cancelWithdrawal(withdrawal.groupId)}
                               size="sm"
                               type="button"
@@ -274,8 +305,8 @@ export const WalletPage = () => {
             </section>
           </div>
 
-          <aside className="order-1 w-full lg:sticky lg:top-6 lg:order-2">
-            <div className="space-y-2 mb-4">
+          <aside className="order-1 w-full lg:sticky lg:top-6 lg:order-2 lg:w-[260px] lg:flex-none">
+            <div className="mb-4 space-y-2">
               {sectionNavItems.map((item) => {
                 const isActive = activeSectionId === item.id;
                 return (

@@ -71,6 +71,13 @@
       "when": 1779670387733,
       "tag": "0009_striped_microbe",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779731875442,
+      "tag": "0010_hesitant_vargas",
+      "breakpoints": true
     }
   ]
 }
