@@ -1,6 +1,8 @@
 import type { ReplayFrame, SpritePoseKey, SpritesheetManifest } from "@ijf/shared";
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
 
+import { Separator } from "../components/ui/separator";
+
 type PoseKey = SpritePoseKey;
 
 type BroadcastJet = ReplayFrame["jets"][number];
@@ -100,6 +102,7 @@ const AGENT_SPRITES = loadAgentSpriteRegistry();
 
 type RemotePlayerMeta = {
   fighterId: number;
+  agentVersionNumber: number | null;
   spritesheetImageUrl: string | null;
   spritesheetManifestUrl: string | null;
   spritesheetManifest: SpritesheetManifest | null;
@@ -136,6 +139,7 @@ type BroadcastJetCardProps = {
   jet: BroadcastJet;
   tick: number;
   playerMeta?: RemotePlayerMeta;
+  jetLabel?: string;
   side?: "left" | "right";
 };
 
@@ -143,6 +147,7 @@ export const BroadcastJetCard = ({
   jet,
   tick,
   playerMeta,
+  jetLabel,
   side = "left",
 }: BroadcastJetCardProps) => {
   const [isRemoteSheetImageReady, setIsRemoteSheetImageReady] = useState(false);
@@ -203,13 +208,12 @@ export const BroadcastJetCard = ({
       backgroundRepeat: "no-repeat",
     };
   }, [isRemoteSheetImageReady, remoteSheet, sheetFrame]);
-  const cardJustifyClass = side === "right" ? "justify-self-end" : "justify-self-start";
-  const infoAlignClass = side === "right" ? "items-end text-right" : "items-start text-left";
-  const roleAlignClass = side === "right" ? "text-right" : "text-left";
+  const cardJustifyClass = side === "right" ? "ml-auto" : "mr-auto";
+  const infoAlignClass = side === "right" ? "items-end" : "items-start text-left";
 
   return (
     <article
-      className={`grid w-[220px] grid-cols-[44px_minmax(0,1fr)] gap-2 rounded-md border border-slate-700/80 bg-slate-950/75 p-2 font-mono text-[10px] text-slate-200 shadow-md backdrop-blur-[1px] ${cardJustifyClass}`}
+      className={`flex w-[220px] items-start gap-2 rounded-md border border-slate-700/80 bg-slate-950/75 p-2 font-mono text-[10px] text-slate-200 shadow-md backdrop-blur-[1px] ${cardJustifyClass}`}
       style={{ borderLeftColor: accent, borderLeftWidth: "3px" } as CSSProperties}
     >
       <div className="h-11 w-11 overflow-hidden rounded border border-slate-700 bg-slate-900">
@@ -224,10 +228,10 @@ export const BroadcastJetCard = ({
           <img className="h-11 w-11 object-cover" src={poseSprite} alt={`${roleLabel} ${pose}`} />
         )}
       </div>
-      <div className={`flex min-w-0 flex-col gap-1 ${infoAlignClass}`}>
+      <div className={`${infoAlignClass}`}>
         <header className="flex w-full items-center justify-between gap-2 text-[9px] leading-none">
           <span className="max-w-[132px] truncate font-semibold" style={{ color: accent }}>
-            {jet.id}
+            {jetLabel ?? jet.id}
           </span>
           <span
             className={`shrink-0 rounded px-1 py-0.5 text-[8px] font-semibold ${
@@ -237,41 +241,47 @@ export const BroadcastJetCard = ({
             {jet.alive ? "LIVE" : "DOWN"}
           </span>
         </header>
-        <div className={`max-w-full truncate text-[9px] text-sky-300 ${roleAlignClass}`}>
-          {roleLabel}
+
+        <div>
+          <div>
+            <div className="flex items-center gap-1">
+              <span className="w-6 shrink-0">HP</span>
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-700">
+                <i
+                  className="block h-full bg-gradient-to-r from-emerald-400 to-emerald-100"
+                  style={{ width: `${hpPct}%` }}
+                />
+              </div>
+              <b className="w-5 shrink-0 text-right font-semibold">
+                {Math.max(0, jet.health).toFixed(0)}
+              </b>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-6 shrink-0">FUEL</span>
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-700">
+                <i
+                  className="block h-full bg-gradient-to-r from-cyan-400 to-cyan-100"
+                  style={{ width: `${fuelPct}%` }}
+                />
+              </div>
+              <b className="w-5 shrink-0 text-right font-semibold">
+                {Math.max(0, jet.fuel).toFixed(0)}
+              </b>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-6 shrink-0">AMMO</span>
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-700">
+                <i
+                  className="block h-full bg-gradient-to-r from-violet-400 to-violet-100"
+                  style={{ width: `${ammoPct}%` }}
+                />
+              </div>
+              <b className="w-5 shrink-0 text-right font-semibold">{Math.max(0, jet.ammo)}</b>
+            </div>
+          </div>
         </div>
-        <div className="grid gap-1 text-[9px]">
-          <div className="grid grid-cols-[24px_1fr_20px] items-center gap-1">
-            <span>HP</span>
-            <div className="h-1.5 overflow-hidden rounded-full bg-slate-700">
-              <i
-                className="block h-full bg-gradient-to-r from-emerald-400 to-emerald-100"
-                style={{ width: `${hpPct}%` }}
-              />
-            </div>
-            <b className="text-right font-semibold">{Math.max(0, jet.health).toFixed(0)}</b>
-          </div>
-          <div className="grid grid-cols-[24px_1fr_20px] items-center gap-1">
-            <span>FUEL</span>
-            <div className="h-1.5 overflow-hidden rounded-full bg-slate-700">
-              <i
-                className="block h-full bg-gradient-to-r from-cyan-400 to-cyan-100"
-                style={{ width: `${fuelPct}%` }}
-              />
-            </div>
-            <b className="text-right font-semibold">{Math.max(0, jet.fuel).toFixed(0)}</b>
-          </div>
-          <div className="grid grid-cols-[24px_1fr_20px] items-center gap-1">
-            <span>AMMO</span>
-            <div className="h-1.5 overflow-hidden rounded-full bg-slate-700">
-              <i
-                className="block h-full bg-gradient-to-r from-violet-400 to-violet-100"
-                style={{ width: `${ammoPct}%` }}
-              />
-            </div>
-            <b className="text-right font-semibold">{Math.max(0, jet.ammo)}</b>
-          </div>
-        </div>
+
+        <Separator className="my-0.5 bg-slate-700/80" />
         <div className="flex w-full items-center justify-between text-[9px] text-slate-300">
           <span>
             H {jet.enemyHitsLanded} / T {jet.enemyHitsTaken}

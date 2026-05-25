@@ -10,15 +10,12 @@ export class GameRenderer {
   private offsetX = 0;
   private offsetY = 0;
   private arenaDrawable: DrawableArena;
-  private battlefieldName: string;
   private jetSprites: Map<string, HTMLImageElement>;
   private jetLabels: Map<string, string>;
-  private hudErrorMessage: string | null = null;
 
   constructor(
     private canvas: HTMLCanvasElement,
     arenaShape: ArenaShape,
-    battlefieldName: string,
     jetSprites?: Map<string, HTMLImageElement>,
     jetLabels?: Map<string, string>,
   ) {
@@ -38,7 +35,6 @@ export class GameRenderer {
     const centerY = (bounds.minY + bounds.maxY) / 2;
     this.offsetX = this.width / 2 - centerX * this.scale;
     this.offsetY = this.height / 2 - centerY * this.scale;
-    this.battlefieldName = battlefieldName;
     this.jetSprites = jetSprites ?? new Map();
     this.jetLabels = jetLabels ?? new Map();
   }
@@ -55,11 +51,6 @@ export class GameRenderer {
     for (const jet of state.jets.values()) {
       this.drawJet(jet);
     }
-    this.drawHud(state);
-  }
-
-  setHudErrorMessage(message: string | null): void {
-    this.hudErrorMessage = message;
   }
 
   setJetLabels(labels: Map<string, string>): void {
@@ -271,105 +262,6 @@ export class GameRenderer {
       this.context.fillText(posLabel, point.x + size + 2, point.y - 3);
       this.context.fillText(altLabel, point.x + size + 2, point.y + 8);
     }
-  }
-
-  private drawHud(state: GameState): void {
-    const { context } = this;
-    const alive = [...state.jets.values()].filter((jet) => jet.alive).length;
-
-    // --- Top-left status panel (boxed) ---
-    const panelX = 10;
-    const panelY = 10;
-    const panelW = 200;
-    const panelH = this.hudErrorMessage ? 112 : 90;
-    context.save();
-    context.fillStyle = "rgba(8, 15, 28, 0.82)";
-    context.strokeStyle = "#1e3a5f";
-    context.lineWidth = 1;
-    context.beginPath();
-    context.roundRect(panelX, panelY, panelW, panelH, 6);
-    context.fill();
-    context.stroke();
-    context.fillStyle = "#94a3b8";
-    context.font = "10px ui-monospace, SFMono-Regular, Menlo, monospace";
-    context.fillText(this.battlefieldName.toUpperCase(), panelX + 10, panelY + 18);
-    context.fillStyle = "#e2e8f0";
-    context.font = "11px ui-monospace, SFMono-Regular, Menlo, monospace";
-    context.fillText(`TICK  ${state.tick}`, panelX + 10, panelY + 36);
-    context.fillText(`ALIVE ${alive}/${state.jets.size}`, panelX + 10, panelY + 52);
-    context.fillText(
-      `BUL ${state.bullets.length}  PKP ${state.pickups.length}`,
-      panelX + 10,
-      panelY + 68,
-    );
-    if (this.hudErrorMessage) {
-      context.fillStyle = "#fca5a5";
-      context.font = "10px ui-monospace, SFMono-Regular, Menlo, monospace";
-      context.fillText(`ERR ${this.hudErrorMessage.slice(0, 28)}`, panelX + 10, panelY + 86);
-      if (this.hudErrorMessage.length > 28) {
-        context.fillText(this.hudErrorMessage.slice(28, 56), panelX + 10, panelY + 100);
-      }
-    }
-    context.restore();
-
-    // --- Top-right scoreboard ---
-    this.drawScoreboard(state);
-  }
-
-  private drawScoreboard(state: GameState): void {
-    const { context } = this;
-    const jets = [...state.jets.values()].sort((a, b) => b.enemyHitsLanded - a.enemyHitsLanded);
-    const lineHeight = 16;
-    const headerHeight = 20;
-    const panelW = 180;
-    const panelH = headerHeight + jets.length * lineHeight + 8;
-    const panelX = this.width - panelW - 10;
-    const panelY = 10;
-
-    context.save();
-    context.fillStyle = "rgba(8, 15, 28, 0.82)";
-    context.strokeStyle = "#1e3a5f";
-    context.lineWidth = 1;
-    context.beginPath();
-    context.roundRect(panelX, panelY, panelW, panelH, 6);
-    context.fill();
-    context.stroke();
-
-    context.fillStyle = "#94a3b8";
-    context.font = "10px ui-monospace, SFMono-Regular, Menlo, monospace";
-    context.fillText("SCOREBOARD", panelX + 10, panelY + 14);
-
-    jets.forEach((jet, index) => {
-      const rowY = panelY + headerHeight + index * lineHeight + 12;
-      const color = this.colorForJet(jet.id);
-      const shortName = this.shortName(jet.id);
-
-      // Color dot
-      context.beginPath();
-      context.arc(panelX + 14, rowY - 3, 3.5, 0, Math.PI * 2);
-      context.fillStyle = jet.alive ? color : "#4b5563";
-      context.fill();
-
-      // Name
-      context.fillStyle = jet.alive ? "#e2e8f0" : "#64748b";
-      context.font = "10px ui-monospace, SFMono-Regular, Menlo, monospace";
-      context.fillText(shortName, panelX + 24, rowY);
-
-      // Hits count (right-aligned)
-      const hitsLabel = `${jet.enemyHitsLanded}`;
-      const hitsWidth = context.measureText(hitsLabel).width;
-      context.fillStyle = jet.alive ? "#4ade80" : "#64748b";
-      context.fillText(hitsLabel, panelX + panelW - hitsWidth - 12, rowY);
-    });
-
-    context.restore();
-  }
-
-  private shortName(jetId: string): string {
-    const parts = jetId.split("-");
-    const role = parts.slice(2).join(" ");
-    if (role.length > 14) return `${role.slice(0, 13)}…`;
-    return role || jetId.slice(0, 14);
   }
 
   private colorForJet(id: string): string {

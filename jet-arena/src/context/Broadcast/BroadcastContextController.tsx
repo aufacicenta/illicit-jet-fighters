@@ -33,6 +33,41 @@ const mergeReplayFrames = (current: ReplayFrame[], incoming: ReplayFrame[]) => {
   return [...byTick.values()].sort((left, right) => left.tick - right.tick);
 };
 
+const mergePlayerMetaById = (current: PlayerMetaById, incoming: PlayerMetaById): PlayerMetaById => {
+  const merged: PlayerMetaById = { ...current };
+
+  for (const [jetId, nextMeta] of Object.entries(incoming)) {
+    if (!nextMeta) continue;
+
+    const existingMeta = merged[jetId];
+    if (!existingMeta) {
+      merged[jetId] = nextMeta;
+      continue;
+    }
+
+    const existingDisplayLabel = existingMeta.displayLabel;
+    const nextDisplayLabel = nextMeta.displayLabel;
+    const shouldKeepExistingDisplayLabel =
+      existingDisplayLabel !== null &&
+      (nextDisplayLabel === null || (nextDisplayLabel === jetId && existingDisplayLabel !== jetId));
+
+    merged[jetId] = {
+      ...existingMeta,
+      ...nextMeta,
+      fighterName: nextMeta.fighterName ?? existingMeta.fighterName,
+      displayLabel: shouldKeepExistingDisplayLabel ? existingDisplayLabel : nextDisplayLabel,
+      spritesheetImageUrl: nextMeta.spritesheetImageUrl ?? existingMeta.spritesheetImageUrl,
+      spritesheetManifestUrl:
+        nextMeta.spritesheetManifestUrl ?? existingMeta.spritesheetManifestUrl,
+      spritesheetManifest: nextMeta.spritesheetManifest ?? existingMeta.spritesheetManifest,
+      strikecraftTopSpriteUrl:
+        nextMeta.strikecraftTopSpriteUrl ?? existingMeta.strikecraftTopSpriteUrl,
+    };
+  }
+
+  return merged;
+};
+
 const fallbackArena = (frame: ReplayFrame): RenderBootstrapData => {
   const points = [
     ...frame.jets.map((jet) => ({ x: jet.x, y: jet.y })),
@@ -113,7 +148,9 @@ export const BroadcastContextController = ({
     onMessage: (message) => {
       if (message.type === "init") {
         setInitMessage(message);
-        setPlayerMetaById(message.data.playerMetaById ?? {});
+        setPlayerMetaById((current) =>
+          mergePlayerMetaById(current, message.data.playerMetaById ?? {}),
+        );
         return;
       }
 
@@ -168,14 +205,13 @@ export const BroadcastContextController = ({
       const replay = await fetchSimulationReplay(broadcastId);
 
       if (replay.playerMetaById) {
-        setPlayerMetaById((current) => ({ ...current, ...replay.playerMetaById }));
+        setPlayerMetaById((current) => mergePlayerMetaById(current, replay.playerMetaById));
       }
 
       if (replay.initData?.playerMetaById) {
-        setPlayerMetaById((current) => ({
-          ...current,
-          ...replay.initData.playerMetaById,
-        }));
+        setPlayerMetaById((current) =>
+          mergePlayerMetaById(current, replay.initData.playerMetaById),
+        );
       }
     };
 
@@ -224,15 +260,14 @@ export const BroadcastContextController = ({
         });
 
         if (replay.playerMetaById) {
-          setPlayerMetaById((current) => ({ ...current, ...replay.playerMetaById }));
+          setPlayerMetaById((current) => mergePlayerMetaById(current, replay.playerMetaById));
         }
 
         if (replay.initData) {
           setReplayInitData(replay.initData);
-          setPlayerMetaById((current) => ({
-            ...current,
-            ...(replay.initData?.playerMetaById ?? {}),
-          }));
+          setPlayerMetaById((current) =>
+            mergePlayerMetaById(current, replay.initData?.playerMetaById ?? {}),
+          );
         }
       };
 

@@ -89,12 +89,7 @@ export class GameOrchestrator {
       battlefield,
       pickupConfigOverride,
     );
-    this.renderer = new GameRenderer(
-      this.canvas,
-      this.world.getArenaShape(),
-      battlefield.name,
-      jetSprites,
-    );
+    this.renderer = new GameRenderer(this.canvas, this.world.getArenaShape(), jetSprites);
     this.previousState = cloneState(this.world.state);
     this.lastResults.clear();
     this.expectedWorkers = players.length;

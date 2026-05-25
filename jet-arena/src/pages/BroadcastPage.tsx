@@ -8,10 +8,10 @@ import {
   CockpitBottomCenterSlot,
   CockpitStatScreens,
   CockpitTopCenterSlot,
+  CockpitTopLeftSlot,
   CockpitTopRightSlot,
   RTLScrollEffect,
 } from "../components/Navbar/CockpitStatScreens";
-import { NavbarWalletTray } from "../components/Navbar/NavbarWalletTray";
 import { BroadcastContextController } from "../context/Broadcast/BroadcastContextController";
 import { useBroadcastContext } from "../context/Broadcast/useBroadcastContext";
 import { GameRenderer } from "../renderer";
@@ -31,6 +31,26 @@ const preloadImage = (url: string): Promise<HTMLImageElement> =>
     image.onerror = () => reject(new Error(`Unable to preload sprite: ${url}`));
     image.src = url;
   });
+
+const scoreColorForJet = (id: string): string => {
+  const palette = ["#22d3ee", "#f43f5e", "#f59e0b", "#4ade80", "#a78bfa", "#fb7185"];
+  let hash = 0;
+  for (let index = 0; index < id.length; index += 1) {
+    hash = (hash + id.charCodeAt(index) * (index + 1)) % palette.length;
+  }
+  return palette[hash] ?? "#22d3ee";
+};
+
+const shortScoreName = (
+  jetId: string,
+  playerMeta: { fighterId: number; agentVersionNumber: number | null } | undefined,
+): string => {
+  const fallbackFighterId = Number.parseInt(jetId.split("-")[1] ?? "", 10);
+  const fighterId =
+    playerMeta?.fighterId ?? (Number.isFinite(fallbackFighterId) ? fallbackFighterId : null);
+  const version = playerMeta?.agentVersionNumber ?? null;
+  return `Fighter #${fighterId ?? "?"}, v${version ?? "1"}`;
+};
 
 const BroadcastPageContent = () => {
   const {
@@ -63,6 +83,11 @@ const BroadcastPageContent = () => {
   const rendererRef = useRef<GameRenderer | null>(null);
   const hasRetriedExpiredSpriteUrlsRef = useRef(false);
   const [jetSprites, setJetSprites] = useState<Map<string, HTMLImageElement>>(new Map());
+  const scoreboardJets = [...(currentFrame?.jets ?? [])].sort(
+    (a, b) => b.enemyHitsLanded - a.enemyHitsLanded,
+  );
+  const aliveJets = currentFrame?.jets.filter((jet) => jet.alive).length ?? 0;
+  const battlefieldLabel = renderBootstrapData?.battlefieldConfig.name.toUpperCase() ?? "BROADCAST";
 
   useEffect(() => {
     let cancelled = false;
@@ -131,7 +156,6 @@ const BroadcastPageContent = () => {
     rendererRef.current = new GameRenderer(
       canvasRef.current,
       arenaShape,
-      renderBootstrapData.battlefieldConfig.name,
       jetSprites,
       jetLabelsById,
     );
@@ -158,7 +182,6 @@ const BroadcastPageContent = () => {
       },
       arenaBounds: renderBootstrapData.arenaBounds,
     };
-    rendererRef.current.setHudErrorMessage(errorMessage);
     rendererRef.current.draw(state);
   }, [currentFrame, errorMessage, jetSprites, renderBootstrapData]);
 
@@ -166,13 +189,48 @@ const BroadcastPageContent = () => {
     <>
       <Navbar />
       <CockpitStatScreens>
+        <CockpitTopLeftSlot>
+          <section className="flex h-full w-full flex-col justify-center overflow-hidden text-left font-mono text-[10px] leading-tight text-slate-200">
+            <p className="tracking-[0.08em] text-slate-400">{battlefieldLabel}</p>
+            <p>TICK {currentFrame?.tick ?? 0}</p>
+            <p>
+              ALIVE {aliveJets}/{currentFrame?.jets.length ?? 0}
+            </p>
+            <p>Pickups {currentFrame?.pickups.length ?? 0}</p>
+            {errorMessage ? (
+              <p className="truncate text-[9px] text-red-300">ERR {errorMessage}</p>
+            ) : null}
+          </section>
+        </CockpitTopLeftSlot>
         <CockpitTopCenterSlot>
           <RTLScrollEffect>
             <p className="text-2xl">{centerTitle}</p>
           </RTLScrollEffect>
         </CockpitTopCenterSlot>
         <CockpitTopRightSlot>
-          <NavbarWalletTray variant="cockpit" />
+          <section className="flex h-full w-full flex-col justify-center overflow-hidden font-mono text-[10px] leading-tight text-slate-200">
+            <p className="text-right tracking-[0.08em] text-slate-400">SCOREBOARD</p>
+            <div className="mt-0.5 space-y-0.5">
+              {scoreboardJets.slice(0, 3).map((jet) => (
+                <div key={jet.id} className="flex items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-1">
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{
+                        backgroundColor: jet.alive ? scoreColorForJet(jet.id) : "#4b5563",
+                      }}
+                    />
+                    <span className={`truncate ${jet.alive ? "text-slate-200" : "text-slate-500"}`}>
+                      {shortScoreName(jet.id, playerMetaById[jet.id])}
+                    </span>
+                  </span>
+                  <span className={jet.alive ? "text-emerald-300" : "text-slate-500"}>
+                    {jet.enemyHitsLanded}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
         </CockpitTopRightSlot>
 
         <CockpitBottomCenterSlot>
@@ -270,6 +328,7 @@ const BroadcastPageContent = () => {
                       jet={jet}
                       tick={currentFrame?.tick ?? 0}
                       playerMeta={playerMetaById[jet.id]}
+                      jetLabel={jetLabelsById.get(jet.id) ?? jet.id}
                       side="left"
                     />
                   ))}
@@ -281,6 +340,7 @@ const BroadcastPageContent = () => {
                       jet={jet}
                       tick={currentFrame?.tick ?? 0}
                       playerMeta={playerMetaById[jet.id]}
+                      jetLabel={jetLabelsById.get(jet.id) ?? jet.id}
                       side="right"
                     />
                   ))}
