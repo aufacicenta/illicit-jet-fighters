@@ -393,6 +393,18 @@ body {
   }
 }
 
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes cockpit-border-rotate {
+  to {
+    --border-angle: 360deg;
+  }
+}
+
 @keyframes cockpit-panel-slide-down {
   from {
     transform: translateY(-2.5rem);

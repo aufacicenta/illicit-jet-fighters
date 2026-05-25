@@ -287,7 +287,7 @@ const WizardLayout = () => {
     (status) => status === "generating",
   );
   const continueDisabled = hasGeneratingSection || !phaseOneComplete || !phaseTwoComplete;
-  const continueVariant = continueDisabled ? "outline" : "default";
+  const continueVariant = continueDisabled ? "cockpit" : "cockpit";
   const handleContinue = () => {
     if (!phaseOneComplete) {
       if (gateMessage) {
@@ -445,7 +445,7 @@ const WizardLayout = () => {
             )}
           </CockpitBottomCenterSlot>
           <CockpitBottomRightSlot>
-            <div className="flex w-full flex-col items-end gap-2 px-5">
+            <>
               {view !== "briefing" ? (
                 <Button
                   fullWidth
@@ -459,10 +459,9 @@ const WizardLayout = () => {
               ) : (
                 <TypingEffect>
                   <p className="text-xs text-highlight">Illicit Jet Fighters, 2026.</p>
-                  <p className="text-xs text-highlight">&nbsp;Aufacicenta.</p>
                 </TypingEffect>
               )}
-            </div>
+            </>
           </CockpitBottomRightSlot>
         </CockpitStatScreens>
       )}
