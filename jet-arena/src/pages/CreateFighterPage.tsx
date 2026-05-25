@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import {
@@ -87,6 +87,7 @@ export const CreateFighterPage = () => {
   const { token } = useAuth();
   const [briefingPrompt, setBriefingPrompt] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [settingStoryDismissed, setSettingStoryDismissed] = useState(readSettingStoryDismissed);
   const [visibleStoryChars, setVisibleStoryChars] = useState(0);
@@ -153,7 +154,7 @@ export const CreateFighterPage = () => {
   }, [settingStoryDismissed, settingStoryTextLength]);
 
   const onStartIntake = useCallback(() => {
-    if (!token || isSubmitting) return;
+    if (!token || isSubmittingRef.current) return;
     const prompt = briefingPrompt.trim();
     if (!prompt) {
       setErrorMessage("Please enter a fighter briefing before starting intake.");
@@ -161,6 +162,7 @@ export const CreateFighterPage = () => {
     }
 
     setErrorMessage(null);
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     void (async () => {
       try {
@@ -170,10 +172,11 @@ export const CreateFighterPage = () => {
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : "Could not start fighter intake.");
       } finally {
+        isSubmittingRef.current = false;
         setIsSubmitting(false);
       }
     })();
-  }, [briefingPrompt, isSubmitting, navigate, token]);
+  }, [briefingPrompt, navigate, token]);
 
   if (!token) {
     return (

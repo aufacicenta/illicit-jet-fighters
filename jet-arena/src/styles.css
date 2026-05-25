@@ -21,6 +21,7 @@
   --color-ring: #00e5ff;
   --color-highlight: #f5a623;
   --color-primary-shadow: #a3301a;
+  --color-success: var(--color-emerald-300);
 }
 
 :root {

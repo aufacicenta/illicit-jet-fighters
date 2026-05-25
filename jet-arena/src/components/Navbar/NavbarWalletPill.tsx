@@ -1,4 +1,5 @@
 import { formatCompactId, getWalletCurrencyMetadata } from "@ijf/shared";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useWalletContext } from "../../context/Wallet/useWalletContext";
@@ -25,6 +26,52 @@ const connectionDotClassName: Record<"connecting" | "open" | "closed", string> =
   open: "bg-emerald-400",
   closed: "bg-zinc-500",
 };
+
+const SLOT_DIGITS = Array.from({ length: 50 }, (_, index) => index % 10);
+
+const BalanceSlotDigit = ({ digit }: { digit: string }) => {
+  const initialDigit = Number.parseInt(digit, 10);
+  const [slotPosition, setSlotPosition] = useState(Number.isNaN(initialDigit) ? 0 : initialDigit);
+
+  useEffect(() => {
+    const nextDigit = Number.parseInt(digit, 10);
+    if (Number.isNaN(nextDigit)) {
+      return;
+    }
+
+    setSlotPosition((currentPosition) => {
+      const currentDigit = currentPosition % 10;
+      const delta = (nextDigit - currentDigit + 10) % 10;
+
+      return currentPosition + 10 + (delta === 0 ? 10 : delta);
+    });
+  }, [digit]);
+
+  return (
+    <span className="relative inline-flex h-[1em] w-[0.62em] overflow-hidden align-baseline">
+      <span
+        className="inline-flex flex-col transition-transform duration-500 ease-out"
+        style={{ transform: `translateY(-${slotPosition}em)` }}
+      >
+        {SLOT_DIGITS.map((value, index) => (
+          <span className="h-[1em] leading-none" key={`${value}-${index}`}>
+            {value}
+          </span>
+        ))}
+      </span>
+    </span>
+  );
+};
+
+const AnimatedBalanceAmount = ({ value }: { value: string }) => (
+  <span className="inline-flex items-center tabular-nums">
+    {Array.from(value).map((character, index) => (
+      <span className="inline-flex leading-none" key={`${character}-${index}`}>
+        {/\d/.test(character) ? <BalanceSlotDigit digit={character} /> : character}
+      </span>
+    ))}
+  </span>
+);
 
 type NavbarWalletPillProps = {
   variant?: "navbar" | "cockpit";
@@ -62,6 +109,17 @@ export const NavbarWalletPill = ({ variant = "navbar" }: NavbarWalletPillProps) 
   const addressLabel = formatCompactId(wallet.address);
   const walletCurrency = getWalletCurrencyMetadata(wallet.network);
   const networkLabel = formatNetworkLabel(wallet.networkEnv);
+  const balanceAmount = formatTokenAmountFromNative(
+    wallet.balanceMist,
+    walletCurrency.nativeDecimals,
+  );
+  const balanceAmountNumber = Number(balanceAmount);
+  const balanceToneClassName =
+    balanceAmountNumber > 5
+      ? "text-[var(--color-success)]"
+      : balanceAmountNumber >= 1
+        ? "text-[var(--color-accent)]"
+        : "text-[var(--color-destructive)]";
 
   if (isCockpit) {
     return (
@@ -85,9 +143,13 @@ export const NavbarWalletPill = ({ variant = "navbar" }: NavbarWalletPillProps) 
             </div>
             <span className="truncate text-[10px] text-muted-foreground">{addressLabel}</span>
           </div>
-          <p className="mt-0.5 text-lg leading-none font-black tracking-tight text-primary">
-            {formatTokenAmountFromNative(wallet.balanceMist, walletCurrency.nativeDecimals)}{" "}
-            {walletCurrency.symbol}
+          <p
+            className={cn(
+              "mt-0.5 text-lg leading-none font-black tracking-tight transition-colors",
+              balanceToneClassName,
+            )}
+          >
+            <AnimatedBalanceAmount value={balanceAmount} /> {walletCurrency.symbol}
           </p>
           <p className="mt-0.5 text-[10px] tracking-wide text-muted-foreground uppercase">
             {formatUsd(wallet.balanceUsd)}
@@ -114,9 +176,8 @@ export const NavbarWalletPill = ({ variant = "navbar" }: NavbarWalletPillProps) 
         to={routes.terminalWallet()}
       >
         <span className={`size-1.5 rounded-full ${connectionDotClassName[wsStatus]}`} />
-        <span className="font-semibold text-foreground">
-          {formatTokenAmountFromNative(wallet.balanceMist, walletCurrency.nativeDecimals)}{" "}
-          {walletCurrency.symbol}
+        <span className={cn("font-semibold transition-colors", balanceToneClassName)}>
+          <AnimatedBalanceAmount value={balanceAmount} /> {walletCurrency.symbol}
         </span>
         <span className="text-muted-foreground">{formatUsd(wallet.balanceUsd)}</span>
         <span className="rounded-sm border border-border/70 bg-muted/40 px-1.5 py-0.5 text-[10px] text-muted-foreground uppercase">
