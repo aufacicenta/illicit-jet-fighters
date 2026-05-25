@@ -23,10 +23,10 @@ const apiDir = path.resolve(import.meta.dir, "..", "..");
 const workspaceDir = path.resolve(apiDir, "..");
 
 for (const filePath of [
-  path.join(apiDir, ".env.local"),
-  path.join(apiDir, ".env"),
   path.join(workspaceDir, ".env.local"),
   path.join(workspaceDir, ".env"),
+  path.join(apiDir, ".env.local"),
+  path.join(apiDir, ".env"),
 ]) {
   loadEnvFile(filePath);
 }
@@ -39,7 +39,8 @@ const envSchema = z.object({
   NEON_AUTH_URL: z.string().url(),
   OPENROUTER_API_KEY: z.string().min(1),
   WALLET_MASTER_MNEMONIC: z.string().min(1),
-  SUI_NETWORK: z.enum(["testnet", "devnet", "mainnet"]).default("testnet"),
+  WALLET_NETWORK: z.enum(["sui"]).default("sui"),
+  WALLET_NETWORK_ENV: z.enum(["testnet", "devnet", "mainnet"]).default("testnet"),
   SUI_RPC_URL: z.string().url().optional(),
   FEE_BPS: z.coerce.number().int().min(0).default(2000),
   MIN_WALLET_BALANCE_MIST: z.coerce.number().int().min(0).default(50_000_000),

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
-import { db, desc, eq, sql, walletLedgerEntries } from "@ijf/database";
+import { and, db, desc, eq, sql, walletLedgerEntries } from "@ijf/database";
+import type { NetworkEnvName } from "@ijf/shared";
 
 import type { WalletLedgerKind, WithdrawalStatus, WithdrawalView } from "./types";
 
@@ -26,6 +27,7 @@ export const formatMistNumeric = (value: bigint) => value.toString();
 export const insertLedgerEntry = async ({
   executor,
   walletId,
+  networkEnv,
   kind,
   amountMist,
   amountUsdSnapshot,
@@ -40,6 +42,7 @@ export const insertLedgerEntry = async ({
 }: {
   executor?: DbExecutor;
   walletId: string;
+  networkEnv: NetworkEnvName;
   kind: WalletLedgerKind;
   amountMist: bigint;
   amountUsdSnapshot: number;
@@ -58,6 +61,7 @@ export const insertLedgerEntry = async ({
     .insert(walletLedgerEntries)
     .values({
       walletId,
+      networkEnv,
       kind,
       amountNative: formatMistNumeric(amountMist),
       amountUsdSnapshot: amountUsdSnapshot.toFixed(8),
@@ -84,11 +88,15 @@ export const insertLedgerEntry = async ({
 
 export const getWalletBalanceMist = async (
   walletId: string,
+  networkEnv: NetworkEnvName,
   executor?: DbExecutor,
 ): Promise<bigint> => {
   const run = executor ?? db;
   const result = await run.execute<{ total: string }>(
-    sql`select coalesce(sum(amount_native), 0)::text as total from wallet_ledger_entries where wallet_id = ${walletId}`,
+    sql`select coalesce(sum(amount_native), 0)::text as total
+        from wallet_ledger_entries
+        where wallet_id = ${walletId}
+          and network_env = ${networkEnv}::public.wallet_network_env`,
   );
   return asBigInt(result.rows[0]?.total);
 };
@@ -96,6 +104,7 @@ export const getWalletBalanceMist = async (
 export const appendWithdrawalRequest = async ({
   executor,
   walletId,
+  networkEnv,
   targetAddress,
   amountMist,
   amountUsdSnapshot,
@@ -103,6 +112,7 @@ export const appendWithdrawalRequest = async ({
 }: {
   executor?: DbExecutor;
   walletId: string;
+  networkEnv: NetworkEnvName;
   targetAddress: string;
   amountMist: bigint;
   amountUsdSnapshot: number;
@@ -112,6 +122,7 @@ export const appendWithdrawalRequest = async ({
   await insertLedgerEntry({
     executor,
     walletId,
+    networkEnv,
     kind: "withdrawal_request",
     amountMist: -amountMist,
     amountUsdSnapshot: -Math.abs(amountUsdSnapshot),
@@ -126,17 +137,20 @@ export const appendWithdrawalRequest = async ({
 export const appendWithdrawalBroadcast = async ({
   executor,
   walletId,
+  networkEnv,
   groupId,
   txHash,
 }: {
   executor?: DbExecutor;
   walletId: string;
+  networkEnv: NetworkEnvName;
   groupId: string;
   txHash: string;
 }) =>
   insertLedgerEntry({
     executor,
     walletId,
+    networkEnv,
     kind: "withdrawal_broadcast",
     amountMist: 0n,
     amountUsdSnapshot: 0,
@@ -148,17 +162,20 @@ export const appendWithdrawalBroadcast = async ({
 export const appendWithdrawalConfirm = async ({
   executor,
   walletId,
+  networkEnv,
   groupId,
   txHash,
 }: {
   executor?: DbExecutor;
   walletId: string;
+  networkEnv: NetworkEnvName;
   groupId: string;
   txHash: string;
 }) =>
   insertLedgerEntry({
     executor,
     walletId,
+    networkEnv,
     kind: "withdrawal_confirm",
     amountMist: 0n,
     amountUsdSnapshot: 0,
@@ -170,11 +187,13 @@ export const appendWithdrawalConfirm = async ({
 export const appendWithdrawalRefund = async ({
   executor,
   walletId,
+  networkEnv,
   groupId,
   errorMessage,
 }: {
   executor?: DbExecutor;
   walletId: string;
+  networkEnv: NetworkEnvName;
   groupId: string;
   errorMessage?: string;
 }) => {
@@ -186,7 +205,13 @@ export const appendWithdrawalRefund = async ({
       fxNativePerUsd: walletLedgerEntries.fxNativePerUsd,
     })
     .from(walletLedgerEntries)
-    .where(eq(walletLedgerEntries.groupId, groupId))
+    .where(
+      and(
+        eq(walletLedgerEntries.groupId, groupId),
+        eq(walletLedgerEntries.walletId, walletId),
+        eq(walletLedgerEntries.networkEnv, networkEnv),
+      ),
+    )
     .orderBy(desc(walletLedgerEntries.createdAt))
     .limit(1);
 
@@ -198,6 +223,7 @@ export const appendWithdrawalRefund = async ({
   return insertLedgerEntry({
     executor: run,
     walletId,
+    networkEnv,
     kind: "withdrawal_refund",
     amountMist: BigInt(request.amountNative.replace("-", "")),
     amountUsdSnapshot: Math.abs(Number.parseFloat(request.amountUsdSnapshot)),
@@ -209,10 +235,12 @@ export const appendWithdrawalRefund = async ({
 
 export const getWithdrawalStatus = async ({
   walletId,
+  networkEnv,
   groupId,
   executor,
 }: {
   walletId: string;
+  networkEnv: NetworkEnvName;
   groupId: string;
   executor?: DbExecutor;
 }): Promise<WithdrawalStatus> => {
@@ -222,7 +250,13 @@ export const getWithdrawalStatus = async ({
       kind: walletLedgerEntries.kind,
     })
     .from(walletLedgerEntries)
-    .where(eq(walletLedgerEntries.groupId, groupId));
+    .where(
+      and(
+        eq(walletLedgerEntries.groupId, groupId),
+        eq(walletLedgerEntries.walletId, walletId),
+        eq(walletLedgerEntries.networkEnv, networkEnv),
+      ),
+    );
 
   const hasKind = (kind: WalletLedgerKind) => rows.some((row) => row.kind === kind);
   if (hasKind("withdrawal_confirm")) {
@@ -243,6 +277,7 @@ export const getWithdrawalStatus = async ({
 
 export const listWithdrawals = async (
   walletId: string,
+  networkEnv: NetworkEnvName,
   executor?: DbExecutor,
 ): Promise<WithdrawalView[]> => {
   const run = executor ?? db;
@@ -257,7 +292,12 @@ export const listWithdrawals = async (
       createdAt: walletLedgerEntries.createdAt,
     })
     .from(walletLedgerEntries)
-    .where(eq(walletLedgerEntries.walletId, walletId))
+    .where(
+      and(
+        eq(walletLedgerEntries.walletId, walletId),
+        eq(walletLedgerEntries.networkEnv, networkEnv),
+      ),
+    )
     .orderBy(desc(walletLedgerEntries.createdAt));
 
   const grouped = new Map<string, typeof rows>();

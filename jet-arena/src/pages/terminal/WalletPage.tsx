@@ -1,5 +1,7 @@
+import type { NetworkEnvName } from "@ijf/shared";
 import { useMemo, useState } from "react";
 
+import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
 import { useWalletContext } from "../../context/Wallet/useWalletContext";
@@ -7,6 +9,8 @@ import { wizardCardHeaderClassName } from "../wizard/sections/SectionStatusBadge
 import { WizardCardTitle } from "../wizard/sections/WizardCardTitle";
 
 const formatSui = (mist: bigint) => (Number(mist) / 1_000_000_000).toFixed(6);
+const formatNetworkLabel = (network: NetworkEnvName) =>
+  `${network.charAt(0).toUpperCase()}${network.slice(1)}`;
 
 type WalletSectionId = "deposit" | "activity" | "withdraw";
 
@@ -67,6 +71,8 @@ export const WalletPage = () => {
     () => (wallet ? `${formatSui(wallet.balanceMist)} SUI` : "0 SUI"),
     [wallet],
   );
+  const networkLabel = wallet ? formatNetworkLabel(wallet.networkEnv) : "SUI";
+  const networkBadgeLabel = wallet?.networkEnv ?? "loading";
 
   const navigateToSection = (sectionId: WalletSectionId) => {
     setActiveSectionId(sectionId);
@@ -111,14 +117,22 @@ export const WalletPage = () => {
                 <div>
                   <WizardCardTitle>Deposit</WizardCardTitle>
                   <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                    Send SUI testnet funds to your custodial address
+                    Send {networkLabel} SUI funds to your custodial address
                   </p>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <pre className="overflow-x-auto rounded-sm border border-border/70 bg-muted/40 px-3 py-2 text-xs">
-                  {wallet?.address ?? "Loading..."}
-                </pre>
+                <div className="relative">
+                  <Badge
+                    className="pointer-events-none absolute top-2 right-2 z-10"
+                    variant="secondary"
+                  >
+                    {networkBadgeLabel}
+                  </Badge>
+                  <pre className="overflow-x-auto rounded-sm border border-border/70 bg-muted/40 px-3 py-2 pr-24 text-xs">
+                    {wallet?.address ?? "Loading..."}
+                  </pre>
+                </div>
               </CardContent>
             </Card>
           </section>

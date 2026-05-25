@@ -2,9 +2,10 @@ import { and, desc, eq, sql } from "drizzle-orm";
 
 import { db } from "../../db";
 import { userWallets } from "../../schema/user-wallets";
+import type { WalletNetwork } from "../../schema/wallet-networks";
 import { deriveSuiAddress } from "./wallet-derive";
 
-export type WalletNetwork = "sui";
+export type { WalletNetwork } from "../../schema/wallet-networks";
 
 export type UserWalletRecord = {
   id: string;
@@ -118,11 +119,15 @@ export const ensureUserWallet = async ({
     return createOrLoadUserWallet({ executor, userId, network });
   }
   return db.transaction(async (tx) =>
-    createOrLoadUserWallet({ executor: tx as unknown as typeof db, userId, network }),
+    createOrLoadUserWallet({
+      executor: tx as unknown as typeof db,
+      userId,
+      network,
+    }),
   );
 };
 
-export const listWalletsForNetwork = async (network: WalletNetwork) =>
+export const listWalletsForNetwork = async ({ network }: { network: WalletNetwork }) =>
   db
     .select({
       id: userWallets.id,

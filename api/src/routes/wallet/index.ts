@@ -10,6 +10,7 @@ import {
   getWalletBalanceMist,
   listWithdrawals,
 } from "../../lib/wallet/ledger";
+import { getWalletNetwork, getWalletNetworkEnv } from "../../lib/wallet/wallet-config";
 import { ensureUserWallet } from "../../lib/wallet/wallet-provision";
 import { sendToUser } from "../../ws/store";
 
@@ -28,11 +29,14 @@ const isValidSuiAddress = (value: string) => /^0x[a-fA-F0-9]{40,64}$/.test(value
 export const walletRoutes = new Elysia({ prefix: "/wallet" })
   .get("/me", async ({ request, headers }) => {
     const auth = await requireBearerAuth(request, headers);
-    const wallet = await ensureUserWallet({ userId: auth.userId, network: "sui" });
+    const network = getWalletNetwork();
+    const networkEnv = getWalletNetworkEnv();
+    const wallet = await ensureUserWallet({ userId: auth.userId, network });
     const suiUsd = await getSuiUsdPrice();
     const fxNativePerUsd = MIST_PER_SUI / suiUsd;
     const snapshot = await buildWalletBalanceSnapshot({
       walletId: wallet.id,
+      networkEnv,
       fxNativePerUsd,
     });
 
@@ -40,6 +44,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       walletId: wallet.id,
       address: wallet.address,
       network: wallet.network,
+      networkEnv,
       balanceMist: snapshot.balanceMist.toString(),
       balanceUsd: snapshot.balanceUsd.toFixed(8),
       fxNativePerUsd: snapshot.fxNativePerUsd.toFixed(12),
@@ -49,7 +54,9 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
     "/me/ledger",
     async ({ query, request, headers, status }) => {
       const auth = await requireBearerAuth(request, headers);
-      const wallet = await ensureUserWallet({ userId: auth.userId, network: "sui" });
+      const network = getWalletNetwork();
+      const networkEnv = getWalletNetworkEnv();
+      const wallet = await ensureUserWallet({ userId: auth.userId, network });
       const limit = Math.max(1, Math.min(200, Number.parseInt(query.limit ?? "50", 10)));
       const cursor = query.cursor ? new Date(query.cursor) : null;
       if (cursor && Number.isNaN(cursor.getTime())) {
@@ -79,6 +86,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
             .where(
               and(
                 eq(walletLedgerEntries.walletId, wallet.id),
+                eq(walletLedgerEntries.networkEnv, networkEnv),
                 lt(walletLedgerEntries.createdAt, cursor),
               ),
             )
@@ -87,7 +95,12 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
         : await db
             .select(baseQuery)
             .from(walletLedgerEntries)
-            .where(eq(walletLedgerEntries.walletId, wallet.id))
+            .where(
+              and(
+                eq(walletLedgerEntries.walletId, wallet.id),
+                eq(walletLedgerEntries.networkEnv, networkEnv),
+              ),
+            )
             .orderBy(desc(walletLedgerEntries.createdAt))
             .limit(limit);
 
@@ -112,8 +125,10 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
   )
   .get("/me/withdrawals", async ({ request, headers }) => {
     const auth = await requireBearerAuth(request, headers);
-    const wallet = await ensureUserWallet({ userId: auth.userId, network: "sui" });
-    const withdrawals = await listWithdrawals(wallet.id);
+    const network = getWalletNetwork();
+    const networkEnv = getWalletNetworkEnv();
+    const wallet = await ensureUserWallet({ userId: auth.userId, network });
+    const withdrawals = await listWithdrawals(wallet.id, networkEnv);
 
     return {
       walletId: wallet.id,
@@ -129,7 +144,9 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
     "/me/withdrawals",
     async ({ body, request, headers, status }) => {
       const auth = await requireBearerAuth(request, headers);
-      const wallet = await ensureUserWallet({ userId: auth.userId, network: "sui" });
+      const network = getWalletNetwork();
+      const networkEnv = getWalletNetworkEnv();
+      const wallet = await ensureUserWallet({ userId: auth.userId, network });
       const amountMist = parseMist(body.amountMist);
       if (!amountMist || amountMist <= 0n) {
         return status(400, "amountMist must be a positive integer string.");
@@ -138,7 +155,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
         return status(400, "Invalid SUI address.");
       }
 
-      const currentBalanceMist = await getWalletBalanceMist(wallet.id);
+      const currentBalanceMist = await getWalletBalanceMist(wallet.id, networkEnv);
       if (currentBalanceMist < amountMist) {
         return status(400, "Insufficient wallet balance.");
       }
@@ -148,16 +165,22 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       const amountUsdSnapshot = Number(amountMist) / fxNativePerUsd;
       const groupId = await appendWithdrawalRequest({
         walletId: wallet.id,
+        networkEnv,
         targetAddress: body.targetAddress,
         amountMist,
         amountUsdSnapshot,
         fxNativePerUsd,
       });
 
-      const balance = await buildWalletBalanceSnapshot({ walletId: wallet.id, fxNativePerUsd });
+      const balance = await buildWalletBalanceSnapshot({
+        walletId: wallet.id,
+        networkEnv,
+        fxNativePerUsd,
+      });
       sendToUser(auth.userId, {
         type: "wallet:balance-update",
         walletId: wallet.id,
+        networkEnv,
         balanceMist: balance.balanceMist.toString(),
         balanceUsd: balance.balanceUsd.toFixed(8),
         fxNativePerUsd: balance.fxNativePerUsd.toFixed(12),
@@ -189,8 +212,10 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
     "/me/withdrawals/:groupId/cancel",
     async ({ params, request, headers, status }) => {
       const auth = await requireBearerAuth(request, headers);
-      const wallet = await ensureUserWallet({ userId: auth.userId, network: "sui" });
-      const withdrawals = await listWithdrawals(wallet.id);
+      const network = getWalletNetwork();
+      const networkEnv = getWalletNetworkEnv();
+      const wallet = await ensureUserWallet({ userId: auth.userId, network });
+      const withdrawals = await listWithdrawals(wallet.id, networkEnv);
       const target = withdrawals.find((withdrawal) => withdrawal.groupId === params.groupId);
       if (!target) {
         return status(404, "Withdrawal group not found.");
@@ -201,16 +226,22 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
 
       await appendWithdrawalRefund({
         walletId: wallet.id,
+        networkEnv,
         groupId: params.groupId,
         errorMessage: "cancelled by user",
       });
 
       const suiUsd = await getSuiUsdPrice();
       const fxNativePerUsd = MIST_PER_SUI / suiUsd;
-      const balance = await buildWalletBalanceSnapshot({ walletId: wallet.id, fxNativePerUsd });
+      const balance = await buildWalletBalanceSnapshot({
+        walletId: wallet.id,
+        networkEnv,
+        fxNativePerUsd,
+      });
       sendToUser(auth.userId, {
         type: "wallet:balance-update",
         walletId: wallet.id,
+        networkEnv,
         balanceMist: balance.balanceMist.toString(),
         balanceUsd: balance.balanceUsd.toFixed(8),
         fxNativePerUsd: balance.fxNativePerUsd.toFixed(12),

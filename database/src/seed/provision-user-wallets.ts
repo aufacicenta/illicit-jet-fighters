@@ -22,7 +22,8 @@ const main = async () => {
     SELECT u.id AS "userId"
     FROM neon_auth."user" u
     LEFT JOIN public.user_wallets w
-      ON w.user_id = u.id AND w.network = 'sui'::public.wallet_network
+      ON w.user_id = u.id
+      AND w.network = 'sui'::public.wallet_network
     WHERE w.id IS NULL
   `);
 

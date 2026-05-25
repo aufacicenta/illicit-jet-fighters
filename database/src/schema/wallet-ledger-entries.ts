@@ -13,6 +13,7 @@ import {
 
 import { llmUsageEvents } from "./llm-usage-events";
 import { userWallets } from "./user-wallets";
+import { networkEnvEnum } from "./wallet-networks";
 
 export const walletLedgerKindEnum = pgEnum("wallet_ledger_kind", [
   "topup",
@@ -28,10 +29,11 @@ export const walletLedgerKindEnum = pgEnum("wallet_ledger_kind", [
 export const walletLedgerEntries = pgTable(
   "wallet_ledger_entries",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
     walletId: uuid("wallet_id")
       .notNull()
       .references(() => userWallets.id, { onDelete: "cascade" }),
+    networkEnv: networkEnvEnum("network_env").notNull().default("testnet"),
+    id: uuid("id").defaultRandom().primaryKey(),
     kind: walletLedgerKindEnum("kind").notNull(),
     amountNative: numeric("amount_native", { precision: 30, scale: 0 }).notNull(),
     amountUsdSnapshot: numeric("amount_usd_snapshot", { precision: 18, scale: 8 }).notNull(),
@@ -49,7 +51,12 @@ export const walletLedgerEntries = pgTable(
   },
   (table) => [
     index("wallet_ledger_entries_wallet_id_idx").on(table.walletId),
-    index("wallet_ledger_entries_wallet_created_at_idx").on(table.walletId, table.createdAt),
+    index("wallet_ledger_entries_wallet_env_idx").on(table.walletId, table.networkEnv),
+    index("wallet_ledger_entries_wallet_env_created_at_idx").on(
+      table.walletId,
+      table.networkEnv,
+      table.createdAt,
+    ),
     index("wallet_ledger_entries_llm_usage_event_id_idx").on(table.llmUsageEventId),
     index("wallet_ledger_entries_group_id_idx").on(table.groupId),
     uniqueIndex("wallet_ledger_entries_wallet_tx_hash_topup_key")

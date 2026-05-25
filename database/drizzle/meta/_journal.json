@@ -57,6 +57,20 @@
       "when": 1779472281927,
       "tag": "0007_purple_gambit",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779669777905,
+      "tag": "0008_same_lenny_balinger",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779670387733,
+      "tag": "0009_striped_microbe",
+      "breakpoints": true
     }
   ]
 }

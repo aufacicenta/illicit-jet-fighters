@@ -4,6 +4,7 @@ export {
   parseFighterNameAndEpithet,
   resolveFighterName,
 } from "./fighter-name";
+export { isNetworkEnvName, parseNetworkEnvName, NETWORK_ENV_NAMES } from "./sui-network";
 export {
   battlefieldPipelineStartSchema,
   battlefieldSectionIdSchema,
@@ -21,4 +22,5 @@ export type {
   MyFightersResponse,
   PipelineStartPayload,
 } from "./fighters";
+export type { NetworkEnvName } from "./sui-network";
 export * from "./simulation";

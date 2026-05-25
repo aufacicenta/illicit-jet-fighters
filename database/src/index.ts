@@ -15,4 +15,5 @@ export {
   updateWalletTopupCursor,
 } from "./lib/wallet/wallet-provision";
 export * from "./schema";
+export type { NetworkEnv } from "./schema/wallet-networks";
 export { and, asc, desc, eq, inArray, isNull, like, lt, not, or, sql } from "drizzle-orm";

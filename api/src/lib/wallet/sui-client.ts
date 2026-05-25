@@ -1,14 +1,14 @@
 import { SuiJsonRpcClient } from "@mysten/sui/jsonRpc";
 import { Transaction } from "@mysten/sui/transactions";
 
-import { getSuiNetwork, getSuiRpcUrl } from "./wallet-config";
+import { getSuiRpcUrl, getWalletNetworkEnv } from "./wallet-config";
 import { deriveSuiKeypair } from "./wallet-derive";
 
 let client: SuiJsonRpcClient | null = null;
 
 export const getSuiClient = () => {
   if (!client) {
-    client = new SuiJsonRpcClient({ network: getSuiNetwork(), url: getSuiRpcUrl() });
+    client = new SuiJsonRpcClient({ network: getWalletNetworkEnv(), url: getSuiRpcUrl() });
   }
   return client;
 };

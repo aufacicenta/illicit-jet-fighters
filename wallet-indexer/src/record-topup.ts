@@ -1,4 +1,5 @@
 import { db, sql } from "@ijf/database";
+import type { NetworkEnvName } from "@ijf/shared";
 import { createLogger } from "@ijf/shared/logger";
 
 import { getSuiUsdPrice } from "./fx-snapshot";
@@ -9,10 +10,12 @@ const MIST_PER_SUI = 1_000_000_000;
 
 export const recordTopup = async ({
   walletId,
+  networkEnv,
   amountMist,
   txHash,
 }: {
   walletId: string;
+  networkEnv: NetworkEnvName;
   amountMist: bigint;
   txHash: string;
 }) => {
@@ -32,6 +35,7 @@ export const recordTopup = async ({
   const result = await db.execute<{ wallet_id: string }>(sql`
     insert into wallet_ledger_entries (
       wallet_id,
+      network_env,
       kind,
       amount_native,
       amount_usd_snapshot,
@@ -40,6 +44,7 @@ export const recordTopup = async ({
     )
     values (
       ${walletId},
+      ${networkEnv}::public.wallet_network_env,
       'topup',
       ${amountMist.toString()},
       ${amountUsdSnapshot.toFixed(8)},

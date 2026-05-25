@@ -1,3 +1,5 @@
+import type { NetworkEnvName } from "@ijf/shared";
+
 import type { SectionStatus } from "../lib/pipeline-status";
 import type { ChatMessage, SectionId, SectionOutput } from "../lib/types";
 
@@ -33,6 +35,7 @@ export type ServerMessage =
   | {
       type: "wallet:balance-update";
       walletId: string;
+      networkEnv: NetworkEnvName;
       balanceMist: string;
       balanceUsd: string;
       fxNativePerUsd: string;

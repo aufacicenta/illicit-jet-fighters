@@ -9,8 +9,8 @@ import { config } from "./config";
 const log = createLogger("withdrawals");
 
 const suiClient = new SuiJsonRpcClient({
-  network: config.suiNetwork,
-  url: config.suiRpcUrl || getJsonRpcFullnodeUrl(config.suiNetwork),
+  network: config.networkEnv,
+  url: config.suiRpcUrl || getJsonRpcFullnodeUrl(config.networkEnv),
 });
 
 type PendingWithdrawal = {
@@ -48,6 +48,7 @@ const appendLifecycleRow = async ({
 }) =>
   db.insert(walletLedgerEntries).values({
     walletId,
+    networkEnv: config.networkEnv,
     kind,
     amountNative: (amountMist ?? 0n).toString(),
     amountUsdSnapshot: "0",
@@ -67,7 +68,12 @@ const findPendingWithdrawals = async (): Promise<PendingWithdrawal[]> => {
       createdAt: walletLedgerEntries.createdAt,
     })
     .from(walletLedgerEntries)
-    .where(eq(walletLedgerEntries.kind, "withdrawal_request"))
+    .where(
+      and(
+        eq(walletLedgerEntries.kind, "withdrawal_request"),
+        eq(walletLedgerEntries.networkEnv, config.networkEnv),
+      ),
+    )
     .orderBy(desc(walletLedgerEntries.createdAt));
 
   const groupIds = requests
@@ -86,6 +92,7 @@ const findPendingWithdrawals = async (): Promise<PendingWithdrawal[]> => {
     .where(
       and(
         inArray(walletLedgerEntries.groupId, groupIds),
+        eq(walletLedgerEntries.networkEnv, config.networkEnv),
         inArray(walletLedgerEntries.kind, [
           "withdrawal_broadcast",
           "withdrawal_confirm",
@@ -102,9 +109,12 @@ const findPendingWithdrawals = async (): Promise<PendingWithdrawal[]> => {
     })
     .from(userWallets)
     .where(
-      inArray(
-        userWallets.id,
-        requests.map((row) => row.walletId),
+      and(
+        eq(userWallets.network, "sui"),
+        inArray(
+          userWallets.id,
+          requests.map((row) => row.walletId),
+        ),
       ),
     );
   const derivationByWalletId = new Map(walletRows.map((row) => [row.id, row.derivationIndex]));

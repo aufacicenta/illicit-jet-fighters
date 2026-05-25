@@ -51,6 +51,7 @@
       "name": "@ijf/database",
       "version": "0.1.0",
       "dependencies": {
+        "@ijf/shared": "workspace:*",
         "@mysten/sui": "^2.17.0",
         "@neondatabase/serverless": "latest",
         "dotenv": "^17.4.2",

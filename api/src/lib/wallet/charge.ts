@@ -1,9 +1,10 @@
 import { db } from "@ijf/database";
+import type { NetworkEnvName } from "@ijf/shared";
 
 import { getSuiUsdPrice } from "./fx";
 import { getWalletBalanceMist, insertLedgerEntry } from "./ledger";
 import type { WalletBalanceSnapshot } from "./types";
-import { getFeeBps } from "./wallet-config";
+import { getFeeBps, getWalletNetwork, getWalletNetworkEnv } from "./wallet-config";
 import { ensureUserWallet } from "./wallet-provision";
 
 const MIST_PER_SUI = 1_000_000_000;
@@ -27,13 +28,15 @@ const applyFeeBps = (amountMist: bigint, feeBps: number) => {
 export const buildWalletBalanceSnapshot = async ({
   executor,
   walletId,
+  networkEnv,
   fxNativePerUsd,
 }: {
   executor?: typeof db;
   walletId: string;
+  networkEnv: NetworkEnvName;
   fxNativePerUsd: number;
 }): Promise<WalletBalanceSnapshot> => {
-  const balanceMist = await getWalletBalanceMist(walletId, executor);
+  const balanceMist = await getWalletBalanceMist(walletId, networkEnv, executor);
   const balanceUsd = fxNativePerUsd > 0 ? Number(balanceMist) / fxNativePerUsd : 0;
 
   return {
@@ -58,7 +61,9 @@ export const chargeForUsage = async ({
   correlationId?: string;
 }) => {
   const run = executor ?? db;
-  const wallet = await ensureUserWallet({ executor: run, userId, network: "sui" });
+  const network = getWalletNetwork();
+  const networkEnv = getWalletNetworkEnv();
+  const wallet = await ensureUserWallet({ executor: run, userId, network });
   const suiUsd = await getSuiUsdPrice();
   const fxNativePerUsd = MIST_PER_SUI / suiUsd;
   const chargeMist = toChargeMist(costUsd, suiUsd);
@@ -68,6 +73,7 @@ export const chargeForUsage = async ({
     await insertLedgerEntry({
       executor: run,
       walletId: wallet.id,
+      networkEnv,
       kind: "charge",
       amountMist: -chargeMist,
       amountUsdSnapshot: -Math.abs(costUsd),
@@ -82,6 +88,7 @@ export const chargeForUsage = async ({
     await insertLedgerEntry({
       executor: run,
       walletId: wallet.id,
+      networkEnv,
       kind: "fee",
       amountMist: -feeMist,
       amountUsdSnapshot: -Math.abs(feeUsd),
@@ -98,6 +105,7 @@ export const chargeForUsage = async ({
     ...(await buildWalletBalanceSnapshot({
       executor: run,
       walletId: wallet.id,
+      networkEnv,
       fxNativePerUsd,
     })),
   };

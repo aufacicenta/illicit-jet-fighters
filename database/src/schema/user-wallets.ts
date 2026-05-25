@@ -36,7 +36,6 @@ export const userWallets = pgTable(
   },
   (table) => [
     index("user_wallets_user_id_idx").on(table.userId),
-    index("user_wallets_network_idx").on(table.network),
     uniqueIndex("user_wallets_user_network_key").on(table.userId, table.network),
     uniqueIndex("user_wallets_network_address_key").on(table.network, table.address),
     uniqueIndex("user_wallets_network_derivation_idx_key").on(table.network, table.derivationIndex),

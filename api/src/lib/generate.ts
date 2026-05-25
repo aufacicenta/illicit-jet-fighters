@@ -11,7 +11,7 @@ import { logger } from "./logger";
 import { openrouter } from "./openrouter";
 import { skills } from "./skills";
 import type { ChatMessage, SectionId } from "./types";
-import { chargeForUsage } from "./wallet";
+import { chargeForUsage, getWalletNetworkEnv } from "./wallet";
 
 type StreamDeltaHandler = (delta: string) => void;
 type OpenRouterResult<T> = { ok: true; value: T } | { ok: false; error: unknown };
@@ -238,6 +238,7 @@ const trackLlmUsage = async ({
     sendToUser(context.userId, {
       type: "wallet:balance-update",
       walletId: chargeResult.billing.wallet.id,
+      networkEnv: getWalletNetworkEnv(),
       balanceMist: chargeResult.billing.balanceMist.toString(),
       balanceUsd: chargeResult.billing.balanceUsd.toFixed(8),
       fxNativePerUsd: chargeResult.billing.fxNativePerUsd.toFixed(12),

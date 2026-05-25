@@ -1,3 +1,5 @@
+import type { NetworkEnvName } from "@ijf/shared";
+
 import { apiRoutes } from "../../hooks/useRoutes";
 import { authHeadersJson, readErrorText } from "./client";
 
@@ -5,6 +7,7 @@ export type WalletSnapshot = {
   walletId: string;
   address: string;
   network: "sui";
+  networkEnv: NetworkEnvName;
   balanceMist: string;
   balanceUsd: string;
   fxNativePerUsd: string;

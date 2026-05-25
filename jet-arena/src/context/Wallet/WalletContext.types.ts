@@ -1,3 +1,4 @@
+import type { NetworkEnvName } from "@ijf/shared";
 import type { ReactNode } from "react";
 
 import type { WebSocketConnectionStatus } from "../../hooks/useWebSocket";
@@ -17,6 +18,7 @@ export type WalletSnapshotState = {
   walletId: string;
   address: string;
   network: "sui";
+  networkEnv: NetworkEnvName;
   balanceMist: bigint;
   balanceUsd: number;
   fxNativePerUsd: number;
@@ -26,6 +28,7 @@ export type WalletServerMessage =
   | {
       type: "wallet:balance-update";
       walletId: string;
+      networkEnv: NetworkEnvName;
       balanceMist: string;
       balanceUsd: string;
       fxNativePerUsd: string;

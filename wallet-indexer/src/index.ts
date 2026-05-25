@@ -10,7 +10,8 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const runLoop = async () => {
   log.info("wallet indexer starting", {
-    suiNetwork: config.suiNetwork,
+    walletNetwork: config.walletNetwork,
+    networkEnv: config.networkEnv,
     suiRpcUrl: config.suiRpcUrl ? "(custom)" : "(default)",
     pollMs: config.walletIndexerPollMs,
     mnemonicConfigured: Boolean(config.walletMasterMnemonic),

@@ -1,5 +1,6 @@
 "use client";
 
+import type { NetworkEnvName } from "@ijf/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { wsRoutes } from "../../hooks/useRoutes";
@@ -25,6 +26,7 @@ const parseWalletSnapshot = (snapshot: {
   walletId: string;
   address: string;
   network: "sui";
+  networkEnv: NetworkEnvName;
   balanceMist: string;
   balanceUsd: string;
   fxNativePerUsd: string;
@@ -32,6 +34,7 @@ const parseWalletSnapshot = (snapshot: {
   walletId: snapshot.walletId,
   address: snapshot.address,
   network: snapshot.network,
+  networkEnv: snapshot.networkEnv,
   balanceMist: BigInt(snapshot.balanceMist),
   balanceUsd: Number.parseFloat(snapshot.balanceUsd),
   fxNativePerUsd: Number.parseFloat(snapshot.fxNativePerUsd),
@@ -100,6 +103,7 @@ export const WalletContextController = ({ children }: WalletContextControllerPro
             walletId: message.walletId,
             address: "",
             network: "sui",
+            networkEnv: message.networkEnv,
             balanceMist: BigInt(message.balanceMist),
             balanceUsd: Number.parseFloat(message.balanceUsd),
             fxNativePerUsd: Number.parseFloat(message.fxNativePerUsd),
@@ -108,6 +112,7 @@ export const WalletContextController = ({ children }: WalletContextControllerPro
         return {
           ...current,
           walletId: message.walletId,
+          networkEnv: message.networkEnv,
           balanceMist: BigInt(message.balanceMist),
           balanceUsd: Number.parseFloat(message.balanceUsd),
           fxNativePerUsd: Number.parseFloat(message.fxNativePerUsd),

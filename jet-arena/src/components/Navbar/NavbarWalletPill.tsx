@@ -6,6 +6,8 @@ import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
 
 const formatSui = (mist: bigint) => (Number(mist) / 1_000_000_000).toFixed(4);
+const formatNetworkLabel = (network: string) =>
+  `${network.charAt(0).toUpperCase()}${network.slice(1)}`;
 
 const formatUsd = (usd: number) =>
   new Intl.NumberFormat("en-US", {
@@ -43,6 +45,7 @@ export const NavbarWalletPill = () => {
     wallet.address.length > 12
       ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
       : wallet.address;
+  const networkLabel = formatNetworkLabel(wallet.networkEnv);
 
   return (
     <div className="flex flex-col items-end gap-1">
@@ -58,6 +61,9 @@ export const NavbarWalletPill = () => {
         <span className={`size-1.5 rounded-full ${connectionDotClassName[wsStatus]}`} />
         <span className="font-semibold text-foreground">{formatSui(wallet.balanceMist)} SUI</span>
         <span className="text-muted-foreground">{formatUsd(wallet.balanceUsd)}</span>
+        <span className="rounded-sm border border-border/70 bg-muted/40 px-1.5 py-0.5 text-[10px] text-muted-foreground uppercase">
+          {networkLabel}
+        </span>
         <span className="text-muted-foreground">{addressLabel}</span>
       </Link>
       {errorMessage ? (

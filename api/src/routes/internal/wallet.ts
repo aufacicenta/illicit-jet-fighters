@@ -3,6 +3,7 @@ import { Elysia, t } from "elysia";
 
 import { env } from "../../config/env";
 import { pushWalletTopupNotifications } from "../../lib/wallet/push-wallet-updates";
+import { getWalletNetworkEnv } from "../../lib/wallet/wallet-config";
 
 const parseIndexerSecret = (request: Request) => {
   const bearer = request.headers.get("authorization");
@@ -43,6 +44,7 @@ export const internalWalletRoutes = new Elysia({ prefix: "/internal/wallet" }).p
     await pushWalletTopupNotifications({
       userId: wallet.userId,
       walletId: body.walletId,
+      networkEnv: getWalletNetworkEnv(),
       txHash: body.txHash,
       amountMist,
       amountUsd: Number.parseFloat(body.amountUsd),

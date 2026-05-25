@@ -9,14 +9,22 @@ import { recordTopup } from "./record-topup";
 const log = createLogger("poll-sui");
 
 const suiClient = new SuiJsonRpcClient({
-  network: config.suiNetwork,
-  url: config.suiRpcUrl || getJsonRpcFullnodeUrl(config.suiNetwork),
+  network: config.networkEnv,
+  url: config.suiRpcUrl || getJsonRpcFullnodeUrl(config.networkEnv),
 });
 
 type BalanceChange = {
   owner?: { AddressOwner?: string };
   amount?: string;
   coinType?: string;
+};
+
+const isMissingCursorTransactionError = (error: unknown) => {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return error.message.includes("Could not find the referenced transaction");
 };
 
 const parseIncomingMist = (changes: BalanceChange[] | undefined, targetAddress: string): bigint => {
@@ -61,20 +69,53 @@ export const pollSuiTopups = async () => {
 
   for (const wallet of wallets) {
     try {
-      const txBlocks = await suiClient.queryTransactionBlocks({
-        filter: { ToAddress: wallet.address },
-        cursor: wallet.topupCursor ?? undefined,
-        options: {
-          showBalanceChanges: true,
-        },
-      });
+      let cursor = wallet.topupCursor ?? undefined;
+      let txBlocks;
+
+      try {
+        txBlocks = await suiClient.queryTransactionBlocks({
+          filter: { ToAddress: wallet.address },
+          cursor,
+          options: {
+            showBalanceChanges: true,
+          },
+        });
+      } catch (error) {
+        // A cursor from a different SUI network env (e.g. testnet -> devnet) can be invalid.
+        if (!cursor || !isMissingCursorTransactionError(error)) {
+          throw error;
+        }
+
+        log.warn("resetting invalid topup cursor", {
+          walletId: wallet.id,
+          address: truncateAddress(wallet.address),
+          previousCursor: cursor,
+        });
+
+        await db
+          .update(userWallets)
+          .set({
+            topupCursor: null,
+            topupCursorCheckpoint: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(userWallets.id, wallet.id));
+
+        cursor = undefined;
+        txBlocks = await suiClient.queryTransactionBlocks({
+          filter: { ToAddress: wallet.address },
+          options: {
+            showBalanceChanges: true,
+          },
+        });
+      }
 
       blocksScanned += txBlocks.data.length;
 
       log.debug("queried wallet transactions", {
         walletId: wallet.id,
         address: truncateAddress(wallet.address),
-        cursor: wallet.topupCursor ?? null,
+        cursor: cursor ?? null,
         blockCount: txBlocks.data.length,
         hasNextCursor: Boolean(txBlocks.nextCursor),
       });
@@ -101,6 +142,7 @@ export const pollSuiTopups = async () => {
 
         const recorded = await recordTopup({
           walletId: wallet.id,
+          networkEnv: config.networkEnv,
           amountMist,
           txHash: digest,
         });

@@ -1,5 +1,6 @@
 import path from "node:path";
 
+import { parseNetworkEnvName } from "@ijf/shared";
 import { config as loadDotEnv } from "dotenv";
 
 const workspaceRoot = path.resolve(import.meta.dir, "..", "..");
@@ -14,7 +15,8 @@ const parseIntStrict = (value: string | undefined, fallback: number) => {
 };
 
 export const config = {
-  suiNetwork: (process.env.SUI_NETWORK?.trim() || "testnet") as "testnet" | "devnet" | "mainnet",
+  walletNetwork: process.env.WALLET_NETWORK?.trim() === "sui" ? "sui" : "sui",
+  networkEnv: parseNetworkEnvName(process.env.WALLET_NETWORK_ENV),
   suiRpcUrl: process.env.SUI_RPC_URL?.trim(),
   walletIndexerPollMs: Math.max(5_000, parseIntStrict(process.env.WALLET_INDEXER_POLL_MS, 15_000)),
   walletMasterMnemonic: process.env.WALLET_MASTER_MNEMONIC?.trim(),

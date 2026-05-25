@@ -1,7 +1,12 @@
 import type { SectionId } from "../types";
 import { getSuiUsdPrice } from "./fx";
 import { getWalletBalanceMist } from "./ledger";
-import { getMinSectionBufferMultiplier, getMinWalletBalanceMist } from "./wallet-config";
+import {
+  getMinSectionBufferMultiplier,
+  getMinWalletBalanceMist,
+  getWalletNetwork,
+  getWalletNetworkEnv,
+} from "./wallet-config";
 import { ensureUserWallet } from "./wallet-provision";
 
 const MIST_PER_SUI = 1_000_000_000;
@@ -52,9 +57,11 @@ export const requirePreflightBalance = async ({
   userId: string;
   sectionId: SectionId;
 }) => {
-  const wallet = await ensureUserWallet({ userId, network: "sui" });
+  const network = getWalletNetwork();
+  const networkEnv = getWalletNetworkEnv();
+  const wallet = await ensureUserWallet({ userId, network });
   const requiredMist = await estimateRequiredMist(sectionId);
-  const balanceMist = await getWalletBalanceMist(wallet.id);
+  const balanceMist = await getWalletBalanceMist(wallet.id, networkEnv);
 
   if (balanceMist < requiredMist) {
     throw new InsufficientBalanceError(sectionId, requiredMist, balanceMist);

@@ -1,7 +1,9 @@
-import { getMasterMnemonic as getMasterMnemonicFromDatabase } from "@ijf/database";
+import {
+  getMasterMnemonic as getMasterMnemonicFromDatabase,
+  type WalletNetwork,
+} from "@ijf/database";
+import { type NetworkEnvName, parseNetworkEnvName } from "@ijf/shared";
 import { getJsonRpcFullnodeUrl } from "@mysten/sui/jsonRpc";
-
-export type SuiNetworkName = "testnet" | "devnet" | "mainnet";
 
 const parseInteger = (value: string | undefined, fallback: number) => {
   if (!value) {
@@ -21,16 +23,16 @@ const parseFloatValue = (value: string | undefined, fallback: number) => {
 
 export const getMasterMnemonic = getMasterMnemonicFromDatabase;
 
-export const getSuiNetwork = (): SuiNetworkName => {
-  const network = process.env.SUI_NETWORK?.trim() ?? "testnet";
-  if (network === "testnet" || network === "devnet" || network === "mainnet") {
-    return network;
-  }
-  return "testnet";
+export const getWalletNetwork = (): WalletNetwork => {
+  const network = process.env.WALLET_NETWORK?.trim();
+  return network === "sui" ? network : "sui";
 };
 
+export const getWalletNetworkEnv = (): NetworkEnvName =>
+  parseNetworkEnvName(process.env.WALLET_NETWORK_ENV);
+
 export const getSuiRpcUrl = () =>
-  process.env.SUI_RPC_URL?.trim() || getJsonRpcFullnodeUrl(getSuiNetwork());
+  process.env.SUI_RPC_URL?.trim() || getJsonRpcFullnodeUrl(getWalletNetworkEnv());
 
 export const getFeeBps = () => {
   const value = parseInteger(process.env.FEE_BPS, 2000);
