@@ -317,16 +317,10 @@ body {
   overflow: hidden;
 }
 
-.cockpit-stat-scroll-track {
-  display: inline-flex;
+.cockpit-stat-scroll-content {
+  display: inline-block;
   min-width: max-content;
   will-change: transform;
-  animation: cockpit-stat-marquee 5s linear infinite;
-}
-
-.cockpit-stat-scroll-copy {
-  flex-shrink: 0;
-  padding-right: 2.4rem;
 }
 
 .cockpit-stat-typing-cursor {
@@ -349,15 +343,6 @@ body {
 
 .cockpit-panel-slide-start-delay {
   animation-delay: 300ms;
-}
-
-@keyframes cockpit-stat-marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
 }
 
 @keyframes cockpit-stat-cursor-glitch {

@@ -1,6 +1,13 @@
 import type { NetworkEnvName } from "@ijf/shared";
 import { useMemo, useState } from "react";
 
+import {
+  CockpitStatScreens,
+  CockpitTopCenterSlot,
+  CockpitTopRightSlot,
+  RTLScrollEffect,
+} from "../../components/Navbar/CockpitStatScreens";
+import { NavbarWalletPill } from "../../components/Navbar/NavbarWalletPill";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
@@ -108,203 +115,207 @@ export const WalletPage = () => {
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 md:px-6">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start lg:gap-8">
-        <div className="order-2 w-full space-y-4 lg:order-1">
-          <section className="scroll-mt-6" id="wallet-section-deposit">
-            <Card>
-              <CardHeader className={`space-y-2 ${wizardCardHeaderClassName}`}>
-                <div>
-                  <WizardCardTitle>Deposit</WizardCardTitle>
-                  <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                    Send {networkLabel} SUI funds to your custodial address
-                  </p>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="relative">
-                  <Badge
-                    className="pointer-events-none absolute top-2 right-2 z-10"
-                    variant="secondary"
-                  >
-                    {networkBadgeLabel}
-                  </Badge>
-                  <pre className="overflow-x-auto rounded-sm border border-border/70 bg-muted/40 px-3 py-2 pr-24 text-xs">
-                    {wallet?.address ?? "Loading..."}
-                  </pre>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
+    <>
+      <CockpitStatScreens>
+        <CockpitTopCenterSlot>
+          <RTLScrollEffect>
+            <p className="text-2xl">Wallet</p>
+          </RTLScrollEffect>
+        </CockpitTopCenterSlot>
+        <CockpitTopRightSlot>
+          <NavbarWalletPill variant="cockpit" />
+        </CockpitTopRightSlot>
+      </CockpitStatScreens>
 
-          <section className="scroll-mt-6" id="wallet-section-activity">
-            <Card>
-              <CardHeader className={`space-y-2 ${wizardCardHeaderClassName}`}>
-                <div>
-                  <WizardCardTitle>Activity</WizardCardTitle>
-                  <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                    Recent deposits and ledger entries
-                  </p>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {recentEntries.length === 0 ? (
-                  <p className="rounded-sm border border-dashed border-border/70 px-3 py-6 text-center text-xs tracking-wide text-muted-foreground uppercase">
-                    No activity yet
-                  </p>
-                ) : (
-                  recentEntries.map((entry) => (
-                    <div
-                      className="grid grid-cols-[100px_1fr_auto] items-center gap-2 rounded-sm border border-border/70 px-3 py-2 text-xs md:grid-cols-[140px_1fr_auto]"
-                      key={entry.id}
-                    >
-                      <span className="font-semibold uppercase">{entry.kind}</span>
-                      <span className="truncate text-muted-foreground">
-                        {entry.txHash ?? entry.targetAddress ?? entry.correlationId ?? "—"}
-                      </span>
-                      <span className="font-mono tabular-nums">{entry.amountNative}</span>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          </section>
-
-          <section className="scroll-mt-6" id="wallet-section-withdraw">
-            <Card>
-              <CardHeader className={`space-y-2 ${wizardCardHeaderClassName}`}>
-                <div className="flex items-center justify-between gap-2">
+      <div className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto w-full max-w-6xl space-y-6 px-4 py-6 md:px-6">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start lg:gap-8">
+          <div className="order-2 w-full space-y-4 lg:order-1">
+            <section className="scroll-mt-6" id="wallet-section-deposit">
+              <Card>
+                <CardHeader className={`space-y-2 ${wizardCardHeaderClassName}`}>
                   <div>
-                    <WizardCardTitle>Withdraw</WizardCardTitle>
+                    <WizardCardTitle>Deposit</WizardCardTitle>
                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                      Available: {availableBalanceLabel}
+                      Send {networkLabel} SUI funds to your custodial address
                     </p>
                   </div>
-                  <Button onClick={() => void onSubmitWithdrawal()} size="sm" type="button">
-                    Submit Withdrawal
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3 p-4">
-                <div className="space-y-2">
-                  <label
-                    className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase"
-                    htmlFor="wallet-withdraw-target"
-                  >
-                    Destination address
-                  </label>
-                  <input
-                    className="w-full rounded-sm border border-border/70 bg-background px-3 py-2 text-sm"
-                    id="wallet-withdraw-target"
-                    onChange={(event) => setTargetAddress(event.target.value)}
-                    placeholder="0x..."
-                    value={targetAddress}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label
-                    className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase"
-                    htmlFor="wallet-withdraw-amount"
-                  >
-                    Amount (SUI)
-                  </label>
-                  <input
-                    className="w-full rounded-sm border border-border/70 bg-background px-3 py-2 text-sm"
-                    id="wallet-withdraw-amount"
-                    onChange={(event) => setAmountSui(event.target.value)}
-                    placeholder="0.00"
-                    value={amountSui}
-                  />
-                </div>
-                {formError ? <p className="text-xs text-destructive">{formError}</p> : null}
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="relative">
+                    <Badge
+                      className="pointer-events-none absolute top-2 right-2 z-10"
+                      variant="secondary"
+                    >
+                      {networkBadgeLabel}
+                    </Badge>
+                    <pre className="overflow-x-auto rounded-sm border border-border/70 bg-muted/40 px-3 py-2 pr-24 text-xs">
+                      {wallet?.address ?? "Loading..."}
+                    </pre>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
 
-                <div className="space-y-2 border-t border-border/70 pt-3">
-                  <p className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-                    Pending &amp; recent withdrawals
-                  </p>
-                  {withdrawals.length === 0 ? (
-                    <p className="rounded-sm border border-dashed border-border/70 px-3 py-4 text-center text-xs tracking-wide text-muted-foreground uppercase">
-                      No withdrawals yet
+            <section className="scroll-mt-6" id="wallet-section-activity">
+              <Card>
+                <CardHeader className={`space-y-2 ${wizardCardHeaderClassName}`}>
+                  <div>
+                    <WizardCardTitle>Activity</WizardCardTitle>
+                    <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                      Recent deposits and ledger entries
+                    </p>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {recentEntries.length === 0 ? (
+                    <p className="rounded-sm border border-dashed border-border/70 px-3 py-6 text-center text-xs tracking-wide text-muted-foreground uppercase">
+                      No activity yet
                     </p>
                   ) : (
-                    withdrawals.map((withdrawal) => (
+                    recentEntries.map((entry) => (
                       <div
-                        className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-sm border border-border/70 px-3 py-2 text-xs"
-                        key={withdrawal.groupId}
+                        className="grid grid-cols-[100px_1fr_auto] items-center gap-2 rounded-sm border border-border/70 px-3 py-2 text-xs md:grid-cols-[140px_1fr_auto]"
+                        key={entry.id}
                       >
-                        <span className="truncate font-mono">
-                          {withdrawal.targetAddress || withdrawal.groupId}
+                        <span className="font-semibold uppercase">{entry.kind}</span>
+                        <span className="truncate text-muted-foreground">
+                          {entry.txHash ?? entry.targetAddress ?? entry.correlationId ?? "—"}
                         </span>
-                        <span className="tracking-wide uppercase">{withdrawal.status}</span>
-                        {withdrawal.status === "pending" ? (
-                          <Button
-                            onClick={() => void cancelWithdrawal(withdrawal.groupId)}
-                            size="sm"
-                            type="button"
-                            variant="secondary"
-                          >
-                            Cancel
-                          </Button>
-                        ) : null}
+                        <span className="font-mono tabular-nums">{entry.amountNative}</span>
                       </div>
                     ))
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-        </div>
+                </CardContent>
+              </Card>
+            </section>
 
-        <aside className="order-1 w-full lg:sticky lg:top-6 lg:order-2">
-          <Card className="border-0 bg-transparent shadow-none">
-            <CardContent className="space-y-3 p-0">
-              <WalletBalanceSummary
-                balanceLabel={availableBalanceLabel}
-                balanceUsd={wallet?.balanceUsd ?? null}
-                status={status}
-              />
-              <div className="space-y-2">
-                {sectionNavItems.map((item) => {
-                  const isActive = activeSectionId === item.id;
-                  return (
-                    <button
-                      className={`flex w-full items-center gap-2 rounded-sm border px-2.5 py-2 text-left text-xs tracking-wide uppercase transition-colors ${
-                        isActive
-                          ? "border-secondary bg-secondary/10 text-foreground"
-                          : "border-border/70 bg-background hover:border-border hover:bg-muted/60"
-                      }`}
-                      key={item.id}
-                      onClick={() => navigateToSection(item.id)}
-                      type="button"
+            <section className="scroll-mt-6" id="wallet-section-withdraw">
+              <Card>
+                <CardHeader className={`space-y-2 ${wizardCardHeaderClassName}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <WizardCardTitle>Withdraw</WizardCardTitle>
+                      <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                        Available: {availableBalanceLabel}
+                      </p>
+                    </div>
+                    <Button onClick={() => void onSubmitWithdrawal()} size="sm" type="button">
+                      Submit Withdrawal
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3 p-4">
+                  <div className="space-y-2">
+                    <label
+                      className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase"
+                      htmlFor="wallet-withdraw-target"
                     >
-                      <span
-                        className={`size-1.5 shrink-0 rounded-full ${
-                          isActive ? "bg-secondary" : "bg-muted"
-                        }`}
-                      />
-                      <span className="truncate">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <Button
-                className="w-full"
-                onClick={() => void refresh()}
-                type="button"
-                variant="outline"
-              >
-                Refresh All
-              </Button>
-            </CardContent>
-          </Card>
-        </aside>
-      </div>
+                      Destination address
+                    </label>
+                    <input
+                      className="w-full rounded-sm border border-border/70 bg-background px-3 py-2 text-sm"
+                      id="wallet-withdraw-target"
+                      onChange={(event) => setTargetAddress(event.target.value)}
+                      placeholder="0x..."
+                      value={targetAddress}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label
+                      className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase"
+                      htmlFor="wallet-withdraw-amount"
+                    >
+                      Amount (SUI)
+                    </label>
+                    <input
+                      className="w-full rounded-sm border border-border/70 bg-background px-3 py-2 text-sm"
+                      id="wallet-withdraw-amount"
+                      onChange={(event) => setAmountSui(event.target.value)}
+                      placeholder="0.00"
+                      value={amountSui}
+                    />
+                  </div>
+                  {formError ? <p className="text-xs text-destructive">{formError}</p> : null}
 
-      {errorMessage ? (
-        <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
-          {errorMessage}
+                  <div className="space-y-2 border-t border-border/70 pt-3">
+                    <p className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                      Pending &amp; recent withdrawals
+                    </p>
+                    {withdrawals.length === 0 ? (
+                      <p className="rounded-sm border border-dashed border-border/70 px-3 py-4 text-center text-xs tracking-wide text-muted-foreground uppercase">
+                        No withdrawals yet
+                      </p>
+                    ) : (
+                      withdrawals.map((withdrawal) => (
+                        <div
+                          className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-sm border border-border/70 px-3 py-2 text-xs"
+                          key={withdrawal.groupId}
+                        >
+                          <span className="truncate font-mono">
+                            {withdrawal.targetAddress || withdrawal.groupId}
+                          </span>
+                          <span className="tracking-wide uppercase">{withdrawal.status}</span>
+                          {withdrawal.status === "pending" ? (
+                            <Button
+                              onClick={() => void cancelWithdrawal(withdrawal.groupId)}
+                              size="sm"
+                              type="button"
+                              variant="secondary"
+                            >
+                              Cancel
+                            </Button>
+                          ) : null}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          </div>
+
+          <aside className="order-1 w-full lg:sticky lg:top-6 lg:order-2">
+            <div className="space-y-2 mb-4">
+              {sectionNavItems.map((item) => {
+                const isActive = activeSectionId === item.id;
+                return (
+                  <button
+                    className={`flex w-full items-center gap-2 rounded-sm border px-2.5 py-2 text-left text-xs tracking-wide uppercase transition-colors ${
+                      isActive
+                        ? "border-secondary bg-secondary/10 text-foreground"
+                        : "border-border/70 bg-background hover:border-border hover:bg-muted/60"
+                    }`}
+                    key={item.id}
+                    onClick={() => navigateToSection(item.id)}
+                    type="button"
+                  >
+                    <span
+                      className={`size-1.5 shrink-0 rounded-full ${
+                        isActive ? "bg-secondary" : "bg-muted"
+                      }`}
+                    />
+                    <span className="truncate">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <Button
+              className="w-full"
+              onClick={() => void refresh()}
+              type="button"
+              variant="outline"
+            >
+              Refresh All
+            </Button>
+          </aside>
         </div>
-      ) : null}
-    </div>
+
+        {errorMessage ? (
+          <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
+            {errorMessage}
+          </div>
+        ) : null}
+      </div>
+    </>
   );
 };

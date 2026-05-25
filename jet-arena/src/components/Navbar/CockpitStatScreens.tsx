@@ -1,5 +1,14 @@
 import type { ReactNode } from "react";
-import { Children, cloneElement, isValidElement, useEffect, useMemo, useState } from "react";
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 type CockpitSlotProps = {
   children: ReactNode;
@@ -126,29 +135,6 @@ const renderTypingChildren = (node: ReactNode, state: { remaining: number }): Re
     });
   });
 
-const renderRtlScrollChildren = (node: ReactNode): ReactNode =>
-  Children.map(node, (childNode) => {
-    if (isAnimatableTextNode(childNode)) {
-      const text = String(childNode);
-      return (
-        <span className="cockpit-stat-scroll-track">
-          <span className="cockpit-stat-scroll-copy">{text}</span>
-          <span aria-hidden className="cockpit-stat-scroll-copy">
-            {text}
-          </span>
-        </span>
-      );
-    }
-    if (!isValidElement<{ children?: ReactNode }>(childNode)) {
-      return childNode;
-    }
-
-    return cloneElement(childNode, {
-      ...childNode.props,
-      children: renderRtlScrollChildren(childNode.props.children),
-    });
-  });
-
 export const TypingEffect = ({ children, revision }: TypingEffectProps) => {
   const [visibleChars, setVisibleChars] = useState(0);
   const animatableText = useMemo(() => extractAnimatableText(children), [children]);
@@ -204,10 +190,67 @@ export const TypingEffect = ({ children, revision }: TypingEffectProps) => {
 };
 
 export const RTLScrollEffect = ({ children }: { children: ReactNode }) => (
-  <div className="cockpit-stat-scroll leading-none tracking-[0.08em] text-highlight uppercase">
-    {renderRtlScrollChildren(children)}
-  </div>
+  <RTLScrollEffectController>{children}</RTLScrollEffectController>
 );
+
+const RTLScrollEffectController = ({ children }: { children: ReactNode }) => {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    const content = contentRef.current;
+    if (!viewport || !content) {
+      return;
+    }
+
+    const pixelsPerSecond = 80;
+    const minDurationMs = 2000;
+    const resetBufferPx = 4;
+    let activeAnimation: Animation | null = null;
+
+    const startAnimation = () => {
+      activeAnimation?.cancel();
+
+      const viewportRect = viewport.getBoundingClientRect();
+      const contentRect = content.getBoundingClientRect();
+      const contentOffsetLeft = contentRect.left - viewportRect.left;
+      const contentWidth = contentRect.width;
+      const viewportWidth = viewportRect.width;
+
+      const startX = viewportWidth - contentOffsetLeft;
+      const endX = -(contentOffsetLeft + contentWidth + resetBufferPx);
+      const distance = startX - endX;
+      const durationMs = Math.max(minDurationMs, (distance / pixelsPerSecond) * 1000);
+
+      activeAnimation = content.animate(
+        [{ transform: `translateX(${startX}px)` }, { transform: `translateX(${endX}px)` }],
+        { duration: durationMs, iterations: Infinity, easing: "linear" },
+      );
+    };
+
+    startAnimation();
+    const resizeObserver = new ResizeObserver(startAnimation);
+    resizeObserver.observe(viewport);
+    resizeObserver.observe(content);
+
+    return () => {
+      resizeObserver.disconnect();
+      activeAnimation?.cancel();
+    };
+  }, [children]);
+
+  return (
+    <div
+      className="cockpit-stat-scroll leading-none tracking-[0.08em] text-highlight uppercase"
+      ref={viewportRef}
+    >
+      <div className="cockpit-stat-scroll-content" ref={contentRef}>
+        {children}
+      </div>
+    </div>
+  );
+};
 
 export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
   const customSlots = useMemo(() => resolveCockpitSlots(children), [children]);

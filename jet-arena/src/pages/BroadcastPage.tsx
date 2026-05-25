@@ -312,6 +312,7 @@ const BroadcastPageContent = () => {
           </section>
         </CockpitBottomCenterSlot>
       </CockpitStatScreens>
+
       <div className="app-fuselage-background page-with-navbar-offset page-with-screen-bottom-offset min-h-screen text-foreground">
         <div id="app" style={{ gridTemplateColumns: "1fr", minHeight: "auto" }}>
           <main id="stage">
