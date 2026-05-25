@@ -1,4 +1,4 @@
-import { formatCompactId } from "@ijf/shared";
+import { formatCompactId, getWalletCurrencyMetadata } from "@ijf/shared";
 import { Link } from "react-router-dom";
 
 import { useWalletContext } from "../../context/Wallet/useWalletContext";
@@ -7,7 +7,8 @@ import { cn } from "../../lib/utils";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
 
-const formatSui = (mist: bigint) => (Number(mist) / 1_000_000_000).toFixed(4);
+const formatTokenAmountFromNative = (nativeAmount: bigint, nativeDecimals: number) =>
+  (Number(nativeAmount) / 10 ** nativeDecimals).toFixed(4);
 const formatNetworkLabel = (network: string) =>
   `${network.charAt(0).toUpperCase()}${network.slice(1)}`;
 
@@ -59,6 +60,7 @@ export const NavbarWalletPill = ({ variant = "navbar" }: NavbarWalletPillProps) 
   }
 
   const addressLabel = formatCompactId(wallet.address);
+  const walletCurrency = getWalletCurrencyMetadata(wallet.network);
   const networkLabel = formatNetworkLabel(wallet.networkEnv);
 
   if (isCockpit) {
@@ -84,7 +86,8 @@ export const NavbarWalletPill = ({ variant = "navbar" }: NavbarWalletPillProps) 
             <span className="truncate text-[10px] text-muted-foreground">{addressLabel}</span>
           </div>
           <p className="mt-0.5 text-lg leading-none font-black tracking-tight text-primary">
-            {formatSui(wallet.balanceMist)} SUI
+            {formatTokenAmountFromNative(wallet.balanceMist, walletCurrency.nativeDecimals)}{" "}
+            {walletCurrency.symbol}
           </p>
           <p className="mt-0.5 text-[10px] tracking-wide text-muted-foreground uppercase">
             {formatUsd(wallet.balanceUsd)}
@@ -111,7 +114,10 @@ export const NavbarWalletPill = ({ variant = "navbar" }: NavbarWalletPillProps) 
         to={routes.terminalWallet()}
       >
         <span className={`size-1.5 rounded-full ${connectionDotClassName[wsStatus]}`} />
-        <span className="font-semibold text-foreground">{formatSui(wallet.balanceMist)} SUI</span>
+        <span className="font-semibold text-foreground">
+          {formatTokenAmountFromNative(wallet.balanceMist, walletCurrency.nativeDecimals)}{" "}
+          {walletCurrency.symbol}
+        </span>
         <span className="text-muted-foreground">{formatUsd(wallet.balanceUsd)}</span>
         <span className="rounded-sm border border-border/70 bg-muted/40 px-1.5 py-0.5 text-[10px] text-muted-foreground uppercase">
           {networkLabel}

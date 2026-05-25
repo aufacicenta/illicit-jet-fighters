@@ -1,5 +1,10 @@
 import type { NetworkEnvName } from "@ijf/shared";
-import { formatDateTime, formatNullableCompactId, formatNullableHighlightedId } from "@ijf/shared";
+import {
+  formatDateTime,
+  formatNullableCompactId,
+  formatNullableHighlightedId,
+  getWalletCurrencyMetadata,
+} from "@ijf/shared";
 import { useMemo, useState } from "react";
 
 import {
@@ -16,7 +21,8 @@ import { useWalletContext } from "../../context/Wallet/useWalletContext";
 import { wizardCardHeaderClassName } from "../wizard/sections/SectionStatusBadge";
 import { WizardCardTitle } from "../wizard/sections/WizardCardTitle";
 
-const formatSui = (mist: bigint) => (Number(mist) / 1_000_000_000).toFixed(6);
+const formatTokenAmountFromNative = (nativeAmount: bigint, nativeDecimals: number) =>
+  (Number(nativeAmount) / 10 ** nativeDecimals).toFixed(6);
 const formatNetworkLabel = (network: NetworkEnvName) =>
   `${network.charAt(0).toUpperCase()}${network.slice(1)}`;
 const renderHighlightedId = (value: string | null | undefined, fallback = "—") => {
@@ -48,39 +54,12 @@ const sectionNavItems: SectionNavItem[] = [
   { id: "withdraw", label: "Withdraw" },
 ];
 
-const WalletBalanceSummary = ({
-  balanceLabel,
-  balanceUsd,
-  status,
-}: {
-  balanceLabel: string;
-  balanceUsd: number | null;
-  status: string;
-}) => (
-  <div className="rounded-sm border border-primary/50 bg-primary/10 px-3 py-2.5">
-    <p className="text-[10px] font-semibold tracking-[0.14em] text-primary/90 uppercase">
-      Available Balance
-    </p>
-    <p className="mt-1 text-2xl font-black tracking-tight text-primary">{balanceLabel}</p>
-    {status === "ready" && balanceUsd !== null ? (
-      <p className="mt-1 text-[10px] tracking-wide text-muted-foreground uppercase">
-        ≈ ${balanceUsd.toFixed(4)} USD
-      </p>
-    ) : (
-      <p className="mt-1 text-[10px] tracking-wide text-muted-foreground uppercase">
-        Loading wallet...
-      </p>
-    )}
-  </div>
-);
-
 export const WalletPage = () => {
   const {
     cancelWithdrawal,
     errorMessage,
     refresh,
     recentEntries,
-    status,
     submitWithdrawal,
     wallet,
     withdrawals,
@@ -89,10 +68,14 @@ export const WalletPage = () => {
   const [amountSui, setAmountSui] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [activeSectionId, setActiveSectionId] = useState<WalletSectionId>("deposit");
+  const walletCurrency = getWalletCurrencyMetadata(wallet?.network ?? "sui");
 
   const availableBalanceLabel = useMemo(
-    () => (wallet ? `${formatSui(wallet.balanceMist)} SUI` : "0 SUI"),
-    [wallet],
+    () =>
+      wallet
+        ? `${formatTokenAmountFromNative(wallet.balanceMist, walletCurrency.nativeDecimals)} ${walletCurrency.symbol}`
+        : `0 ${walletCurrency.symbol}`,
+    [wallet, walletCurrency.nativeDecimals, walletCurrency.symbol],
   );
   const networkLabel = wallet ? formatNetworkLabel(wallet.networkEnv) : "SUI";
   const networkBadgeLabel = wallet?.networkEnv ?? "loading";
@@ -115,10 +98,10 @@ export const WalletPage = () => {
       setFormError(null);
       const parsed = Number.parseFloat(amountSui);
       if (!Number.isFinite(parsed) || parsed <= 0) {
-        setFormError("Enter a valid SUI amount.");
+        setFormError(`Enter a valid ${walletCurrency.symbol} amount.`);
         return;
       }
-      const amountMist = BigInt(Math.floor(parsed * 1_000_000_000));
+      const amountMist = BigInt(Math.floor(parsed * 10 ** walletCurrency.nativeDecimals));
       await submitWithdrawal({
         targetAddress: targetAddress.trim(),
         amountMist: amountMist.toString(),
@@ -152,7 +135,7 @@ export const WalletPage = () => {
                   <div>
                     <WizardCardTitle>Deposit</WizardCardTitle>
                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                      Send {networkLabel} SUI funds to your custodial address
+                      Send {networkLabel} {walletCurrency.symbol} funds to your custodial address
                     </p>
                   </div>
                 </CardHeader>
@@ -196,10 +179,10 @@ export const WalletPage = () => {
                         className="flex flex-wrap items-center gap-2 rounded-sm border border-border/70 px-3 py-2 text-xs"
                         key={entry.id}
                       >
-                        <span className="shrink-0 font-semibold uppercase w-2/12">
+                        <span className="w-2/12 shrink-0 font-semibold uppercase">
                           {entry.kind}
                         </span>
-                        <span className="shrink-0 font-mono text-[10px] text-muted-foreground tabular-nums w-3/12">
+                        <span className="w-3/12 shrink-0 font-mono text-[10px] text-muted-foreground tabular-nums">
                           {formatDateTime(entry.createdAt)}
                         </span>
                         <span className="text-muted-foreground">
@@ -208,7 +191,8 @@ export const WalletPage = () => {
                           )}
                         </span>
                         <span className="ml-auto shrink-0 font-mono tabular-nums">
-                          {(BigInt(entry.amountNative) + BigInt(entry.feeAmountNative)).toString()}
+                          {(BigInt(entry.amountNative) + BigInt(entry.feeAmountNative)).toString()}{" "}
+                          {walletCurrency.nativeSymbol}
                         </span>
                       </div>
                     ))
@@ -253,7 +237,7 @@ export const WalletPage = () => {
                       className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase"
                       htmlFor="wallet-withdraw-amount"
                     >
-                      Amount (SUI)
+                      Amount ({walletCurrency.symbol})
                     </label>
                     <input
                       className="w-full rounded-sm border border-border/70 bg-background px-3 py-2 text-sm"

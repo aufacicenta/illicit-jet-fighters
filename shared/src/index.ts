@@ -13,6 +13,11 @@ export {
 } from "./fighter-name";
 export { isNetworkEnvName, parseNetworkEnvName, NETWORK_ENV_NAMES } from "./sui-network";
 export {
+  getWalletCurrencyMetadata,
+  WALLET_CURRENCY_BY_NETWORK,
+  WALLET_NETWORK_NAMES,
+} from "./wallet-currency";
+export {
   battlefieldPipelineStartSchema,
   battlefieldSectionIdSchema,
   fighterAgentVersionsResponseSchema,
@@ -30,4 +35,5 @@ export type {
   PipelineStartPayload,
 } from "./fighters";
 export type { NetworkEnvName } from "./sui-network";
+export type { WalletCurrencyMetadata, WalletNetworkName } from "./wallet-currency";
 export * from "./simulation";
