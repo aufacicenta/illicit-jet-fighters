@@ -208,6 +208,7 @@ export const TerminalSimulationPage = () => {
             disabled={lineupSlots.length === 0 || isLaunching}
             onClick={() => void startSimulation()}
             fullWidth
+            variant="cockpit"
           >
             {isLaunching ? "Launching..." : `Launch Simulation (${lineupSlots.length})`}
           </Button>

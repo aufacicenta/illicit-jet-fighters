@@ -79,6 +79,7 @@ export type WizardContextType = {
   promptInput: string;
   errorMessage: string | null;
   connectionStatus: WebSocketConnectionStatus;
+  isContinuingPipeline: boolean;
   setPromptInput: (value: string) => void;
   setActiveSection: (sectionId: SectionId) => void;
   submitPrompt: () => Promise<void>;

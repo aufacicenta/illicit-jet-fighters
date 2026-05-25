@@ -15,7 +15,6 @@ import {
   generateSpecsheetImage,
   refineCharacterDescription,
   refineSpecsheetPrompt,
-  startPipeline,
 } from "../../lib/api";
 import { useAuth } from "../Auth/useAuth";
 import { getWizardCostUpdateEventName } from "../Costs/CostsContext.types";
@@ -232,6 +231,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
   );
   const [originalBriefing, setOriginalBriefing] = useState<string | null>(null);
   const [gateMessage, setGateMessage] = useState<string | null>(null);
+  const [isContinuingPipeline, setIsContinuingPipeline] = useState(false);
   const [promptInput, setPromptInput] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const outputsRef = useRef(outputs);
@@ -378,6 +378,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
         setGateMessage(message.gateMessage);
         setActiveSectionId(resolveActiveSection(mergedStatuses, mergedOutputs));
         setErrorMessage(null);
+        setIsContinuingPipeline(false);
         return;
       }
 
@@ -398,6 +399,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
           }));
         }
         setErrorMessage(null);
+        setIsContinuingPipeline(false);
         return;
       }
 
@@ -422,6 +424,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       }
 
       if (message.type === "section:error") {
+        setIsContinuingPipeline(false);
         if (message.code === "INSUFFICIENT_BALANCE") {
           setSectionStatuses((current) => applyBlockedStatuses(current, message.sectionId));
           setErrorMessage(
@@ -468,6 +471,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
 
       if (message.type === "pipeline:complete") {
         setGateMessage(null);
+        setIsContinuingPipeline(false);
         return;
       }
 
@@ -513,34 +517,14 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       return;
     }
 
+    if (!activeSectionId) {
+      setErrorMessage("No active wizard section yet. Wait for pipeline sync and try again.");
+      return;
+    }
+
     setErrorMessage(null);
 
     try {
-      const hasGeneratedDetails = Object.keys(outputs).length > 0;
-
-      if (!hasGeneratedDetails) {
-        setSectionStatuses({
-          "character-description": "generating",
-          "specsheet-prompt": "locked",
-          "specsheet-image": "locked",
-          "spritesheet-prompt": "locked",
-          "spritesheet-image": "locked",
-          "spritesheet-manifest": "locked",
-          "agent-code": "locked",
-          "strikecraft-specsheet-prompt": "locked",
-          "strikecraft-specsheet-image": "locked",
-          "strikecraft-sprite-prompt": "locked",
-          "strikecraft-sprite-image": "locked",
-        });
-        setOutputs({});
-        setSectionHistories({});
-        setGateMessage(null);
-        setOriginalBriefing(trimmed);
-        await startPipeline(fighterNumericId, trimmed);
-        setPromptInput("");
-        return;
-      }
-
       const history = sectionHistories[activeSectionId] ?? [];
       const historyWithUser: ChatMessage[] = [...history, { role: "user", content: trimmed }];
 
@@ -626,7 +610,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Unable to process prompt.");
     }
-  }, [activeSectionId, fighterNumericId, outputs, promptInput, resetDownstream, sectionHistories]);
+  }, [activeSectionId, promptInput, resetDownstream, sectionHistories]);
 
   const saveEditedSection = useCallback(
     (sectionId: SectionId, content: string) => {
@@ -662,6 +646,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       setErrorMessage("Connection not ready. Retrying when connected...");
       return;
     }
+    setIsContinuingPipeline(true);
     setGateMessage(null);
     setErrorMessage(null);
   }, [send]);
@@ -808,6 +793,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       outputs,
       sectionHistories,
       gateMessage,
+      isContinuingPipeline,
       promptInput,
       errorMessage,
       connectionStatus,
@@ -830,6 +816,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       outputs,
       sectionHistories,
       gateMessage,
+      isContinuingPipeline,
       promptInput,
       errorMessage,
       connectionStatus,
