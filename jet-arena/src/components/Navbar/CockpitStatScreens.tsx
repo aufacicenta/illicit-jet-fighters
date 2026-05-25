@@ -1,51 +1,181 @@
 import { SendHorizontal } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
-import type { CockpitStatAnimationVariant } from "../../context/CockpitStats/CockpitStatsContext.types";
-import { useCockpitStatsContext } from "../../context/CockpitStats/useCockpitStatsContext";
 import { Navbar } from "../Navbar";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 
-type SlotTextProps = {
-  text: string;
-  variant: CockpitStatAnimationVariant;
-  revision: number;
+type CockpitSlotProps = {
+  children: ReactNode;
 };
 
-const SlotText = ({ text, variant, revision }: SlotTextProps) => {
-  const [animatedText, setAnimatedText] = useState("");
-  const [isTypingComplete, setIsTypingComplete] = useState(false);
+type CockpitStatScreensProps = {
+  children?: ReactNode;
+  bottomCenterContent?: ReactNode;
+  bottomCenterPrompt?: CockpitBottomCenterPrompt | null;
+};
 
-  const normalizedText = useMemo(() => text.trim(), [text]);
+export type CockpitBottomCenterPrompt = {
+  visible: boolean;
+  disabled?: boolean;
+  autoFocus?: boolean;
+  gateMessage: string | null;
+  contextLabel: string;
+  placeholder: string;
+  submitLabel: string;
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void | Promise<void>;
+  onContinue: () => void;
+};
+
+type CockpitStatScreenSlotChildren = {
+  topLeft?: ReactNode;
+  topCenter?: ReactNode;
+  topRight?: ReactNode;
+};
+
+export const CockpitTopLeftSlot = ({ children }: CockpitSlotProps) => <>{children}</>;
+CockpitTopLeftSlot.displayName = "CockpitTopLeftSlot";
+
+export const CockpitTopCenterSlot = ({ children }: CockpitSlotProps) => <>{children}</>;
+CockpitTopCenterSlot.displayName = "CockpitTopCenterSlot";
+
+export const CockpitTopRightSlot = ({ children }: CockpitSlotProps) => <>{children}</>;
+CockpitTopRightSlot.displayName = "CockpitTopRightSlot";
+
+const resolveCockpitTopSlots = (children: ReactNode | undefined): CockpitStatScreenSlotChildren => {
+  const slotChildren: CockpitStatScreenSlotChildren = {};
+
+  Children.forEach(children, (child) => {
+    if (!isValidElement<CockpitSlotProps>(child)) {
+      return;
+    }
+
+    if (child.type === CockpitTopLeftSlot) {
+      slotChildren.topLeft = child.props.children;
+      return;
+    }
+
+    if (child.type === CockpitTopCenterSlot) {
+      slotChildren.topCenter = child.props.children;
+      return;
+    }
+
+    if (child.type === CockpitTopRightSlot) {
+      slotChildren.topRight = child.props.children;
+    }
+  });
+
+  return slotChildren;
+};
+
+type TypingEffectProps = {
+  children: ReactNode;
+  revision?: number;
+};
+
+const isAnimatableTextNode = (node: ReactNode): node is string | number =>
+  (typeof node === "string" && node.trim().length > 0) || typeof node === "number";
+
+const countAnimatableCharacters = (node: ReactNode): number =>
+  Children.toArray(node).reduce<number>((total, childNode) => {
+    if (isAnimatableTextNode(childNode)) {
+      return total + String(childNode).length;
+    }
+    if (isValidElement<{ children?: ReactNode }>(childNode)) {
+      return total + countAnimatableCharacters(childNode.props.children);
+    }
+    return total;
+  }, 0);
+
+const extractAnimatableText = (node: ReactNode): string =>
+  Children.toArray(node).reduce<string>((combinedText, childNode) => {
+    if (isAnimatableTextNode(childNode)) {
+      return combinedText + String(childNode);
+    }
+    if (isValidElement<{ children?: ReactNode }>(childNode)) {
+      return combinedText + extractAnimatableText(childNode.props.children);
+    }
+    return combinedText;
+  }, "");
+
+const renderTypingChildren = (node: ReactNode, state: { remaining: number }): ReactNode =>
+  Children.map(node, (childNode) => {
+    if (isAnimatableTextNode(childNode)) {
+      const text = String(childNode);
+      const visibleChars = Math.max(0, Math.min(text.length, state.remaining));
+      state.remaining -= visibleChars;
+      return text.slice(0, visibleChars);
+    }
+    if (!isValidElement<{ children?: ReactNode }>(childNode)) {
+      return childNode;
+    }
+
+    return cloneElement(childNode, {
+      ...childNode.props,
+      children: renderTypingChildren(childNode.props.children, state),
+    });
+  });
+
+const renderRtlScrollChildren = (node: ReactNode): ReactNode =>
+  Children.map(node, (childNode) => {
+    if (isAnimatableTextNode(childNode)) {
+      const text = String(childNode);
+      return (
+        <span className="cockpit-stat-scroll-track">
+          <span className="cockpit-stat-scroll-copy">{text}</span>
+          <span aria-hidden className="cockpit-stat-scroll-copy">
+            {text}
+          </span>
+        </span>
+      );
+    }
+    if (!isValidElement<{ children?: ReactNode }>(childNode)) {
+      return childNode;
+    }
+
+    return cloneElement(childNode, {
+      ...childNode.props,
+      children: renderRtlScrollChildren(childNode.props.children),
+    });
+  });
+
+export const TypingEffect = ({ children, revision }: TypingEffectProps) => {
+  const [visibleChars, setVisibleChars] = useState(0);
+  const animatableText = useMemo(() => extractAnimatableText(children), [children]);
+  const totalChars = useMemo(() => countAnimatableCharacters(children), [children]);
+  const animationKey = useMemo(
+    () => `${revision ?? "default"}:${animatableText}`,
+    [animatableText, revision],
+  );
+  const isTypingComplete = totalChars > 0 && visibleChars >= totalChars;
 
   useEffect(() => {
-    if (normalizedText.length === 0) {
-      setAnimatedText("");
-      setIsTypingComplete(false);
+    if (totalChars === 0) {
+      setVisibleChars(0);
       return;
     }
 
-    if (variant !== "typing") {
-      setIsTypingComplete(false);
-      return;
-    }
-
-    setAnimatedText("");
-    setIsTypingComplete(false);
-
+    setVisibleChars(0);
     let timeoutId: number | undefined;
-    let index = 0;
+    let nextVisibleChars = 0;
 
     const runTyping = () => {
-      if (index < normalizedText.length) {
-        index += 1;
-        setAnimatedText(normalizedText.slice(0, index));
+      nextVisibleChars += 1;
+      setVisibleChars(Math.min(nextVisibleChars, totalChars));
+      if (nextVisibleChars < totalChars) {
         timeoutId = window.setTimeout(runTyping, 45);
-        return;
       }
-      setAnimatedText(normalizedText);
-      setIsTypingComplete(true);
     };
 
     runTyping();
@@ -55,35 +185,36 @@ const SlotText = ({ text, variant, revision }: SlotTextProps) => {
         window.clearTimeout(timeoutId);
       }
     };
-  }, [normalizedText, revision, variant]);
+  }, [animationKey, totalChars]);
 
-  if (variant === "rtl-scroll") {
-    return (
-      <div className="cockpit-stat-scroll">
-        <p className="cockpit-stat-scroll-track text-2xl leading-none tracking-[0.08em] text-highlight uppercase">
-          <span className="cockpit-stat-scroll-copy">{normalizedText}</span>
-          <span aria-hidden className="cockpit-stat-scroll-copy">
-            {normalizedText}
-          </span>
-        </p>
-      </div>
-    );
-  }
+  const typedChildren = useMemo(() => {
+    const state = { remaining: visibleChars };
+    return renderTypingChildren(children, state);
+  }, [children, visibleChars]);
 
   return (
-    <p className="text-xs text-highlight">
-      {animatedText}
-      {normalizedText.length > 0 && isTypingComplete ? (
+    <>
+      {typedChildren}
+      {totalChars > 0 && isTypingComplete ? (
         <span aria-hidden className="cockpit-stat-typing-cursor ml-0.5">
           ▋
         </span>
       ) : null}
-    </p>
+    </>
   );
 };
 
-const BottomCenterPromptSlot = () => {
-  const { bottomCenterPrompt } = useCockpitStatsContext();
+export const RTLScrollEffect = ({ children }: { children: ReactNode }) => (
+  <div className="cockpit-stat-scroll leading-none tracking-[0.08em] text-highlight uppercase">
+    {renderRtlScrollChildren(children)}
+  </div>
+);
+
+const BottomCenterPromptSlot = ({
+  bottomCenterPrompt,
+}: {
+  bottomCenterPrompt: CockpitBottomCenterPrompt;
+}) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -154,15 +285,15 @@ const BottomCenterPromptSlot = () => {
   );
 };
 
-export const CockpitStatScreens = () => {
-  const { slots, bottomCenterPrompt } = useCockpitStatsContext();
-  const topLeft = slots["top-left"];
-  const topCenter = slots["top-center"];
-  const topRight = slots["top-right"];
-  const bottomCenter = slots["bottom-center"];
+export const CockpitStatScreens = ({
+  children,
+  bottomCenterContent,
+  bottomCenterPrompt,
+}: CockpitStatScreensProps) => {
+  const customTopSlots = useMemo(() => resolveCockpitTopSlots(children), [children]);
 
   return (
-    <div className="z-20 fixed w-screen">
+    <div className="fixed top-0 right-0 bottom-0 left-0 z-20 h-screen w-screen">
       <Navbar />
 
       <section className="w-screen" id="cockpit-stats-screens">
@@ -176,7 +307,7 @@ export const CockpitStatScreens = () => {
             className="pointer-events-none absolute top-0 left-0 h-[81px] w-[397px] bg-[url('/navbar-bottom-left-screen.png')] bg-center bg-no-repeat"
           />
           <div className="overlay-text absolute top-[2px] left-[17px] flex h-[68px] w-[345px] items-center justify-center overflow-hidden px-2 text-center">
-            <SlotText revision={topLeft.revision} text={topLeft.text} variant={topLeft.variant} />
+            {customTopSlots.topLeft !== undefined ? customTopSlots.topLeft : null}
           </div>
         </div>
         <div
@@ -189,11 +320,7 @@ export const CockpitStatScreens = () => {
           />
           <div className="overlay-text absolute top-[173px] flex w-screen justify-center text-center">
             <div className="flex h-[68px] w-[470px] flex-col items-center justify-center overflow-hidden px-2">
-              <SlotText
-                revision={topCenter.revision}
-                text={topCenter.text}
-                variant={topCenter.variant}
-              />
+              {customTopSlots.topCenter !== undefined ? customTopSlots.topCenter : null}
             </div>
           </div>
         </div>
@@ -207,11 +334,7 @@ export const CockpitStatScreens = () => {
             className="pointer-events-none absolute top-0 right-0 h-[81px] w-[397px] bg-[url('/navbar-bottom-right-screen.png')] bg-center bg-no-repeat"
           />
           <div className="overlay-text absolute top-[2px] right-[17px] flex h-[68px] w-[345px] items-center justify-center overflow-hidden px-2 text-center">
-            <SlotText
-              revision={topRight.revision}
-              text={topRight.text}
-              variant={topRight.variant}
-            />
+            {customTopSlots.topRight !== undefined ? customTopSlots.topRight : null}
           </div>
         </div>
 
@@ -225,15 +348,11 @@ export const CockpitStatScreens = () => {
             className="pointer-events-none h-[159px] bg-[url('/cockpit-bottom-frame.png')] bg-center bg-no-repeat"
           />
           {bottomCenterPrompt?.visible ? (
-            <BottomCenterPromptSlot />
+            <BottomCenterPromptSlot bottomCenterPrompt={bottomCenterPrompt} />
           ) : (
             <div className="overlay-text pointer-events-none absolute bottom-[33px] flex w-screen justify-center text-center">
               <div className="flex h-[106px] w-[652px] flex-col items-center justify-center overflow-hidden px-2">
-                <SlotText
-                  revision={bottomCenter.revision}
-                  text={bottomCenter.text}
-                  variant={bottomCenter.variant}
-                />
+                {bottomCenterContent ?? null}
               </div>
             </div>
           )}

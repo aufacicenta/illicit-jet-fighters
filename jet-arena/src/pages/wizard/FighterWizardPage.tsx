@@ -2,11 +2,19 @@ import { parseFighterNameAndEpithet } from "@ijf/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 
+import type { CockpitBottomCenterPrompt } from "../../components/Navbar/CockpitStatScreens";
+import {
+  CockpitStatScreens,
+  CockpitTopCenterSlot,
+  CockpitTopLeftSlot,
+  CockpitTopRightSlot,
+  RTLScrollEffect,
+  TypingEffect,
+} from "../../components/Navbar/CockpitStatScreens";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Label } from "../../components/ui/label";
 import { Skeleton } from "../../components/ui/skeleton";
-import { useCockpitStatsContext } from "../../context/CockpitStats/useCockpitStatsContext";
 import { CostsContextController } from "../../context/Costs/CostsContextController";
 import { useCostsContext } from "../../context/Costs/useCostsContext";
 import { useNavbarBreadcrumbContext } from "../../context/NavbarBreadcrumb/useNavbarBreadcrumbContext";
@@ -233,15 +241,6 @@ const WizardLayout = () => {
   } = useWizardContext();
   const navigate = useNavigate();
   const { setCurrentSectionLabel, clearCurrentSectionLabel } = useNavbarBreadcrumbContext();
-  const {
-    setTopLeftSlot,
-    setTopCenterSlot,
-    setTopRightSlot,
-    setBottomCenterSlot,
-    setBottomCenterPrompt,
-    clearBottomCenterPrompt,
-    resetSlots,
-  } = useCockpitStatsContext();
   const contentContainerRef = useRef<HTMLDivElement | null>(null);
   const [briefingMinHeightPx, setBriefingMinHeightPx] = useState<number | null>(null);
   const [settingStoryDismissed, setSettingStoryDismissed] = useState(readSettingStoryDismissed);
@@ -321,102 +320,45 @@ const WizardLayout = () => {
     };
   }, [activeBreadcrumbSectionLabel, clearCurrentSectionLabel, setCurrentSectionLabel]);
 
-  useEffect(() => {
-    const placeholder = isRefining
-      ? "Refine your fighter..."
-      : "Describe your fighter. Role, personality, visual vibe...";
-
-    setBottomCenterPrompt({
+  const topLeftLabel = activeBreadcrumbSectionLabel;
+  const statusLabel = `Systems ${connectionStatus === "open" ? "Operational" : "degraded"}`;
+  const centerTitle =
+    view === "briefing"
+      ? "Fighter Intake Terminal"
+      : `Pilot ${name}${epithet ? ` // ${epithet}` : ""}`;
+  const promptPlaceholder = isRefining
+    ? "Refine your fighter..."
+    : "Describe your fighter. Role, personality, visual vibe...";
+  const promptContextLabel =
+    isRefining && activeSectionId ? `Refining: ${promptSectionLabels[activeSectionId]}` : "";
+  const bottomCenterPrompt = useMemo<CockpitBottomCenterPrompt>(
+    () => ({
       visible: true,
       disabled: isGenerating,
       autoFocus: view === "briefing" && (storyFinished || settingStoryDismissed),
       gateMessage,
-      contextLabel:
-        isRefining && activeSectionId ? `Refining: ${promptSectionLabels[activeSectionId]}` : "",
-      placeholder,
-      submitLabel: "",
+      contextLabel: promptContextLabel,
+      placeholder: promptPlaceholder,
+      submitLabel: "Submit prompt",
       value: promptInput,
       onChange: setPromptInput,
       onSubmit: submitPrompt,
       onContinue: requestContinuePipeline,
-    });
-
-    return () => {
-      clearBottomCenterPrompt();
-    };
-  }, [
-    activeSectionId,
-    clearBottomCenterPrompt,
-    gateMessage,
-    hasGeneratedDetails,
-    isGenerating,
-    isRefining,
-    promptInput,
-    requestContinuePipeline,
-    setBottomCenterPrompt,
-    setPromptInput,
-    settingStoryDismissed,
-    storyFinished,
-    submitPrompt,
-    view,
-  ]);
-
-  useEffect(() => {
-    if (view === "briefing") {
-      setTopRightSlot({
-        text: `Systems ${connectionStatus === "open" ? "Operational" : "degraded"}`,
-        variant: "typing",
-      });
-
-      setTopCenterSlot({
-        text: `Fighter Intake Terminal`,
-        variant: "rtl-scroll",
-      });
-
-      setBottomCenterSlot({
-        text: `Fighter Intake Terminal`,
-        variant: "rtl-scroll",
-      });
-    }
-
-    if (view === "generating" || view === "debrief") {
-      setTopRightSlot({
-        text: `Systems ${connectionStatus === "open" ? "Operational" : "degraded"}`,
-        variant: "typing",
-      });
-
-      setTopCenterSlot({
-        text: `Pilot ${name}${epithet ? ` // ${epithet}` : ""}`,
-        variant: "rtl-scroll",
-      });
-
-      setBottomCenterSlot({
-        text: `Pilot ${name}${epithet ? ` // ${epithet}` : ""}`,
-        variant: "rtl-scroll",
-      });
-    }
-
-    setTopLeftSlot({
-      text: activeBreadcrumbSectionLabel,
-      variant: "typing",
-    });
-  }, [
-    activeBreadcrumbSectionLabel,
-    connectionStatus,
-    epithet,
-    name,
-    setTopCenterSlot,
-    setTopLeftSlot,
-    setTopRightSlot,
-    setBottomCenterSlot,
-    view,
-  ]);
-
-  useEffect(() => {
-    return () => {
-      resetSlots();
-    };
-  }, [resetSlots]);
+    }),
+    [
+      gateMessage,
+      isGenerating,
+      promptContextLabel,
+      promptInput,
+      promptPlaceholder,
+      requestContinuePipeline,
+      setPromptInput,
+      settingStoryDismissed,
+      storyFinished,
+      submitPrompt,
+      view,
+    ],
+  );
 
   const updateBriefingMinHeight = useCallback(() => {
     const contentContainer = contentContainerRef.current;
@@ -530,184 +472,210 @@ const WizardLayout = () => {
   };
 
   return (
-    <div className="relative">
-      <div
-        className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 pb-[190px] md:px-6 md:pb-[170px]"
-        ref={contentContainerRef}
+    <>
+      <CockpitStatScreens
+        bottomCenterContent={
+          <RTLScrollEffect>
+            <>{centerTitle}</>
+          </RTLScrollEffect>
+        }
+        bottomCenterPrompt={bottomCenterPrompt}
       >
-        {view === "briefing" ? (
-          <section
-            className="flex w-full flex-col items-center justify-center"
-            style={briefingMinHeightPx ? { minHeight: `${briefingMinHeightPx}px` } : undefined}
-          >
-            <div className="relative mx-auto w-full max-w-2xl rounded-sm border border-border bg-card/30 p-6">
-              <p className="text-sm tracking-wide text-muted-foreground uppercase">
-                Prompt input moved to cockpit console
-              </p>
-              {!settingStoryDismissed ? (
-                <div
-                  className={`absolute inset-0 z-10 flex flex-col rounded-sm border border-[#7f1d1d]/80 bg-[#17090a]/95 px-5 py-4 text-lg leading-relaxed tracking-wide text-[#fda4af] shadow-[0_0_0_1px_rgba(127,29,29,0.25),0_0_28px_rgba(127,29,29,0.2)] transition-opacity duration-700 md:px-6 md:text-xl md:leading-loose ${storyFinished ? "pointer-events-none opacity-0" : "opacity-100"}`}
-                >
-                  <div className="flex flex-1 items-center">
-                    <p className="whitespace-pre-wrap">
-                      {settingStorySegments.map((segment, index) => {
-                        const charsBeforeSegment = settingStorySegments
-                          .slice(0, index)
-                          .reduce((length, priorSegment) => length + priorSegment.text.length, 0);
-                        const visibleSegmentChars = Math.max(
-                          0,
-                          Math.min(segment.text.length, visibleStoryChars - charsBeforeSegment),
-                        );
-
-                        if (visibleSegmentChars <= 0) {
-                          return null;
-                        }
-
-                        return (
-                          <span className={segment.className} key={`${segment.text}-${index}`}>
-                            {segment.text.slice(0, visibleSegmentChars)}
-                          </span>
-                        );
-                      })}
-                      {visibleStoryChars < settingStoryTextLength ? (
-                        <span aria-hidden className="ml-0.5 animate-pulse text-[#fecaca]">
-                          ▋
-                        </span>
-                      ) : null}
-                    </p>
-                  </div>
-                  <div className="mt-4 flex shrink-0 items-center gap-2 border-t border-[#7f1d1d]/50 pt-3">
-                    <Checkbox
-                      checked={settingStoryDismissed}
-                      className="border-[#fecaca]/60 data-[state=checked]:border-[#fecaca] data-[state=checked]:bg-[#fecaca] data-[state=checked]:text-[#17090a]"
-                      id={settingStoryDoNotShowAgainId}
-                      onCheckedChange={handleSettingStoryDoNotShowAgainChange}
-                    />
-                    <Label
-                      className="cursor-pointer text-sm font-normal tracking-wide text-[#fecaca]/90"
-                      htmlFor={settingStoryDoNotShowAgainId}
-                    >
-                      Do not show again
-                    </Label>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </section>
-        ) : (
-          <div className="space-y-6">
-            <header className="space-y-1 rounded-sm border border-primary/40 bg-primary/5 px-4 py-3 md:px-5">
-              <h1 className="text-2xl font-black tracking-wide text-foreground uppercase md:text-3xl">
-                {name}
-              </h1>
-              {epithet ? (
-                <p className="text-sm tracking-wide text-muted-foreground uppercase md:text-base">
-                  {epithet}
+        <CockpitTopLeftSlot>
+          <TypingEffect>
+            <p className="text-xs text-highlight">{topLeftLabel}</p>
+          </TypingEffect>
+        </CockpitTopLeftSlot>
+        <CockpitTopCenterSlot>
+          <RTLScrollEffect>
+            <p className="text-2xl">{centerTitle}</p>
+          </RTLScrollEffect>
+        </CockpitTopCenterSlot>
+        <CockpitTopRightSlot>
+          <TypingEffect>
+            <p className="text-xs text-highlight">{statusLabel}</p>
+          </TypingEffect>
+        </CockpitTopRightSlot>
+      </CockpitStatScreens>
+      <div>
+        <div
+          className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 pb-[190px] md:px-6 md:pb-[170px]"
+          ref={contentContainerRef}
+        >
+          {view === "briefing" ? (
+            <section
+              className="flex w-full flex-col items-center justify-center"
+              style={briefingMinHeightPx ? { minHeight: `${briefingMinHeightPx}px` } : undefined}
+            >
+              <div className="relative mx-auto w-full max-w-2xl rounded-sm border border-border bg-card/30 p-6">
+                <p className="text-sm tracking-wide text-muted-foreground uppercase">
+                  Prompt input moved to cockpit console
                 </p>
-              ) : null}
-            </header>
+                {!settingStoryDismissed ? (
+                  <div
+                    className={`absolute inset-0 z-10 flex flex-col rounded-sm border border-[#7f1d1d]/80 bg-[#17090a]/95 px-5 py-4 text-lg leading-relaxed tracking-wide text-[#fda4af] shadow-[0_0_0_1px_rgba(127,29,29,0.25),0_0_28px_rgba(127,29,29,0.2)] transition-opacity duration-700 md:px-6 md:text-xl md:leading-loose ${storyFinished ? "pointer-events-none opacity-0" : "opacity-100"}`}
+                  >
+                    <div className="flex flex-1 items-center">
+                      <p className="whitespace-pre-wrap">
+                        {settingStorySegments.map((segment, index) => {
+                          const charsBeforeSegment = settingStorySegments
+                            .slice(0, index)
+                            .reduce((length, priorSegment) => length + priorSegment.text.length, 0);
+                          const visibleSegmentChars = Math.max(
+                            0,
+                            Math.min(segment.text.length, visibleStoryChars - charsBeforeSegment),
+                          );
 
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start lg:gap-8">
-              <section className="w-full space-y-4">
-                <section className="scroll-mt-6" id="wizard-section-original-briefing">
-                  <OriginalBriefingCard originalBriefing={originalBriefing} />
-                </section>
+                          if (visibleSegmentChars <= 0) {
+                            return null;
+                          }
 
-                <section className="scroll-mt-6" id="wizard-section-character-description">
-                  <DescriptionSection />
-                </section>
-                <section className="scroll-mt-6" id="wizard-section-specsheet-image">
-                  <SpecsheetSection />
-                </section>
-                {showPhaseTwo ? (
-                  <>
-                    <section className="scroll-mt-6" id="wizard-section-spritesheet-image">
-                      <SpritesheetSection />
-                    </section>
-                    <section className="scroll-mt-6" id="wizard-section-agent-code">
-                      <AgentCodeSection showRegenerateButton />
-                    </section>
-                    <section
-                      className="scroll-mt-6"
-                      id="wizard-section-strikecraft-specsheet-image"
-                    >
-                      <StrikecraftSpecsheetSection />
-                    </section>
-                    <section className="scroll-mt-6" id="wizard-section-strikecraft-sprite-image">
-                      <StrikecraftSpriteSection />
-                    </section>
-                  </>
-                ) : null}
-              </section>
-              <aside className="w-full lg:sticky lg:top-6">
-                <Card className="border-0 bg-transparent">
-                  <CardContent className="space-y-3">
-                    <WizardCostSummary />
-                    <div className="border-border/80 bg-card/70">
-                      {sectionNavItems.map((item) => {
-                        const status = isSectionId(item.id) ? sectionStatuses[item.id] : null;
-                        const isActive = isSectionId(item.id) && activeSectionId === item.id;
-                        return (
-                          <button
-                            key={item.id}
-                            className={`flex w-full items-center gap-2 rounded-sm border px-2.5 py-2 text-left text-xs tracking-wide uppercase transition-colors ${
-                              isActive
-                                ? "border-secondary bg-secondary/10 text-foreground"
-                                : "border-border/70 bg-background hover:border-border hover:bg-muted/60"
-                            }`}
-                            onClick={() => navigateToSection(item.id)}
-                            type="button"
-                          >
-                            <span
-                              className={`size-1.5 shrink-0 rounded-full ${getSectionStatusClassName(status)}`}
-                            />
-                            <span className="truncate">{item.label}</span>
-                          </button>
-                        );
-                      })}
+                          return (
+                            <span className={segment.className} key={`${segment.text}-${index}`}>
+                              {segment.text.slice(0, visibleSegmentChars)}
+                            </span>
+                          );
+                        })}
+                        {visibleStoryChars < settingStoryTextLength ? (
+                          <span aria-hidden className="ml-0.5 animate-pulse text-[#fecaca]">
+                            ▋
+                          </span>
+                        ) : null}
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
-              </aside>
+                    <div className="mt-4 flex shrink-0 items-center gap-2 border-t border-[#7f1d1d]/50 pt-3">
+                      <Checkbox
+                        checked={settingStoryDismissed}
+                        className="border-[#fecaca]/60 data-[state=checked]:border-[#fecaca] data-[state=checked]:bg-[#fecaca] data-[state=checked]:text-[#17090a]"
+                        id={settingStoryDoNotShowAgainId}
+                        onCheckedChange={handleSettingStoryDoNotShowAgainChange}
+                      />
+                      <Label
+                        className="cursor-pointer text-sm font-normal tracking-wide text-[#fecaca]/90"
+                        htmlFor={settingStoryDoNotShowAgainId}
+                      >
+                        Do not show again
+                      </Label>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </section>
+          ) : (
+            <div className="space-y-6">
+              <header className="space-y-1 rounded-sm border border-primary/40 bg-primary/5 px-4 py-3 md:px-5">
+                <h1 className="text-2xl font-black tracking-wide text-foreground uppercase md:text-3xl">
+                  {name}
+                </h1>
+                {epithet ? (
+                  <p className="text-sm tracking-wide text-muted-foreground uppercase md:text-base">
+                    {epithet}
+                  </p>
+                ) : null}
+              </header>
+
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start lg:gap-8">
+                <section className="w-full space-y-4">
+                  <section className="scroll-mt-6" id="wizard-section-original-briefing">
+                    <OriginalBriefingCard originalBriefing={originalBriefing} />
+                  </section>
+
+                  <section className="scroll-mt-6" id="wizard-section-character-description">
+                    <DescriptionSection />
+                  </section>
+                  <section className="scroll-mt-6" id="wizard-section-specsheet-image">
+                    <SpecsheetSection />
+                  </section>
+                  {showPhaseTwo ? (
+                    <>
+                      <section className="scroll-mt-6" id="wizard-section-spritesheet-image">
+                        <SpritesheetSection />
+                      </section>
+                      <section className="scroll-mt-6" id="wizard-section-agent-code">
+                        <AgentCodeSection showRegenerateButton />
+                      </section>
+                      <section
+                        className="scroll-mt-6"
+                        id="wizard-section-strikecraft-specsheet-image"
+                      >
+                        <StrikecraftSpecsheetSection />
+                      </section>
+                      <section className="scroll-mt-6" id="wizard-section-strikecraft-sprite-image">
+                        <StrikecraftSpriteSection />
+                      </section>
+                    </>
+                  ) : null}
+                </section>
+                <aside className="w-full lg:sticky lg:top-6">
+                  <Card className="border-0 bg-transparent">
+                    <CardContent className="space-y-3">
+                      <WizardCostSummary />
+                      <div className="border-border/80 bg-card/70">
+                        {sectionNavItems.map((item) => {
+                          const status = isSectionId(item.id) ? sectionStatuses[item.id] : null;
+                          const isActive = isSectionId(item.id) && activeSectionId === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              className={`flex w-full items-center gap-2 rounded-sm border px-2.5 py-2 text-left text-xs tracking-wide uppercase transition-colors ${
+                                isActive
+                                  ? "border-secondary bg-secondary/10 text-foreground"
+                                  : "border-border/70 bg-background hover:border-border hover:bg-muted/60"
+                              }`}
+                              onClick={() => navigateToSection(item.id)}
+                              type="button"
+                            >
+                              <span
+                                className={`size-1.5 shrink-0 rounded-full ${getSectionStatusClassName(status)}`}
+                              />
+                              <span className="truncate">{item.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </aside>
+              </div>
+            </div>
+          )}
+
+          {showConnectionHint ? (
+            <p className="text-xs tracking-wide text-muted-foreground uppercase">
+              Sync link {connectionStatus === "connecting" ? "initializing" : "reconnecting"}...
+            </p>
+          ) : null}
+
+          {errorMessage ? (
+            <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
+              {errorMessage}
+            </div>
+          ) : null}
+        </div>
+
+        {(view === "debrief" || view === "generating") && (
+          <div
+            className="fixed right-0 bottom-0 left-0 z-30 border-t border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/90"
+            id="wizard-progress-hud"
+          >
+            <div className="mx-auto w-full px-4 py-3 md:px-6">
+              <ProgressHud
+                gateMessage={gateMessage}
+                onContinuePhaseOne={() => {
+                  if (gateMessage) {
+                    requestContinuePipeline();
+                    return;
+                  }
+                  setActiveSection(nextPhaseOneSection);
+                }}
+                onContinuePhaseTwo={() => navigate(routes.terminalSimulation())}
+                sectionStatuses={sectionStatuses}
+              />
             </div>
           </div>
         )}
-
-        {showConnectionHint ? (
-          <p className="text-xs tracking-wide text-muted-foreground uppercase">
-            Sync link {connectionStatus === "connecting" ? "initializing" : "reconnecting"}...
-          </p>
-        ) : null}
-
-        {errorMessage ? (
-          <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
-            {errorMessage}
-          </div>
-        ) : null}
       </div>
-
-      {(view === "debrief" || view === "generating") && (
-        <div
-          className="fixed right-0 bottom-0 left-0 z-30 border-t border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/90"
-          id="wizard-progress-hud"
-        >
-          <div className="mx-auto w-full px-4 py-3 md:px-6">
-            <ProgressHud
-              gateMessage={gateMessage}
-              onContinuePhaseOne={() => {
-                if (gateMessage) {
-                  requestContinuePipeline();
-                  return;
-                }
-                setActiveSection(nextPhaseOneSection);
-              }}
-              onContinuePhaseTwo={() => navigate(routes.terminalSimulation())}
-              sectionStatuses={sectionStatuses}
-            />
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 
