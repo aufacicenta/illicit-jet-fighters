@@ -335,6 +335,18 @@ body {
   animation: cockpit-stat-cursor-glitch 2.5s steps(1, end) infinite;
 }
 
+.cockpit-panel-slide-up {
+  transform: translateY(100%);
+  opacity: 0;
+  animation: cockpit-panel-slide-up 500ms ease-out forwards;
+}
+
+.cockpit-panel-slide-down {
+  transform: translateY(-2.5rem);
+  opacity: 0;
+  animation: cockpit-panel-slide-down 500ms ease-out forwards;
+}
+
 @keyframes cockpit-stat-marquee {
   from {
     transform: translateX(0);
@@ -378,5 +390,27 @@ body {
     opacity: 1;
     transform: translateX(0);
     text-shadow: 0 0 0 transparent;
+  }
+}
+
+@keyframes cockpit-panel-slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes cockpit-panel-slide-down {
+  from {
+    transform: translateY(-2.5rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
