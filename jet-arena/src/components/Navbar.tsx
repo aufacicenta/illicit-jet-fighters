@@ -53,7 +53,7 @@ export const Navbar = () => {
             <div aria-hidden />
             <Link
               className="relative top-[17px] z-30 block justify-self-center"
-              to={routes.createFighter()}
+              to={routes.terminalFighters()}
             >
               <img
                 alt="Illicit Jet Fighters"

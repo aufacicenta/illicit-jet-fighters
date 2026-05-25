@@ -213,7 +213,7 @@ export const TerminalSimulationPage = () => {
           </Button>
         </CockpitBottomRightSlot>
       </CockpitStatScreens>
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-6 page-with-navbar-offset page-with-screen-bottom-offset">
+      <div className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-6">
         <header className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             <Button asChild type="button" variant="outline">

@@ -1,5 +1,5 @@
 import type { ReplayFrame, SpritePoseKey, SpritesheetManifest } from "@ijf/shared";
-import { type CSSProperties, useMemo } from "react";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
 
 type PoseKey = SpritePoseKey;
 
@@ -145,6 +145,7 @@ export const BroadcastJetCard = ({
   playerMeta,
   side = "left",
 }: BroadcastJetCardProps) => {
+  const [isRemoteSheetImageReady, setIsRemoteSheetImageReady] = useState(false);
   const remoteSheet = useMemo<RemoteSpriteSheet | null>(() => {
     if (!playerMeta?.spritesheetImageUrl || !playerMeta.spritesheetManifest) {
       return null;
@@ -154,6 +155,30 @@ export const BroadcastJetCard = ({
       manifest: playerMeta.spritesheetManifest,
     };
   }, [playerMeta]);
+  useEffect(() => {
+    if (!remoteSheet) {
+      setIsRemoteSheetImageReady(false);
+      return;
+    }
+
+    let cancelled = false;
+    const image = new Image();
+    image.onload = () => {
+      if (!cancelled) {
+        setIsRemoteSheetImageReady(true);
+      }
+    };
+    image.onerror = () => {
+      if (!cancelled) {
+        setIsRemoteSheetImageReady(false);
+      }
+    };
+    image.src = remoteSheet.imageUrl;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [remoteSheet]);
 
   const speed = Math.hypot(jet.vx, jet.vy);
   const hpPct = Math.max(0, Math.min(100, (jet.health / 100) * 100));
@@ -165,7 +190,7 @@ export const BroadcastJetCard = ({
   const poseSprite = getJetLocalPoseSprite(jet.id, pose);
   const sheetFrame = remoteSheet?.manifest.poses[pose];
   const sheetStyle = useMemo<CSSProperties | null>(() => {
-    if (!sheetFrame || !remoteSheet) return null;
+    if (!sheetFrame || !remoteSheet || !isRemoteSheetImageReady) return null;
     const spriteSize = 44;
     const scaleX = spriteSize / sheetFrame.w;
     const scaleY = spriteSize / sheetFrame.h;
@@ -177,7 +202,7 @@ export const BroadcastJetCard = ({
       backgroundSize: `${remoteSheet.manifest.sheetWidth * scaleX}px ${remoteSheet.manifest.sheetHeight * scaleY}px`,
       backgroundRepeat: "no-repeat",
     };
-  }, [remoteSheet, sheetFrame]);
+  }, [isRemoteSheetImageReady, remoteSheet, sheetFrame]);
   const cardJustifyClass = side === "right" ? "justify-self-end" : "justify-self-start";
   const infoAlignClass = side === "right" ? "items-end text-right" : "items-start text-left";
   const roleAlignClass = side === "right" ? "text-right" : "text-left";

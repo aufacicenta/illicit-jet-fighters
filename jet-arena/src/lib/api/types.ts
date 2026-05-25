@@ -109,6 +109,18 @@ export type SimulationListResponse = {
   simulations: SimulationListItem[];
 };
 
+export type SimulationStatusResponse = {
+  simulationId: string;
+  broadcastId: string;
+  status: "queued" | "running" | "ended" | "error";
+  winnerId: string | null;
+  startedAt: number | null;
+  endedAt: number | null;
+  replayHashHex: string | null;
+  replayLength: number;
+  errorMessage: string | null;
+};
+
 export type SimulationParticipantInput = {
   fighterId: number;
   /**

@@ -7,6 +7,7 @@ import {
   type SimulationParticipantInput,
   type SimulationStartRequest,
   type SimulationStartResponse,
+  type SimulationStatusResponse,
 } from "./types";
 
 export const simulationStartPost = async ({
@@ -37,6 +38,24 @@ export const fetchMySimulations = async (limit = 24): Promise<SimulationListResp
   }
 
   return (await response.json()) as SimulationListResponse;
+};
+
+export const fetchSimulationStatus = async (
+  broadcastId: string,
+): Promise<SimulationStatusResponse> => {
+  const response = await fetch(apiRoutes.simulationStatus(broadcastId), {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      ...authHeadersJson(),
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorText(response));
+  }
+
+  return (await response.json()) as SimulationStatusResponse;
 };
 
 export const fetchSimulationReplay = async (
