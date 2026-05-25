@@ -226,7 +226,9 @@ export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
           >
             {customSlots.topLeft}
           </div>
-        ) : null}
+        ) : (
+          <div aria-hidden className="w-[397px]" />
+        )}
         {customSlots.topCenter !== undefined ? (
           <div
             className="cockpit-panel-slide-down flex h-[102px] w-[584px] items-center justify-center overflow-hidden bg-[url('/cockpit-top-center-box.png')] bg-center bg-no-repeat px-10 py-2 text-center"
@@ -234,7 +236,9 @@ export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
           >
             {customSlots.topCenter}
           </div>
-        ) : null}
+        ) : (
+          <div aria-hidden className="w-[584px]" />
+        )}
         {customSlots.topRight !== undefined ? (
           <div
             aria-hidden
@@ -243,7 +247,9 @@ export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
           >
             {customSlots.topRight}
           </div>
-        ) : null}
+        ) : (
+          <div aria-hidden className="w-[397px]" />
+        )}
       </section>
 
       <section
@@ -260,7 +266,9 @@ export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
               {customSlots.bottomLeft}
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div aria-hidden className="w-[398px]" />
+        )}
         {customSlots.bottomCenter !== undefined ? (
           <div
             className="cockpit-panel-slide-up mb-[21px] flex h-[136px] w-[797px] items-center justify-center overflow-hidden bg-[url('/cockpit-bottom-center-box.png')] bg-center bg-no-repeat px-6 py-4 text-center"
@@ -268,7 +276,9 @@ export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
           >
             {customSlots.bottomCenter}
           </div>
-        ) : null}
+        ) : (
+          <div aria-hidden className="w-[797px]" />
+        )}
         {customSlots.bottomRight !== undefined ? (
           <div className="flex flex-col justify-end">
             <div
@@ -279,7 +289,9 @@ export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
               {customSlots.bottomRight}
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div aria-hidden className="w-[398px]" />
+        )}
       </section>
     </>
   );

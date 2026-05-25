@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { ArenaShape } from "../arena-shape";
+import { Navbar } from "../components/Navbar";
 import { CockpitStatScreens } from "../components/Navbar/CockpitStatScreens";
 import { useAuth } from "../context/Auth/useAuth";
 import { wsRoutes } from "../hooks/useRoutes";
@@ -426,8 +427,9 @@ export const BroadcastPage = () => {
 
   return (
     <>
+      <Navbar />
       <CockpitStatScreens />
-      <div className="app-fuselage-background min-h-screen text-foreground">
+      <div className="app-fuselage-background min-h-screen text-foreground page-with-navbar-offset page-with-screen-bottom-offset">
         <div id="app" style={{ gridTemplateColumns: "1fr", minHeight: "auto" }}>
           <main id="stage">
             <section className="relative w-full max-w-[1600px] self-center overflow-hidden rounded-[10px]">

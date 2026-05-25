@@ -61,7 +61,6 @@ export const SpecsheetSection = () => {
         {isGeneratingSpecsheet ? (
           <div className="space-y-2">
             <Skeleton className="h-[420px] w-full" />
-            <Skeleton className="h-4 w-4/12" />
           </div>
         ) : imageOutput ? (
           <img

@@ -8,6 +8,14 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import {
+  CockpitBottomRightSlot,
+  CockpitStatScreens,
+  CockpitTopCenterSlot,
+  CockpitTopRightSlot,
+  RTLScrollEffect,
+} from "../../components/Navbar/CockpitStatScreens";
+import { NavbarWalletTray } from "../../components/Navbar/NavbarWalletTray";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
@@ -181,207 +189,222 @@ export const TerminalSimulationPage = () => {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-6">
-      <header className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold tracking-[0.06em] uppercase">Simulation Builder</h1>
-          <p className="text-sm text-muted-foreground">
-            Build your lineup slots, including duplicate fighters, then launch.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button asChild type="button" variant="outline">
-            <Link to={routes.terminalFighters()}>Back to My Fighters</Link>
-          </Button>
+    <>
+      <CockpitStatScreens>
+        <CockpitTopCenterSlot>
+          <RTLScrollEffect>
+            <p className="text-2xl">
+              Simulation Builder // Build your lineup slots, including duplicate fighters, then
+              launch.
+            </p>
+          </RTLScrollEffect>
+        </CockpitTopCenterSlot>
+        <CockpitTopRightSlot>
+          <NavbarWalletTray variant="cockpit" />
+        </CockpitTopRightSlot>
+
+        <CockpitBottomRightSlot>
           <Button
             disabled={lineupSlots.length === 0 || isLaunching}
             onClick={() => void startSimulation()}
+            fullWidth
           >
             {isLaunching ? "Launching..." : `Launch Simulation (${lineupSlots.length})`}
           </Button>
-        </div>
-      </header>
-
-      {errorMessage ? (
-        <Card>
-          <CardContent className="space-y-3 p-5">
-            <p className="text-sm text-destructive">{errorMessage}</p>
-            <Button onClick={() => void loadFighters()} size="sm" type="button" variant="outline">
-              Retry
+        </CockpitBottomRightSlot>
+      </CockpitStatScreens>
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-6 page-with-navbar-offset page-with-screen-bottom-offset">
+        <header className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild type="button" variant="outline">
+              <Link to={routes.terminalFighters()}>Back to My Fighters</Link>
             </Button>
-          </CardContent>
-        </Card>
-      ) : null}
+          </div>
+        </header>
 
-      {launchError ? (
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs tracking-[0.08em] text-destructive uppercase">{launchError}</p>
-          </CardContent>
-        </Card>
-      ) : null}
+        {errorMessage ? (
+          <Card>
+            <CardContent className="space-y-3 p-5">
+              <p className="text-sm text-destructive">{errorMessage}</p>
+              <Button onClick={() => void loadFighters()} size="sm" type="button" variant="outline">
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr]">
-        <Card className="h-fit">
-          <CardHeader>
-            <CardTitle className="text-sm tracking-[0.08em] uppercase">Fighter Library</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {isLoading ? (
-              <p className="p-4 text-sm text-muted-foreground">Loading fighters...</p>
-            ) : null}
+        {launchError ? (
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs tracking-[0.08em] text-destructive uppercase">{launchError}</p>
+            </CardContent>
+          </Card>
+        ) : null}
 
-            {!isLoading && fighters.length === 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  You do not have any fighters yet. Create one first to configure a simulation.
-                </p>
-                <Button asChild size="sm">
-                  <Link to={routes.createFighter()}>Create Fighter</Link>
-                </Button>
-              </div>
-            ) : null}
+        <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr]">
+          <Card className="h-fit">
+            <CardHeader>
+              <CardTitle className="text-sm tracking-[0.08em] uppercase">Fighter Library</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {isLoading ? (
+                <p className="p-4 text-sm text-muted-foreground">Loading fighters...</p>
+              ) : null}
 
-            {!isLoading && fighters.length > 0 ? (
-              <div className="space-y-2">
-                {fighters.map((fighter) => {
-                  const displayName = resolveFighterName({
-                    storedName: fighter.name,
-                    characterDescription: fighter.characterDescription,
-                    slug: fighter.slug,
-                  });
-                  return (
-                    <Card className="border-border/70" key={fighter.id}>
-                      <CardContent className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="space-y-1">
-                          <p className="text-sm font-semibold tracking-[0.06em] uppercase">
-                            {displayName}
-                          </p>
-                          <Badge
-                            className={cn(
-                              "bg-background/85 px-2 py-1 text-[10px] tracking-[0.14em]",
-                              statusClassByCode[fighter.status],
-                            )}
-                            variant="outline"
+              {!isLoading && fighters.length === 0 ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    You do not have any fighters yet. Create one first to configure a simulation.
+                  </p>
+                  <Button asChild size="sm">
+                    <Link to={routes.createFighter()}>Create Fighter</Link>
+                  </Button>
+                </div>
+              ) : null}
+
+              {!isLoading && fighters.length > 0 ? (
+                <div className="space-y-2">
+                  {fighters.map((fighter) => {
+                    const displayName = resolveFighterName({
+                      storedName: fighter.name,
+                      characterDescription: fighter.characterDescription,
+                      slug: fighter.slug,
+                    });
+                    return (
+                      <Card className="border-border/70" key={fighter.id}>
+                        <CardContent className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="space-y-1">
+                            <p className="text-sm font-semibold tracking-[0.06em] uppercase">
+                              {displayName}
+                            </p>
+                            <Badge
+                              className={cn(
+                                "bg-background/85 px-2 py-1 text-[10px] tracking-[0.14em]",
+                                statusClassByCode[fighter.status],
+                              )}
+                              variant="outline"
+                            >
+                              {statusLabelByCode[fighter.status]}
+                            </Badge>
+                          </div>
+                          <Button
+                            onClick={() => addFighterToLineup(fighter.id)}
+                            size="sm"
+                            type="button"
+                            variant="secondary"
                           >
-                            {statusLabelByCode[fighter.status]}
-                          </Badge>
+                            <Plus className="mr-1 size-4" />
+                            Add Slot
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <Card className="h-fit">
+            <CardHeader>
+              <CardTitle className="text-sm tracking-[0.08em] uppercase">Lineup Slots</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {lineupSlots.length === 0 ? (
+                <p className="p-4 text-sm text-muted-foreground">
+                  Add fighters from the library to create your lineup stack.
+                </p>
+              ) : null}
+
+              {lineupSlots.map((slot, index) => {
+                const fighter = fightersById.get(slot.fighterId);
+                if (!fighter) {
+                  return null;
+                }
+                const fighterVersions = fighterVersionsById[slot.fighterId] ?? [];
+
+                const displayName = resolveFighterName({
+                  storedName: fighter.name,
+                  characterDescription: fighter.characterDescription,
+                  slug: fighter.slug,
+                });
+
+                return (
+                  <Card className="border-secondary/30 bg-secondary/5" key={slot.id}>
+                    <CardContent className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="space-y-1">
+                        <p className="text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
+                          Slot {index + 1}
+                        </p>
+                        <p className="text-sm font-semibold tracking-[0.06em] uppercase">
+                          {displayName}
+                        </p>
+                        <div className="space-y-1">
+                          <p className="text-[10px] tracking-widest text-muted-foreground uppercase">
+                            Agent version
+                          </p>
+                          <Select
+                            onValueChange={(nextValue) =>
+                              updateSlotAgentVersion(slot.id, nextValue)
+                            }
+                            value={slot.agentVersionId ?? LATEST_AGENT_VERSION_VALUE}
+                          >
+                            <SelectTrigger className="h-8 min-w-52 text-xs">
+                              <SelectValue placeholder="Select agent version" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={LATEST_AGENT_VERSION_VALUE}>Latest</SelectItem>
+                              {fighterVersions.map((version) => (
+                                <SelectItem key={version.id} value={version.id}>
+                                  {formatAgentVersionOption(version)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
+                      </div>
+                      <div className="flex items-center gap-1">
                         <Button
-                          onClick={() => addFighterToLineup(fighter.id)}
+                          aria-label={`Move ${displayName} up`}
+                          disabled={index === 0}
+                          className="h-9 w-9 p-0"
+                          onClick={() => moveSlot(slot.id, "up")}
                           size="sm"
                           type="button"
-                          variant="secondary"
+                          variant="outline"
                         >
-                          <Plus className="mr-1 size-4" />
-                          Add Slot
+                          <ArrowUp className="size-4" />
                         </Button>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <Card className="h-fit">
-          <CardHeader>
-            <CardTitle className="text-sm tracking-[0.08em] uppercase">Lineup Slots</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {lineupSlots.length === 0 ? (
-              <p className="p-4 text-sm text-muted-foreground">
-                Add fighters from the library to create your lineup stack.
-              </p>
-            ) : null}
-
-            {lineupSlots.map((slot, index) => {
-              const fighter = fightersById.get(slot.fighterId);
-              if (!fighter) {
-                return null;
-              }
-              const fighterVersions = fighterVersionsById[slot.fighterId] ?? [];
-
-              const displayName = resolveFighterName({
-                storedName: fighter.name,
-                characterDescription: fighter.characterDescription,
-                slug: fighter.slug,
-              });
-
-              return (
-                <Card className="border-secondary/30 bg-secondary/5" key={slot.id}>
-                  <CardContent className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="space-y-1">
-                      <p className="text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
-                        Slot {index + 1}
-                      </p>
-                      <p className="text-sm font-semibold tracking-[0.06em] uppercase">
-                        {displayName}
-                      </p>
-                      <div className="space-y-1">
-                        <p className="text-[10px] tracking-widest text-muted-foreground uppercase">
-                          Agent version
-                        </p>
-                        <Select
-                          onValueChange={(nextValue) => updateSlotAgentVersion(slot.id, nextValue)}
-                          value={slot.agentVersionId ?? LATEST_AGENT_VERSION_VALUE}
+                        <Button
+                          aria-label={`Move ${displayName} down`}
+                          disabled={index === lineupSlots.length - 1}
+                          className="h-9 w-9 p-0"
+                          onClick={() => moveSlot(slot.id, "down")}
+                          size="sm"
+                          type="button"
+                          variant="outline"
                         >
-                          <SelectTrigger className="h-8 min-w-52 text-xs">
-                            <SelectValue placeholder="Select agent version" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={LATEST_AGENT_VERSION_VALUE}>Latest</SelectItem>
-                            {fighterVersions.map((version) => (
-                              <SelectItem key={version.id} value={version.id}>
-                                {formatAgentVersionOption(version)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          <ArrowDown className="size-4" />
+                        </Button>
+                        <Button
+                          aria-label={`Remove ${displayName}`}
+                          className="h-9 w-9 p-0"
+                          onClick={() => removeSlot(slot.id)}
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        aria-label={`Move ${displayName} up`}
-                        disabled={index === 0}
-                        className="h-9 w-9 p-0"
-                        onClick={() => moveSlot(slot.id, "up")}
-                        size="sm"
-                        type="button"
-                        variant="outline"
-                      >
-                        <ArrowUp className="size-4" />
-                      </Button>
-                      <Button
-                        aria-label={`Move ${displayName} down`}
-                        disabled={index === lineupSlots.length - 1}
-                        className="h-9 w-9 p-0"
-                        onClick={() => moveSlot(slot.id, "down")}
-                        size="sm"
-                        type="button"
-                        variant="outline"
-                      >
-                        <ArrowDown className="size-4" />
-                      </Button>
-                      <Button
-                        aria-label={`Remove ${displayName}`}
-                        className="h-9 w-9 p-0"
-                        onClick={() => removeSlot(slot.id)}
-                        size="sm"
-                        type="button"
-                        variant="outline"
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </CardContent>
-        </Card>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
+    </>
   );
 };

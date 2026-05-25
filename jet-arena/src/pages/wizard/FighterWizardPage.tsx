@@ -1,5 +1,4 @@
 import { parseFighterNameAndEpithet } from "@ijf/shared";
-import { SendHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 
@@ -20,7 +19,6 @@ import { Card, CardContent, CardHeader } from "../../components/ui/card";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Label } from "../../components/ui/label";
 import { Skeleton } from "../../components/ui/skeleton";
-import { Textarea } from "../../components/ui/textarea";
 import { CostsContextController } from "../../context/Costs/CostsContextController";
 import { useCostsContext } from "../../context/Costs/useCostsContext";
 import { useNavbarBreadcrumbContext } from "../../context/NavbarBreadcrumb/useNavbarBreadcrumbContext";
@@ -29,6 +27,7 @@ import type { SectionId, SectionStatus } from "../../context/Wizard/WizardContex
 import { WizardContextController } from "../../context/Wizard/WizardContextController";
 import { routes } from "../../hooks/useRoutes";
 import { ProgressHud } from "./ProgressHud";
+import { PromptBar } from "./PromptBar";
 import { AgentCodeSection } from "./sections/AgentCodeSection";
 import { DescriptionSection } from "./sections/DescriptionSection";
 import { wizardCardHeaderClassName } from "./sections/SectionStatusBadge";
@@ -51,20 +50,6 @@ type StorySegment = {
   className?: string;
   delayMs?: number;
 };
-
-const promptSectionLabels = {
-  "character-description": "Pilot Briefing",
-  "specsheet-prompt": "Specsheet Targeting",
-  "specsheet-image": "Image Render",
-  "spritesheet-prompt": "Spritesheet Prompt",
-  "spritesheet-image": "Spritesheet Render",
-  "spritesheet-manifest": "Spritesheet Manifest",
-  "agent-code": "Agent Source",
-  "strikecraft-specsheet-prompt": "Strikecraft Specsheet Prompt",
-  "strikecraft-specsheet-image": "Strikecraft Specsheet Render",
-  "strikecraft-sprite-prompt": "Strikecraft Sprite Prompt",
-  "strikecraft-sprite-image": "Strikecraft Sprite Render",
-} as const satisfies Record<SectionId, string>;
 
 const SETTING_STORY_DISMISSED_STORAGE_KEY = "ijf:wizard-setting-story-dismissed";
 const settingStoryDoNotShowAgainId = "wizard-setting-story-do-not-show-again";
@@ -238,9 +223,6 @@ const WizardLayout = () => {
     connectionStatus,
     originalBriefing,
     gateMessage,
-    promptInput,
-    setPromptInput,
-    submitPrompt,
     requestContinuePipeline,
     setActiveSection,
     activeSectionId,
@@ -274,9 +256,6 @@ const WizardLayout = () => {
     return "briefing";
   }, [outputs, sectionStatuses]);
 
-  const isGenerating = Object.values(sectionStatuses).some((status) => status === "generating");
-  const hasGeneratedDetails = Object.keys(outputs).length > 0;
-  const isRefining = hasGeneratedDetails && Boolean(activeSectionId);
   const showConnectionHint = connectionStatus !== "open";
   const showPhaseTwo =
     sectionStatuses["spritesheet-prompt"] === "generating" ||
@@ -291,6 +270,45 @@ const WizardLayout = () => {
     Boolean(outputs["strikecraft-specsheet-image"]) ||
     Boolean(outputs["strikecraft-sprite-image"]);
   const nextPhaseOneSection = getNextSectionForPhase("phase-one", sectionStatuses);
+  const nextPhaseTwoSection = getNextSectionForPhase("phase-two", sectionStatuses);
+  const phaseOneComplete = phaseSections["phase-one"].every(
+    (sectionId) => sectionStatuses[sectionId] === "complete",
+  );
+  const phaseTwoComplete = phaseSections["phase-two"].every(
+    (sectionId) => sectionStatuses[sectionId] === "complete",
+  );
+  const continueLabel =
+    phaseOneComplete && phaseTwoComplete
+      ? "Configure Simulation"
+      : phaseOneComplete
+        ? "Continue Phase 2"
+        : "Continue";
+  const hasGeneratingSection = Object.values(sectionStatuses).some(
+    (status) => status === "generating",
+  );
+  const continueDisabled = hasGeneratingSection || !phaseOneComplete || !phaseTwoComplete;
+  const continueVariant = continueDisabled ? "outline" : "default";
+  const handleContinue = () => {
+    if (!phaseOneComplete) {
+      if (gateMessage) {
+        requestContinuePipeline();
+        return;
+      }
+      setActiveSection(nextPhaseOneSection);
+      return;
+    }
+
+    if (!phaseTwoComplete) {
+      if (gateMessage) {
+        requestContinuePipeline();
+        return;
+      }
+      setActiveSection(nextPhaseTwoSection);
+      return;
+    }
+
+    navigate(routes.terminalSimulation());
+  };
   const sectionNavItems = showPhaseTwo
     ? [...phaseOneNavItems, ...phaseTwoNavItems]
     : phaseOneNavItems;
@@ -331,15 +349,7 @@ const WizardLayout = () => {
     view === "briefing"
       ? "Fighter Intake Terminal"
       : `Pilot ${name}${epithet ? ` // ${epithet}` : ""}`;
-  const promptPlaceholder = isRefining
-    ? "Refine your fighter..."
-    : "Describe your fighter. Role, personality, visual vibe...";
-  const promptContextLabel =
-    isRefining && activeSectionId ? `Refining: ${promptSectionLabels[activeSectionId]}` : "";
   const shouldAutoFocusPrompt = view === "briefing" && (storyFinished || settingStoryDismissed);
-  const handlePromptSubmit = useCallback(() => {
-    void submitPrompt();
-  }, [submitPrompt]);
 
   useEffect(() => {
     if (view !== "briefing") {
@@ -424,78 +434,48 @@ const WizardLayout = () => {
 
           <CockpitBottomLeftSlot>
             <TypingEffect>
-              <p className="text-xs text-highlight">{statusLabel}</p>
+              <p className="text-xs text-emerald-400">{statusLabel}</p>
             </TypingEffect>
           </CockpitBottomLeftSlot>
           <CockpitBottomCenterSlot>
-            <div className="pointer-events-auto absolute top-[5px] right-0 left-0 z-20 flex justify-center px-4">
-              <div className="w-full max-w-[652px] p-2.5">
-                <div className="flex flex-col gap-2">
-                  {gateMessage ? (
-                    <div className="flex items-center justify-between gap-2 rounded-sm border border-secondary/40 bg-muted/40 p-2 text-[10px] tracking-wide text-foreground uppercase">
-                      <span>{gateMessage}</span>
-                      <Button onClick={requestContinuePipeline} size="sm" type="button">
-                        Continue
-                      </Button>
-                    </div>
-                  ) : null}
-
-                  {promptContextLabel ? (
-                    <div className="text-[10px] tracking-widest text-muted-foreground uppercase">
-                      {promptContextLabel}
-                    </div>
-                  ) : null}
-
-                  <div className="relative">
-                    <Textarea
-                      autoFocus={shouldAutoFocusPrompt}
-                      className="h-[116px] w-full resize-y border-none! bg-background text-sm focus-visible:border-none! focus-visible:ring-0!"
-                      disabled={isGenerating}
-                      onChange={(event) => setPromptInput(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key !== "Enter" || event.shiftKey) {
-                          return;
-                        }
-                        event.preventDefault();
-                        handlePromptSubmit();
-                      }}
-                      placeholder={promptPlaceholder}
-                      value={promptInput}
-                    />
-                    <div className="absolute right-[-40px] bottom-[2px]">
-                      <Button
-                        className="size-9 rounded-full p-0"
-                        disabled={isGenerating}
-                        onClick={handlePromptSubmit}
-                        size="sm"
-                        type="button"
-                      >
-                        <SendHorizontal className="size-4" />
-                        <span className="sr-only">Submit prompt</span>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {view === "briefing" ? (
+              <PromptBar autoFocus={shouldAutoFocusPrompt} />
+            ) : (
+              <ProgressHud sectionStatuses={sectionStatuses} />
+            )}
           </CockpitBottomCenterSlot>
           <CockpitBottomRightSlot>
-            <TypingEffect>
-              <p>Typing Effect</p>
-            </TypingEffect>
+            <div className="flex w-full flex-col items-end gap-2 px-5">
+              {view !== "briefing" ? (
+                <Button
+                  fullWidth
+                  disabled={continueDisabled}
+                  onClick={handleContinue}
+                  type="button"
+                  variant={continueVariant}
+                >
+                  {continueLabel}
+                </Button>
+              ) : (
+                <TypingEffect>
+                  <p className="text-xs text-highlight">Illicit Jet Fighters, 2026.</p>
+                  <p className="text-xs text-highlight">&nbsp;Aufacicenta.</p>
+                </TypingEffect>
+              )}
+            </div>
           </CockpitBottomRightSlot>
         </CockpitStatScreens>
       )}
 
       <div
-        className={`page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 md:px-6 min-h-screen ${view === "briefing" && "justify-center"}`}
+        className={`page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 md:px-6 ${view === "briefing" && "justify-center"}`}
         ref={contentContainerRef}
       >
         {view === "briefing" ? (
-          <section className="flex max-w-xl flex-col items-center justify-center mx-auto">
+          <section className="mx-auto flex max-w-xl flex-col items-center justify-center">
             {!settingStoryDismissed ? (
               <>
-                <p className="whitespace-pre-wrap text-xl">
+                <p className="text-xl whitespace-pre-wrap">
                   {settingStorySegments.map((segment, index) => {
                     const charsBeforeSegment = settingStorySegments
                       .slice(0, index)
@@ -631,28 +611,6 @@ const WizardLayout = () => {
           </div>
         ) : null}
       </div>
-
-      {(view === "debrief" || view === "generating") && (
-        <div
-          className="fixed right-0 bottom-0 left-0 z-30 border-t border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/90"
-          id="wizard-progress-hud"
-        >
-          <div className="mx-auto w-full px-4 py-3 md:px-6">
-            <ProgressHud
-              gateMessage={gateMessage}
-              onContinuePhaseOne={() => {
-                if (gateMessage) {
-                  requestContinuePipeline();
-                  return;
-                }
-                setActiveSection(nextPhaseOneSection);
-              }}
-              onContinuePhaseTwo={() => navigate(routes.terminalSimulation())}
-              sectionStatuses={sectionStatuses}
-            />
-          </div>
-        </div>
-      )}
     </>
   );
 };

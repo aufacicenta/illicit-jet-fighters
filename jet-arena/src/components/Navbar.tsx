@@ -39,7 +39,7 @@ export const Navbar = () => {
 
   return (
     <nav
-      className="fixed z-20 h-(--navbar-height) w-screen border-b border-border flex flex-col justify-end"
+      className="fixed z-20 flex h-(--navbar-height) w-screen flex-col justify-end border-b border-border"
       style={{
         backgroundImage: "url('/fuselage-army-green.png')",
         backgroundRepeat: "repeat",
@@ -49,10 +49,10 @@ export const Navbar = () => {
 
       <div>
         <div className="mx-auto flex w-full flex-col">
-          <div className="flex max-h-[100px] w-full justify-between items-center gap-3 pb-3">
+          <div className="flex max-h-[100px] w-full items-center justify-between gap-3 pb-3">
             <div aria-hidden />
             <Link
-              className="relative z-30 block justify-self-center top-[17px]"
+              className="relative top-[17px] z-30 block justify-self-center"
               to={routes.createFighter()}
             >
               <img
@@ -65,7 +65,7 @@ export const Navbar = () => {
           </div>
         </div>
 
-        <div className="w-full items-center gap-3 border-t border-border/70 px-4 py-1 flex justify-between">
+        <div className="flex w-full items-center justify-between gap-3 border-t border-border/70 px-4 py-1">
           <div>
             <p className="w-full text-xs tracking-widest text-muted-foreground uppercase">
               {breadcrumbLabel}
