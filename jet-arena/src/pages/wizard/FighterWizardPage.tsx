@@ -1,9 +1,10 @@
 import { parseFighterNameAndEpithet } from "@ijf/shared";
+import { SendHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 
-import type { CockpitBottomCenterPrompt } from "../../components/Navbar/CockpitStatScreens";
 import {
+  CockpitBottomCenterSlot,
   CockpitStatScreens,
   CockpitTopCenterSlot,
   CockpitTopLeftSlot,
@@ -11,10 +12,12 @@ import {
   RTLScrollEffect,
   TypingEffect,
 } from "../../components/Navbar/CockpitStatScreens";
+import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Label } from "../../components/ui/label";
 import { Skeleton } from "../../components/ui/skeleton";
+import { Textarea } from "../../components/ui/textarea";
 import { CostsContextController } from "../../context/Costs/CostsContextController";
 import { useCostsContext } from "../../context/Costs/useCostsContext";
 import { useNavbarBreadcrumbContext } from "../../context/NavbarBreadcrumb/useNavbarBreadcrumbContext";
@@ -331,34 +334,10 @@ const WizardLayout = () => {
     : "Describe your fighter. Role, personality, visual vibe...";
   const promptContextLabel =
     isRefining && activeSectionId ? `Refining: ${promptSectionLabels[activeSectionId]}` : "";
-  const bottomCenterPrompt = useMemo<CockpitBottomCenterPrompt>(
-    () => ({
-      visible: true,
-      disabled: isGenerating,
-      autoFocus: view === "briefing" && (storyFinished || settingStoryDismissed),
-      gateMessage,
-      contextLabel: promptContextLabel,
-      placeholder: promptPlaceholder,
-      submitLabel: "Submit prompt",
-      value: promptInput,
-      onChange: setPromptInput,
-      onSubmit: submitPrompt,
-      onContinue: requestContinuePipeline,
-    }),
-    [
-      gateMessage,
-      isGenerating,
-      promptContextLabel,
-      promptInput,
-      promptPlaceholder,
-      requestContinuePipeline,
-      setPromptInput,
-      settingStoryDismissed,
-      storyFinished,
-      submitPrompt,
-      view,
-    ],
-  );
+  const shouldAutoFocusPrompt = view === "briefing" && (storyFinished || settingStoryDismissed);
+  const handlePromptSubmit = useCallback(() => {
+    void submitPrompt();
+  }, [submitPrompt]);
 
   const updateBriefingMinHeight = useCallback(() => {
     const contentContainer = contentContainerRef.current;
@@ -473,14 +452,59 @@ const WizardLayout = () => {
 
   return (
     <>
-      <CockpitStatScreens
-        bottomCenterContent={
-          <RTLScrollEffect>
-            <>{centerTitle}</>
-          </RTLScrollEffect>
-        }
-        bottomCenterPrompt={bottomCenterPrompt}
-      >
+      <CockpitStatScreens>
+        <CockpitBottomCenterSlot>
+          <div className="pointer-events-auto absolute top-[5px] right-0 left-0 z-20 flex justify-center px-4">
+            <div className="w-full max-w-[652px] p-2.5">
+              <div className="flex flex-col gap-2">
+                {gateMessage ? (
+                  <div className="flex items-center justify-between gap-2 rounded-sm border border-secondary/40 bg-muted/40 p-2 text-[10px] tracking-wide text-foreground uppercase">
+                    <span>{gateMessage}</span>
+                    <Button onClick={requestContinuePipeline} size="sm" type="button">
+                      Continue
+                    </Button>
+                  </div>
+                ) : null}
+
+                {promptContextLabel ? (
+                  <div className="text-[10px] tracking-widest text-muted-foreground uppercase">
+                    {promptContextLabel}
+                  </div>
+                ) : null}
+
+                <div className="relative">
+                  <Textarea
+                    autoFocus={shouldAutoFocusPrompt}
+                    className="h-[117px] w-full resize-y border-none! bg-background pr-20 text-sm focus-visible:border-none! focus-visible:ring-0!"
+                    disabled={isGenerating}
+                    onChange={(event) => setPromptInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" || event.shiftKey) {
+                        return;
+                      }
+                      event.preventDefault();
+                      handlePromptSubmit();
+                    }}
+                    placeholder={promptPlaceholder}
+                    value={promptInput}
+                  />
+                  <div className="absolute right-[-40px] bottom-[2px]">
+                    <Button
+                      className="size-9 rounded-full p-0"
+                      disabled={isGenerating}
+                      onClick={handlePromptSubmit}
+                      size="sm"
+                      type="button"
+                    >
+                      <SendHorizontal className="size-4" />
+                      <span className="sr-only">Submit prompt</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CockpitBottomCenterSlot>
         <CockpitTopLeftSlot>
           <TypingEffect>
             <p className="text-xs text-highlight">{topLeftLabel}</p>
