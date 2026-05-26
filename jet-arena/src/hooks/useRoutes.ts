@@ -44,6 +44,7 @@ export const apiRoutes = {
   fighters: `${API_BASE}/fighters`,
   fighter: (id: number) => `${API_BASE}/fighters/${encodeURIComponent(String(id))}`,
   battlefields: `${API_BASE}/battlefields`,
+  battlefield: (id: number) => `${API_BASE}/battlefields/${encodeURIComponent(String(id))}`,
   battlefieldSession: `${API_BASE}/battlefields/session`,
   fighterAgentVersions: (id: number) =>
     `${API_BASE}/fighters/${encodeURIComponent(String(id))}/agent-versions`,

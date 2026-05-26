@@ -904,3 +904,9 @@ export const syncBattlefieldPipelineState = async (battlefieldKey: string) => {
 
   sendToBattlefield(battlefieldKey, await buildSyncMessage(state));
 };
+
+export const clearPipelineStateForBattlefield = (battlefieldKey: string) => {
+  clearPendingForBattlefield(battlefieldKey);
+  stateByBattlefield.delete(battlefieldKey);
+  tenantByBattlefield.delete(battlefieldKey);
+};

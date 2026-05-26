@@ -137,6 +137,18 @@ export const saveBattlefieldName = async (battlefieldId: number, name: string | 
     .where(eq(battlefields.id, battlefieldId));
 };
 
+export const deleteOwnedBattlefield = async (
+  battlefieldId: number,
+  userId: string,
+): Promise<boolean> => {
+  const deleted = await db
+    .delete(battlefields)
+    .where(and(eq(battlefields.id, battlefieldId), eq(battlefields.userId, userId)))
+    .returning({ id: battlefields.id });
+
+  return deleted.length > 0;
+};
+
 const billingKinds = ["charge", "fee"] as const;
 
 export const getVerifiedUsageBillingSections = async ({

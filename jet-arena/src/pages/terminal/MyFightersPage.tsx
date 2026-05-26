@@ -26,6 +26,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { routes } from "../../hooks/useRoutes";
 import {
+  deleteBattlefield,
   deleteFighter,
   fetchBattlefieldPipelineState,
   fetchMyBattlefields,
@@ -35,7 +36,7 @@ import {
 } from "../../lib/api";
 import type { BattlefieldListItem, SimulationListItem } from "../../lib/api/types";
 import { cn } from "../../lib/utils";
-import { BattlefieldCard } from "./components/BattlefieldCard";
+import { BattlefieldCard, resolveBattlefieldName } from "./components/BattlefieldCard";
 import { FighterBadgeCard } from "./components/FighterBadgeCard";
 import { SimulationPreviewCard } from "./components/SimulationPreviewCard";
 
@@ -80,6 +81,10 @@ export const MyFightersPage = () => {
 
   const [isLoadingBattlefields, setIsLoadingBattlefields] = useState(false);
   const [battlefieldsError, setBattlefieldsError] = useState<string | null>(null);
+  const [deleteBattlefieldError, setDeleteBattlefieldError] = useState<string | null>(null);
+  const [deletingBattlefieldId, setDeletingBattlefieldId] = useState<number | null>(null);
+  const [confirmDeleteBattlefieldId, setConfirmDeleteBattlefieldId] = useState<number | null>(null);
+  const [exitingBattlefieldIds, setExitingBattlefieldIds] = useState<number[]>([]);
   const [battlefields, setBattlefields] = useState<BattlefieldListItem[]>([]);
 
   const [simulations, setSimulations] = useState<SimulationListItem[]>([]);
@@ -257,6 +262,67 @@ export const MyFightersPage = () => {
     navigate(routes.battlefieldWizard(String(battlefieldId)));
   };
 
+  const promptDeleteBattlefield = useCallback(
+    (battlefieldId: number) => {
+      if (deletingBattlefieldId !== null) {
+        return;
+      }
+      setDeleteBattlefieldError(null);
+      setConfirmDeleteBattlefieldId(battlefieldId);
+    },
+    [deletingBattlefieldId],
+  );
+
+  const confirmDeleteBattlefield = useCallback(async () => {
+    const battlefieldId = confirmDeleteBattlefieldId;
+    if (battlefieldId === null || deletingBattlefieldId !== null) {
+      return;
+    }
+
+    const battlefield = battlefields.find((item) => item.id === battlefieldId);
+    if (!battlefield) {
+      setConfirmDeleteBattlefieldId(null);
+      return;
+    }
+
+    setDeleteBattlefieldError(null);
+    setDeletingBattlefieldId(battlefieldId);
+    setConfirmDeleteBattlefieldId(null);
+    setExitingBattlefieldIds((current) =>
+      current.includes(battlefieldId) ? current : [...current, battlefieldId],
+    );
+
+    try {
+      await deleteBattlefield(battlefieldId);
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, deleteSlideDurationMs);
+      });
+      setBattlefields((current) => current.filter((item) => item.id !== battlefieldId));
+    } catch (error) {
+      setExitingBattlefieldIds((current) => current.filter((id) => id !== battlefieldId));
+      setDeleteBattlefieldError(
+        error instanceof Error ? error.message : "Unable to delete battlefield right now.",
+      );
+    } finally {
+      setDeletingBattlefieldId((current) => (current === battlefieldId ? null : current));
+      setExitingBattlefieldIds((current) => current.filter((id) => id !== battlefieldId));
+    }
+  }, [battlefields, confirmDeleteBattlefieldId, deletingBattlefieldId]);
+
+  const cancelDeleteBattlefield = useCallback(() => {
+    if (deletingBattlefieldId !== null) {
+      return;
+    }
+    setConfirmDeleteBattlefieldId(null);
+  }, [deletingBattlefieldId]);
+
+  const handleDeleteBattlefield = useCallback(
+    (battlefieldId: number) => {
+      promptDeleteBattlefield(battlefieldId);
+    },
+    [promptDeleteBattlefield],
+  );
+
   const fighterPendingDelete =
     confirmDeleteFighterId === null
       ? null
@@ -267,6 +333,13 @@ export const MyFightersPage = () => {
         characterDescription: fighterPendingDelete.characterDescription,
         slug: fighterPendingDelete.slug,
       })
+    : null;
+  const battlefieldPendingDelete =
+    confirmDeleteBattlefieldId === null
+      ? null
+      : (battlefields.find((item) => item.id === confirmDeleteBattlefieldId) ?? null);
+  const battlefieldPendingDeleteName = battlefieldPendingDelete
+    ? resolveBattlefieldName(battlefieldPendingDelete)
     : null;
 
   useEffect(() => {
@@ -341,7 +414,7 @@ export const MyFightersPage = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      disabled={isLoadingBattlefields}
+                      disabled={isLoadingBattlefields || deletingBattlefieldId !== null}
                       onClick={() => void loadBattlefields()}
                       type="button"
                     >
@@ -445,7 +518,7 @@ export const MyFightersPage = () => {
                       <section
                         className={cn(
                           "scroll-mt-6 transition-all duration-300 ease-out",
-                          exitingFighterIds.includes(fighter.id) && "-translate-x-[110%] opacity-0",
+                          exitingFighterIds.includes(fighter.id) && "translate-x-[-110%] opacity-0",
                         )}
                         key={fighter.id}
                       >
@@ -475,6 +548,14 @@ export const MyFightersPage = () => {
                       >
                         Retry
                       </Button>
+                    </CardContent>
+                  </Card>
+                ) : null}
+
+                {deleteBattlefieldError ? (
+                  <Card>
+                    <CardContent className="space-y-3 p-5">
+                      <p className="text-sm text-destructive">{deleteBattlefieldError}</p>
                     </CardContent>
                   </Card>
                 ) : null}
@@ -511,9 +592,18 @@ export const MyFightersPage = () => {
                 {!isLoadingBattlefields && battlefields.length > 0 ? (
                   <section className="space-y-3">
                     {battlefields.map((battlefield) => (
-                      <section className="scroll-mt-6" key={battlefield.id}>
+                      <section
+                        className={cn(
+                          "scroll-mt-6 transition-all duration-300 ease-out",
+                          exitingBattlefieldIds.includes(battlefield.id) &&
+                            "translate-x-[-110%] opacity-0",
+                        )}
+                        key={battlefield.id}
+                      >
                         <BattlefieldCard
                           battlefield={battlefield}
+                          isDeleting={deletingBattlefieldId === battlefield.id}
+                          onDelete={handleDeleteBattlefield}
                           onOpenWizard={openBattlefieldWizard}
                         />
                       </section>
@@ -623,6 +713,44 @@ export const MyFightersPage = () => {
               className="border-destructive/70 text-destructive hover:border-destructive hover:bg-destructive/10"
               disabled={deletingFighterId !== null}
               onClick={() => void confirmDeleteFighter()}
+              type="button"
+              variant="outline"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) {
+            cancelDeleteBattlefield();
+          }
+        }}
+        open={confirmDeleteBattlefieldId !== null}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Battlefield</DialogTitle>
+            <DialogDescription>
+              {battlefieldPendingDeleteName
+                ? `Delete ${battlefieldPendingDeleteName}? This action permanently removes this battlefield and generated assets.`
+                : "This action permanently removes this battlefield and generated assets."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              disabled={deletingBattlefieldId !== null}
+              onClick={cancelDeleteBattlefield}
+              type="button"
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button
+              className="border-destructive/70 text-destructive hover:border-destructive hover:bg-destructive/10"
+              disabled={deletingBattlefieldId !== null}
+              onClick={() => void confirmDeleteBattlefield()}
               type="button"
               variant="outline"
             >
