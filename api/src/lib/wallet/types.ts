@@ -4,6 +4,8 @@ export type WalletLedgerKind =
   | "topup"
   | "charge"
   | "fee"
+  | "fighter_transfer_in"
+  | "fighter_transfer_out"
   | "withdrawal_request"
   | "withdrawal_broadcast"
   | "withdrawal_confirm"

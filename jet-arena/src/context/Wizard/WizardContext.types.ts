@@ -51,6 +51,10 @@ export type ServerMessage =
       outputs: Partial<Record<SectionId, SectionOutput>>;
       histories: Partial<Record<SectionId, ChatMessage[]>>;
       gateMessage: string | null;
+      fighterLedger: {
+        isReady: boolean;
+        balanceMist: string;
+      };
     }
   | {
       type: "pipeline:cost-update";
@@ -76,6 +80,8 @@ export type WizardContextType = {
   outputs: Partial<Record<SectionId, SectionOutput>>;
   sectionHistories: Partial<Record<SectionId, ChatMessage[]>>;
   gateMessage: string | null;
+  fighterLedgerReady: boolean;
+  fighterBalanceMist: string;
   promptInput: string;
   errorMessage: string | null;
   connectionStatus: WebSocketConnectionStatus;

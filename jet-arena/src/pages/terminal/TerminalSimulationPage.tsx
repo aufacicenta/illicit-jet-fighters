@@ -193,7 +193,7 @@ export const TerminalSimulationPage = () => {
       <CockpitStatScreens>
         <CockpitTopCenterSlot>
           <RTLScrollEffect>
-            <p className="text-2xl font-pixel">
+            <p className="font-pixel text-2xl">
               Simulation Builder // Build your lineup slots, including duplicate fighters, then
               launch.
             </p>

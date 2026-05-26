@@ -330,6 +330,10 @@ const buildSyncMessage = async (state: BattlefieldPipelineState) => ({
   outputs: await sanitizeOutputs(state.outputs),
   histories: state.histories,
   gateMessage: state.gateMessage,
+  fighterLedger: {
+    isReady: false,
+    balanceMist: "0",
+  },
 });
 
 const persistSnapshot = async (

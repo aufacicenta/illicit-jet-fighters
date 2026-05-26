@@ -1,13 +1,19 @@
 import { and, db, desc, eq, lt, not, sql, walletLedgerEntries } from "@ijf/database";
 import { Elysia, t } from "elysia";
 
+import { getOwnedFighter } from "../../lib/fighter-access";
 import { requireBearerAuth } from "../../lib/require-bearer-auth";
 import { buildWalletBalanceSnapshot } from "../../lib/wallet/charge";
 import { getSuiUsdPrice } from "../../lib/wallet/fx";
 import {
+  appendFighterToUserTransfer,
+  appendSimulationSettlement,
+  appendUserToFighterTransfer,
   appendWithdrawalRefund,
   appendWithdrawalRequest,
+  getFighterBalanceMist,
   getWalletBalanceMist,
+  listFighterLedgerEntries,
   listWithdrawals,
 } from "../../lib/wallet/ledger";
 import { getWalletNetwork, getWalletNetworkEnv } from "../../lib/wallet/wallet-config";
@@ -128,6 +134,205 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       query: t.Object({
         limit: t.Optional(t.String()),
         cursor: t.Optional(t.String()),
+      }),
+    },
+  )
+  .get(
+    "/me/fighters/:fighterId/ledger",
+    async ({ params, query, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const network = getWalletNetwork();
+      const networkEnv = getWalletNetworkEnv();
+      const wallet = await ensureUserWallet({ userId: auth.userId, network });
+      const fighterId = Number.parseInt(params.fighterId, 10);
+      if (!Number.isInteger(fighterId) || fighterId <= 0) {
+        return status(400, "Invalid fighterId.");
+      }
+      const limit = Math.max(1, Math.min(200, Number.parseInt(query.limit ?? "50", 10)));
+      const ownedFighter = await getOwnedFighter(fighterId, auth.userId);
+      if (!ownedFighter) {
+        return status(404, "Fighter not found.");
+      }
+      try {
+        const entries = await listFighterLedgerEntries({ fighterId, limit });
+        const fighterBalanceMist = await getFighterBalanceMist(fighterId);
+        const walletBalanceMist = await getWalletBalanceMist(wallet.id, networkEnv);
+        return {
+          fighterId,
+          fighterBalanceMist: fighterBalanceMist.toString(),
+          walletBalanceMist: walletBalanceMist.toString(),
+          entries: entries.map((entry) => ({
+            ...entry,
+            createdAt: entry.createdAt.toISOString(),
+          })),
+        };
+      } catch (error) {
+        return status(
+          400,
+          error instanceof Error ? error.message : "Unable to fetch fighter ledger.",
+        );
+      }
+    },
+    {
+      params: t.Object({
+        fighterId: t.String(),
+      }),
+      query: t.Object({
+        limit: t.Optional(t.String()),
+      }),
+    },
+  )
+  .post(
+    "/me/fighters/:fighterId/transfer-in",
+    async ({ params, body, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const network = getWalletNetwork();
+      const networkEnv = getWalletNetworkEnv();
+      const wallet = await ensureUserWallet({ userId: auth.userId, network });
+      const fighterId = Number.parseInt(params.fighterId, 10);
+      if (!Number.isInteger(fighterId) || fighterId <= 0) {
+        return status(400, "Invalid fighterId.");
+      }
+      const amountMist = parseMist(body.amountMist);
+      if (!amountMist || amountMist <= 0n) {
+        return status(400, "amountMist must be a positive integer string.");
+      }
+      const suiUsd = await getSuiUsdPrice();
+      const fxNativePerUsd = MIST_PER_SUI / suiUsd;
+      try {
+        const transfer = await appendUserToFighterTransfer({
+          walletId: wallet.id,
+          userId: auth.userId,
+          fighterId,
+          networkEnv,
+          amountMist,
+          fxNativePerUsd,
+        });
+        return {
+          fighterId,
+          amountMist: amountMist.toString(),
+          correlationId: transfer.correlationId,
+          walletBalanceMist: transfer.walletBalanceMist.toString(),
+          fighterBalanceMist: transfer.fighterBalanceMist.toString(),
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Transfer failed.";
+        if (message.includes("not found")) {
+          return status(404, message);
+        }
+        if (message.includes("Insufficient")) {
+          return status(400, message);
+        }
+        return status(500, message);
+      }
+    },
+    {
+      params: t.Object({
+        fighterId: t.String(),
+      }),
+      body: t.Object({
+        amountMist: t.String(),
+      }),
+    },
+  )
+  .post(
+    "/me/fighters/:fighterId/transfer-out",
+    async ({ params, body, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const network = getWalletNetwork();
+      const networkEnv = getWalletNetworkEnv();
+      const wallet = await ensureUserWallet({ userId: auth.userId, network });
+      const fighterId = Number.parseInt(params.fighterId, 10);
+      if (!Number.isInteger(fighterId) || fighterId <= 0) {
+        return status(400, "Invalid fighterId.");
+      }
+      const amountMist = parseMist(body.amountMist);
+      if (!amountMist || amountMist <= 0n) {
+        return status(400, "amountMist must be a positive integer string.");
+      }
+      const suiUsd = await getSuiUsdPrice();
+      const fxNativePerUsd = MIST_PER_SUI / suiUsd;
+      try {
+        const transfer = await appendFighterToUserTransfer({
+          walletId: wallet.id,
+          userId: auth.userId,
+          fighterId,
+          networkEnv,
+          amountMist,
+          fxNativePerUsd,
+        });
+        return {
+          fighterId,
+          amountMist: amountMist.toString(),
+          correlationId: transfer.correlationId,
+          walletBalanceMist: transfer.walletBalanceMist.toString(),
+          fighterBalanceMist: transfer.fighterBalanceMist.toString(),
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Transfer failed.";
+        if (message.includes("not found")) {
+          return status(404, message);
+        }
+        if (message.includes("Insufficient")) {
+          return status(400, message);
+        }
+        return status(500, message);
+      }
+    },
+    {
+      params: t.Object({
+        fighterId: t.String(),
+      }),
+      body: t.Object({
+        amountMist: t.String(),
+      }),
+    },
+  )
+  .post(
+    "/me/fighters/settlement",
+    async ({ body, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const network = getWalletNetwork();
+      const networkEnv = getWalletNetworkEnv();
+      const wallet = await ensureUserWallet({ userId: auth.userId, network });
+      const amountMist = parseMist(body.amountMist);
+      if (!amountMist || amountMist <= 0n) {
+        return status(400, "amountMist must be a positive integer string.");
+      }
+      const suiUsd = await getSuiUsdPrice();
+      const fxNativePerUsd = MIST_PER_SUI / suiUsd;
+      try {
+        const settlement = await appendSimulationSettlement({
+          losingOwnerUserId: auth.userId,
+          losingOwnerWalletId: wallet.id,
+          losingFighterId: body.losingFighterId,
+          winningFighterId: body.winningFighterId,
+          networkEnv,
+          amountMist,
+          fxNativePerUsd,
+        });
+        return {
+          correlationId: settlement.correlationId,
+          amountMist: amountMist.toString(),
+          losingFighterId: body.losingFighterId,
+          winningFighterId: body.winningFighterId,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Settlement failed.";
+        if (message.includes("not found") || message.includes("valid fighters")) {
+          return status(404, message);
+        }
+        if (message.includes("Insufficient")) {
+          return status(400, message);
+        }
+        return status(500, message);
+      }
+    },
+    {
+      body: t.Object({
+        losingFighterId: t.Number(),
+        winningFighterId: t.Number(),
+        amountMist: t.String(),
       }),
     },
   )

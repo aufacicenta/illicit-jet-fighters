@@ -46,6 +46,7 @@ import {
 import { normalizeSpritesheetManifest } from "./spritesheet-manifest";
 import type { ChatMessage, FighterSectionId as SectionId, SectionOutput } from "./types";
 import { InsufficientBalanceError, requirePreflightBalance } from "./wallet";
+import { getFighterBalanceMist } from "./wallet/ledger";
 
 export type PipelineTenant = {
   userId: string;
@@ -383,6 +384,22 @@ export type ClientPipelineStateSnapshot = {
   outputs: Partial<Record<SectionId, SectionOutput>>;
   histories: Partial<Record<SectionId, ChatMessage[]>>;
   gateMessage: string | null;
+  fighterLedger: {
+    isReady: boolean;
+    balanceMist: string;
+  };
+};
+
+const resolveFighterLedgerSnapshot = async (fighterKey: string) => {
+  const tenant = tenantByFighter.get(fighterKey);
+  if (!tenant) {
+    return { isReady: false, balanceMist: "0" };
+  }
+  const balanceMist = await getFighterBalanceMist(tenant.fighterId);
+  return {
+    isReady: true,
+    balanceMist: balanceMist.toString(),
+  };
 };
 
 type FighterPipelinePreview = {
@@ -449,6 +466,7 @@ export const serializeClientPipelineState = async (
       outputs: {},
       histories: {},
       gateMessage: null,
+      fighterLedger: await resolveFighterLedgerSnapshot(fighterKey),
     };
   }
 
@@ -467,6 +485,7 @@ export const serializeClientPipelineState = async (
     outputs: await sanitizeOutputs(reconciledOutputs),
     histories: state.histories,
     gateMessage: state.gateMessage,
+    fighterLedger: await resolveFighterLedgerSnapshot(fighterKey),
   };
 };
 
@@ -534,7 +553,7 @@ const resetDownstream = (fighterKey: string, sectionId: SectionId, correlationId
   });
 };
 
-const buildSyncMessage = async (state: FighterPipelineState) => ({
+const buildSyncMessage = async (fighterKey: string, state: FighterPipelineState) => ({
   type: "pipeline:sync" as const,
   sectionStatuses: deriveSectionStatuses({
     outputs: state.outputs,
@@ -544,6 +563,7 @@ const buildSyncMessage = async (state: FighterPipelineState) => ({
   outputs: await sanitizeOutputs(state.outputs),
   histories: state.histories,
   gateMessage: state.gateMessage,
+  fighterLedger: await resolveFighterLedgerSnapshot(fighterKey),
 });
 
 export const syncPipelineState = async (fighterKey: string) => {
@@ -562,7 +582,7 @@ export const syncPipelineState = async (fighterKey: string) => {
       await persistSnapshot(fighterKey, state, tenant);
     }
 
-    sendToFighter(fighterKey, await buildSyncMessage(state));
+    sendToFighter(fighterKey, await buildSyncMessage(fighterKey, state));
   } catch (error) {
     logger.error("pipeline sync broadcast failed", {
       ...withContext(fighterKey),

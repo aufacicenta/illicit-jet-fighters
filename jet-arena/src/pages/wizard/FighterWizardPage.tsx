@@ -149,6 +149,24 @@ const WizardCostSummary = () => {
   );
 };
 
+const FighterLedgerSummary = ({ balanceMist }: { balanceMist: string }) => {
+  const normalizedMist = /^\d+$/.test(balanceMist) ? BigInt(balanceMist) : 0n;
+  const whole = normalizedMist / 1_000_000_000n;
+  const remainder = (normalizedMist % 1_000_000_000n).toString().padStart(9, "0");
+  const suiDisplay = `${whole.toString()}.${remainder.slice(0, 4)}`;
+  return (
+    <div className="rounded-sm border border-primary/50 bg-primary/10 px-3 py-2.5 text-right">
+      <p className="text-[10px] font-semibold tracking-[0.14em] text-primary/90 uppercase">
+        Fighter Balance
+      </p>
+      <p className="mt-1 text-2xl font-black tracking-tight text-primary">{suiDisplay} SUI</p>
+      <p className="mt-1 text-[10px] text-muted-foreground uppercase">
+        {normalizedMist.toString()} MIST
+      </p>
+    </div>
+  );
+};
+
 const WizardLayout = () => {
   const {
     sectionStatuses,
@@ -161,6 +179,8 @@ const WizardLayout = () => {
     requestContinuePipeline,
     setActiveSection,
     activeSectionId,
+    fighterLedgerReady,
+    fighterBalanceMist,
   } = useWizardContext();
   const navigate = useNavigate();
   const { setCurrentSectionLabel, clearCurrentSectionLabel } = useNavbarBreadcrumbContext();
@@ -367,6 +387,9 @@ const WizardLayout = () => {
               <Card className="border-0 bg-transparent">
                 <CardContent className="space-y-3">
                   <WizardCostSummary />
+                  {fighterLedgerReady ? (
+                    <FighterLedgerSummary balanceMist={fighterBalanceMist} />
+                  ) : null}
                   <div className="border-border/80 bg-card/70">
                     {sectionNavItems.map((item) => {
                       const status = isSectionId(item.id) ? sectionStatuses[item.id] : null;

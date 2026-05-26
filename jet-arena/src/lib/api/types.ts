@@ -50,6 +50,10 @@ export type PipelineStateSnapshot = {
   histories: Partial<Record<ApiSectionId, ChatMessage[]>>;
   gateMessage: string | null;
   briefing: string | null;
+  fighterLedger: {
+    isReady: boolean;
+    balanceMist: string;
+  };
 };
 
 export type FighterCostSnapshot = {

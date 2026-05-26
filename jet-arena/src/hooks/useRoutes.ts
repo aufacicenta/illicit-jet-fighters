@@ -74,6 +74,13 @@ export const apiRoutes = {
   refineSpecsheetImage: `${API_BASE}/generate/specsheet-image/refine`,
   walletMe: `${API_BASE}/wallet/me`,
   walletLedger: `${API_BASE}/wallet/me/ledger`,
+  walletFighterLedger: (fighterId: string) =>
+    `${API_BASE}/wallet/me/fighters/${encodeURIComponent(fighterId)}/ledger`,
+  walletFighterTransferIn: (fighterId: string) =>
+    `${API_BASE}/wallet/me/fighters/${encodeURIComponent(fighterId)}/transfer-in`,
+  walletFighterTransferOut: (fighterId: string) =>
+    `${API_BASE}/wallet/me/fighters/${encodeURIComponent(fighterId)}/transfer-out`,
+  walletFighterSettlement: `${API_BASE}/wallet/me/fighters/settlement`,
   walletWithdrawals: `${API_BASE}/wallet/me/withdrawals`,
   walletCancelWithdrawal: (groupId: string) =>
     `${API_BASE}/wallet/me/withdrawals/${encodeURIComponent(groupId)}/cancel`,

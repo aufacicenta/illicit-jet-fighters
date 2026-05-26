@@ -2,6 +2,7 @@ export * from "./api/battlefield-pipeline";
 export * from "./api/battlefields";
 export * from "./api/client";
 export * from "./api/costs";
+export * from "./api/fighter-ledger";
 export * from "./api/fighters";
 export * from "./api/generate";
 export * from "./api/pipeline";

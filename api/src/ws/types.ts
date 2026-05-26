@@ -23,6 +23,10 @@ export type ServerMessage =
       outputs: Partial<Record<SectionId, SectionOutput>>;
       histories: Partial<Record<SectionId, ChatMessage[]>>;
       gateMessage: string | null;
+      fighterLedger: {
+        isReady: boolean;
+        balanceMist: string;
+      };
     }
   | {
       type: "pipeline:cost-update";
