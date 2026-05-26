@@ -1,5 +1,4 @@
 import { parseFighterNameAndEpithet } from "@ijf/shared";
-import { getWalletCurrencyMetadata } from "@ijf/shared";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 
@@ -17,15 +16,15 @@ import {
 import { NavbarWalletTray } from "../../components/Navbar/NavbarWalletTray";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
-import { Skeleton } from "../../components/ui/skeleton";
 import { CostsContextController } from "../../context/Costs/CostsContextController";
-import { useCostsContext } from "../../context/Costs/useCostsContext";
+import { FighterBalanceContextController } from "../../context/FighterBalance/FighterBalanceContextController";
+import { useFighterBalanceContext } from "../../context/FighterBalance/useFighterBalanceContext";
 import { useNavbarBreadcrumbContext } from "../../context/NavbarBreadcrumb/useNavbarBreadcrumbContext";
-import { useWalletContext } from "../../context/Wallet/useWalletContext";
 import { useWizardContext } from "../../context/Wizard/useWizardContext";
 import type { SectionId, SectionStatus } from "../../context/Wizard/WizardContext.types";
 import { WizardContextController } from "../../context/Wizard/WizardContextController";
 import { routes } from "../../hooks/useRoutes";
+import { FighterLedgerSummary } from "./FighterLedgerSummary";
 import { ProgressHud } from "./ProgressHud";
 import { AgentCodeSection } from "./sections/AgentCodeSection";
 import { DescriptionSection } from "./sections/DescriptionSection";
@@ -35,6 +34,7 @@ import { SpritesheetSection } from "./sections/SpritesheetSection";
 import { StrikecraftSpecsheetSection } from "./sections/StrikecraftSpecsheetSection";
 import { StrikecraftSpriteSection } from "./sections/StrikecraftSpriteSection";
 import { WizardCardTitle } from "./sections/WizardCardTitle";
+import { WizardCostSummary } from "./WizardCostSummary";
 
 type WizardPhase = "phase-one" | "phase-two";
 type SectionAnchorId = SectionId | "original-briefing";
@@ -131,57 +131,6 @@ const OriginalBriefingCard = ({ originalBriefing }: { originalBriefing: string |
   </Card>
 );
 
-const WizardCostSummary = () => {
-  const { errorMessage, formatUsd, isLoading, totalCostUsd } = useCostsContext();
-
-  return (
-    <div className="rounded-sm border border-primary/50 bg-primary/10 px-3 py-2.5 text-right">
-      <p className="text-[10px] font-semibold tracking-[0.14em] text-primary/90 uppercase">
-        Total LLM Spend
-      </p>
-      {isLoading ? (
-        <Skeleton className="mt-2 h-7 w-24" />
-      ) : (
-        <p className="mt-1 text-2xl font-black tracking-tight text-primary">
-          {formatUsd(totalCostUsd)}
-        </p>
-      )}
-      {errorMessage ? <p className="mt-1 text-[10px] text-destructive">{errorMessage}</p> : null}
-    </div>
-  );
-};
-
-const FighterLedgerSummary = ({
-  balanceNative,
-  nativeDecimals,
-  symbol,
-  nativeSymbol,
-}: {
-  balanceNative: string;
-  nativeDecimals: number;
-  symbol: string;
-  nativeSymbol: string;
-}) => {
-  const normalizedNative = /^\d+$/.test(balanceNative) ? BigInt(balanceNative) : 0n;
-  const nativeFactor = 10n ** BigInt(nativeDecimals);
-  const whole = normalizedNative / nativeFactor;
-  const remainder = (normalizedNative % nativeFactor).toString().padStart(nativeDecimals, "0");
-  const tokenDisplay = `${whole.toString()}.${remainder.slice(0, 4)}`;
-  return (
-    <div className="rounded-sm border border-primary/50 bg-primary/10 px-3 py-2.5 text-right">
-      <p className="text-[10px] font-semibold tracking-[0.14em] text-primary/90 uppercase">
-        Fighter Balance
-      </p>
-      <p className="mt-1 text-2xl font-black tracking-tight text-primary">
-        {tokenDisplay} {symbol}
-      </p>
-      <p className="mt-1 text-[10px] text-muted-foreground uppercase">
-        {normalizedNative.toString()} {nativeSymbol}
-      </p>
-    </div>
-  );
-};
-
 const WizardLayout = () => {
   const {
     sectionStatuses,
@@ -194,10 +143,8 @@ const WizardLayout = () => {
     requestContinuePipeline,
     setActiveSection,
     activeSectionId,
-    fighterLedgerReady,
-    fighterBalanceNative,
   } = useWizardContext();
-  const { wallet } = useWalletContext();
+  const { isReady: fighterLedgerReady } = useFighterBalanceContext();
   const navigate = useNavigate();
   const { setCurrentSectionLabel, clearCurrentSectionLabel } = useNavbarBreadcrumbContext();
   const contentContainerRef = useRef<HTMLDivElement | null>(null);
@@ -304,8 +251,6 @@ const WizardLayout = () => {
   const topLeftLabel = "Greetings, Commander.";
   const statusLabel = `Systems ${connectionStatus === "open" ? "Operational" : "degraded"}`;
   const centerTitle = `${name}${epithet ? ` // ${epithet}` : ""}`;
-  const walletCurrency = wallet?.currency ?? getWalletCurrencyMetadata(wallet?.network ?? "sui");
-
   const navigateToSection = (sectionId: SectionAnchorId) => {
     if (isSectionId(sectionId)) {
       setActiveSection(sectionId);
@@ -404,14 +349,7 @@ const WizardLayout = () => {
               <Card className="border-0 bg-transparent">
                 <CardContent className="space-y-3">
                   <WizardCostSummary />
-                  {fighterLedgerReady ? (
-                    <FighterLedgerSummary
-                      balanceNative={fighterBalanceNative}
-                      nativeDecimals={walletCurrency.nativeDecimals}
-                      nativeSymbol={walletCurrency.nativeSymbol}
-                      symbol={walletCurrency.symbol}
-                    />
-                  ) : null}
+                  {fighterLedgerReady ? <FighterLedgerSummary /> : null}
                   <div className="border-border/80 bg-card/70">
                     {sectionNavItems.map((item) => {
                       const status = isSectionId(item.id) ? sectionStatuses[item.id] : null;
@@ -472,7 +410,9 @@ export const FighterWizardPage = () => {
   return (
     <WizardContextController fighterId={fighterId} key={fighterId}>
       <CostsContextController fighterId={fighterId}>
-        <WizardLayout />
+        <FighterBalanceContextController fighterId={fighterId}>
+          <WizardLayout />
+        </FighterBalanceContextController>
       </CostsContextController>
     </WizardContextController>
   );

@@ -80,8 +80,6 @@ export type WizardContextType = {
   outputs: Partial<Record<SectionId, SectionOutput>>;
   sectionHistories: Partial<Record<SectionId, ChatMessage[]>>;
   gateMessage: string | null;
-  fighterLedgerReady: boolean;
-  fighterBalanceNative: string;
   promptInput: string;
   errorMessage: string | null;
   connectionStatus: WebSocketConnectionStatus;

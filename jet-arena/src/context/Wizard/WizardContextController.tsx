@@ -18,6 +18,7 @@ import {
 } from "../../lib/api";
 import { useAuth } from "../Auth/useAuth";
 import { getWizardCostUpdateEventName } from "../Costs/CostsContext.types";
+import { getFighterBalanceUpdateEventName } from "../FighterBalance/FighterBalanceContext.types";
 import { WizardContext } from "./WizardContext";
 import type {
   SectionId,
@@ -231,8 +232,6 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
   );
   const [originalBriefing, setOriginalBriefing] = useState<string | null>(null);
   const [gateMessage, setGateMessage] = useState<string | null>(null);
-  const [fighterLedgerReady, setFighterLedgerReady] = useState(false);
-  const [fighterBalanceNative, setFighterBalanceNative] = useState("0");
   const [isContinuingPipeline, setIsContinuingPipeline] = useState(false);
   const [promptInput, setPromptInput] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -273,8 +272,6 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       setErrorMessage(null);
       setPromptInput("");
       setOriginalBriefing(null);
-      setFighterLedgerReady(false);
-      setFighterBalanceNative("0");
 
       const bookmarkActive = loadBookmark();
 
@@ -297,8 +294,15 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
           setSectionHistories(snapshot.histories ?? {});
           setOriginalBriefing(snapshot.briefing ?? null);
           setGateMessage(snapshot.gateMessage ?? null);
-          setFighterLedgerReady(snapshot.fighterLedger?.isReady ?? false);
-          setFighterBalanceNative(snapshot.fighterLedger?.balanceNative ?? "0");
+          window.dispatchEvent(
+            new CustomEvent(getFighterBalanceUpdateEventName(fighterId), {
+              detail: {
+                fighterId,
+                isReady: snapshot.fighterLedger?.isReady ?? false,
+                balanceNative: snapshot.fighterLedger?.balanceNative ?? "0",
+              },
+            }),
+          );
           setActiveSectionId(
             bookmarkActive ?? resolveActiveSection(snapshot.sectionStatuses, mappedOutputs),
           );
@@ -310,8 +314,15 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
         setSectionHistories({});
         setOriginalBriefing(null);
         setGateMessage(null);
-        setFighterLedgerReady(false);
-        setFighterBalanceNative("0");
+        window.dispatchEvent(
+          new CustomEvent(getFighterBalanceUpdateEventName(fighterId), {
+            detail: {
+              fighterId,
+              isReady: false,
+              balanceNative: "0",
+            },
+          }),
+        );
         setActiveSectionId(bookmarkActive ?? null);
       } catch {
         if (!cancelled) {
@@ -320,8 +331,15 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
           setSectionHistories({});
           setOriginalBriefing(null);
           setGateMessage(null);
-          setFighterLedgerReady(false);
-          setFighterBalanceNative("0");
+          window.dispatchEvent(
+            new CustomEvent(getFighterBalanceUpdateEventName(fighterId), {
+              detail: {
+                fighterId,
+                isReady: false,
+                balanceNative: "0",
+              },
+            }),
+          );
           setActiveSectionId(bookmarkActive ?? null);
           setErrorMessage("Unable to load pipeline state from server.");
         }
@@ -386,8 +404,15 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
         setOutputs(mergedOutputs);
         setSectionHistories(mergedHistories);
         setGateMessage(message.gateMessage);
-        setFighterLedgerReady(message.fighterLedger.isReady);
-        setFighterBalanceNative(message.fighterLedger.balanceNative);
+        window.dispatchEvent(
+          new CustomEvent(getFighterBalanceUpdateEventName(fighterId), {
+            detail: {
+              fighterId,
+              isReady: message.fighterLedger.isReady,
+              balanceNative: message.fighterLedger.balanceNative,
+            },
+          }),
+        );
         setActiveSectionId(resolveActiveSection(mergedStatuses, mergedOutputs));
         setErrorMessage(null);
         setIsContinuingPipeline(false);
@@ -805,8 +830,6 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       outputs,
       sectionHistories,
       gateMessage,
-      fighterLedgerReady,
-      fighterBalanceNative,
       isContinuingPipeline,
       promptInput,
       errorMessage,
@@ -830,8 +853,6 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       outputs,
       sectionHistories,
       gateMessage,
-      fighterLedgerReady,
-      fighterBalanceNative,
       isContinuingPipeline,
       promptInput,
       errorMessage,
