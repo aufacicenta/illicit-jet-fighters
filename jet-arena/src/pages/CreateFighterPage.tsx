@@ -1,3 +1,4 @@
+import { Crosshair } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -214,7 +215,11 @@ export const CreateFighterPage = () => {
           </CockpitTopLeftSlot>
           <CockpitTopCenterSlot>
             <RTLScrollEffect>
-              <p className="text-2xl font-pixel">Fighter Intake Terminal</p>
+              <p className="font-pixel flex items-center gap-4 text-2xl">
+                <Crosshair />
+                Fighter Intake Terminal
+                <Crosshair />
+              </p>
             </RTLScrollEffect>
           </CockpitTopCenterSlot>
           <CockpitTopRightSlot>
@@ -250,32 +255,34 @@ export const CreateFighterPage = () => {
         <section className="mx-auto flex max-w-xl flex-col items-center justify-center">
           {!settingStoryDismissed ? (
             <>
-              <p className="text-xl whitespace-pre-wrap">
-                {settingStorySegments.map((segment, index) => {
-                  const charsBeforeSegment = settingStorySegments
-                    .slice(0, index)
-                    .reduce((length, priorSegment) => length + priorSegment.text.length, 0);
-                  const visibleSegmentChars = Math.max(
-                    0,
-                    Math.min(segment.text.length, visibleStoryChars - charsBeforeSegment),
-                  );
+              <div className="flex flex-col justify-center bg-[url('/cockpit-center-frame.svg')] bg-contain bg-center bg-no-repeat p-[30%] md:h-[50vh] md:w-[50vw]">
+                <p className="font-pixel text-xl whitespace-pre-wrap text-highlight">
+                  {settingStorySegments.map((segment, index) => {
+                    const charsBeforeSegment = settingStorySegments
+                      .slice(0, index)
+                      .reduce((length, priorSegment) => length + priorSegment.text.length, 0);
+                    const visibleSegmentChars = Math.max(
+                      0,
+                      Math.min(segment.text.length, visibleStoryChars - charsBeforeSegment),
+                    );
 
-                  if (visibleSegmentChars <= 0) {
-                    return null;
-                  }
+                    if (visibleSegmentChars <= 0) {
+                      return null;
+                    }
 
-                  return (
-                    <span className={segment.className} key={`${segment.text}-${index}`}>
-                      {segment.text.slice(0, visibleSegmentChars)}
+                    return (
+                      <span className={segment.className} key={`${segment.text}-${index}`}>
+                        {segment.text.slice(0, visibleSegmentChars)}
+                      </span>
+                    );
+                  })}
+                  {visibleStoryChars < settingStoryTextLength ? (
+                    <span aria-hidden className="ml-0.5 animate-pulse text-[#fecaca]">
+                      ▋
                     </span>
-                  );
-                })}
-                {visibleStoryChars < settingStoryTextLength ? (
-                  <span aria-hidden className="ml-0.5 animate-pulse text-[#fecaca]">
-                    ▋
-                  </span>
-                ) : null}
-              </p>
+                  ) : null}
+                </p>
+              </div>
               {storyFinished && (
                 <div className="mt-4 flex shrink-0 items-center gap-2 pt-10">
                   <Checkbox

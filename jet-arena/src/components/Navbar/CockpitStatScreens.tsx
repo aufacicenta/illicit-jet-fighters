@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import {
   Children,
   cloneElement,
@@ -254,6 +254,16 @@ const RTLScrollEffectController = ({ children }: { children: ReactNode }) => {
 
 export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
   const customSlots = useMemo(() => resolveCockpitSlots(children), [children]);
+  const cockpitBottomCenterMaskStyle: CSSProperties = {
+    WebkitMaskImage: "url('/cockpit-bottom-center-box.svg')",
+    WebkitMaskPosition: "center",
+    WebkitMaskRepeat: "no-repeat",
+    WebkitMaskSize: "100% 100%",
+    maskImage: "url('/cockpit-bottom-center-box.svg')",
+    maskPosition: "center",
+    maskRepeat: "no-repeat",
+    maskSize: "100% 100%",
+  };
 
   return (
     <>
@@ -314,10 +324,32 @@ export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
         )}
         {customSlots.bottomCenter !== undefined ? (
           <div
-            className="cockpit-panel-slide-up mb-[21px] flex h-[136px] w-[797px] items-center justify-center overflow-hidden bg-[url('/cockpit-bottom-center-box.png')] bg-center bg-no-repeat px-6 py-4 text-center"
+            className="cockpit-panel-slide-up relative mb-[21px] flex h-[136px] w-[797px] items-center justify-center overflow-hidden px-6 py-4 text-center"
             id="cockpit-stats-bottom-center-panel"
           >
-            {customSlots.bottomCenter}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-0 bg-[#a9480e]"
+              style={cockpitBottomCenterMaskStyle}
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-1 opacity-80 blur-[1.5px]"
+              style={{
+                ...cockpitBottomCenterMaskStyle,
+                background:
+                  "conic-gradient(from var(--border-angle), #ffd47a, #ff7a18, #ff4500, #ffd47a)",
+                animation: "cockpit-border-rotate 3s linear infinite",
+              }}
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-[2px] z-2 bg-[#2a070d]"
+              style={cockpitBottomCenterMaskStyle}
+            />
+            <div className="relative z-10 flex h-full w-full items-center justify-center">
+              {customSlots.bottomCenter}
+            </div>
           </div>
         ) : (
           <div aria-hidden className="w-[797px]" />

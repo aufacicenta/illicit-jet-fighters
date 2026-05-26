@@ -49,13 +49,13 @@ export const PromptBar = ({
   }, [onSubmit, wizardContext]);
 
   return (
-    <div className="pointer-events-auto absolute top-[5px] right-0 left-0 z-20 flex justify-center px-4">
+    <div className="pointer-events-auto flex justify-center px-4 w-full">
       <div className="w-full max-w-[652px] p-2.5">
         <div className="flex flex-col gap-2">
           <div className="relative">
             <Textarea
               autoFocus={autoFocus}
-              className="h-[116px] w-full resize-y border-none! bg-background text-sm focus-visible:border-none! focus-visible:ring-0!"
+              className="h-[116px] w-full resize-y border-none! bg-transparent text-sm focus-visible:border-none! focus-visible:ring-0!"
               disabled={isDisabled}
               onChange={(event) => {
                 if (onChange) {

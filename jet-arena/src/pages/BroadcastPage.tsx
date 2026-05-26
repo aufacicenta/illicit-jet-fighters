@@ -204,7 +204,7 @@ const BroadcastPageContent = () => {
         </CockpitTopLeftSlot>
         <CockpitTopCenterSlot>
           <RTLScrollEffect>
-            <p className="text-2xl font-pixel">{centerTitle}</p>
+            <p className="font-pixel text-2xl">{centerTitle}</p>
           </RTLScrollEffect>
         </CockpitTopCenterSlot>
         <CockpitTopRightSlot>
