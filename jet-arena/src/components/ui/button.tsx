@@ -22,6 +22,7 @@ const buttonVariants = cva(
           "group relative overflow-hidden border-0 bg-transparent font-bold tracking-wide text-foreground active:scale-[0.98]",
       },
       size: {
+        xs: "p-1 text-[9px]",
         default: "h-10 px-4 py-2",
         sm: "h-9 px-3",
         lg: "h-11 px-8",

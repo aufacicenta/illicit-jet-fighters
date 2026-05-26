@@ -1,14 +1,8 @@
+import { safeNativeBigInt } from "./nativeAmount";
+
 type FormatTokenAmountFromNativeOptions = {
   fractionDigits?: number;
   trimTrailingZeros?: boolean;
-};
-
-const toNativeBigInt = (nativeAmount: bigint | string) => {
-  if (typeof nativeAmount === "bigint") {
-    return nativeAmount >= 0n ? nativeAmount : 0n;
-  }
-
-  return /^\d+$/.test(nativeAmount) ? BigInt(nativeAmount) : 0n;
 };
 
 export const formatTokenAmountFromNative = (
@@ -16,7 +10,7 @@ export const formatTokenAmountFromNative = (
   nativeDecimals: number,
   { fractionDigits = 4, trimTrailingZeros = false }: FormatTokenAmountFromNativeOptions = {},
 ) => {
-  const normalizedNative = toNativeBigInt(nativeAmount);
+  const normalizedNative = safeNativeBigInt(nativeAmount);
   const safeNativeDecimals =
     Number.isInteger(nativeDecimals) && nativeDecimals > 0 ? nativeDecimals : 0;
   if (safeNativeDecimals === 0) {

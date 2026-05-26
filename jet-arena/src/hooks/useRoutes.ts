@@ -32,6 +32,8 @@ export const routes = {
   fighterWizard: (id: string) => `/wizard/fighter/${id}`,
   battlefieldWizard: (id: string) => `/wizard/battlefield/${id}`,
   terminalFighters: () => `/terminal/fighters`,
+  terminalFighterBalance: (fighterId: string) =>
+    `/terminal/fighters/${encodeURIComponent(fighterId)}/balance`,
   terminalWallet: () => `/terminal/wallet`,
   /** Deprecated singular route kept only for backward-compatible redirects. */
   terminalSimulation: () => `/terminal/simulation`,

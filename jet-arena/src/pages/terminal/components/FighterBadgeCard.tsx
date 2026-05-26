@@ -96,7 +96,7 @@ export const FighterBadgeCard = ({
                 hasSpecsheetImage ? `${displayName} specsheet image` : "Specsheet pending"
               }
               className={cn(
-                "h-[350px] border-r border-border bg-muted/30 bg-cover bg-center",
+                "h-[453px] border-r border-border bg-muted/30 bg-cover bg-center",
                 !hasSpecsheetImage && "flex items-center justify-center px-2 text-center",
               )}
               style={

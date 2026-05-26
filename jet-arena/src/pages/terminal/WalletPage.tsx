@@ -20,6 +20,7 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
 import { useWalletContext } from "../../context/Wallet/useWalletContext";
 import { formatTokenAmountFromNative } from "../../lib/formatTokenAmountFromNative";
+import { parseTokenAmountToNative } from "../../lib/nativeAmount";
 import { wizardCardHeaderClassName } from "../wizard/sections/SectionStatusBadge";
 import { WizardCardTitle } from "../wizard/sections/WizardCardTitle";
 
@@ -98,12 +99,11 @@ export const WalletPage = () => {
 
     try {
       setFormError(null);
-      const parsed = Number.parseFloat(amountSui);
-      if (!Number.isFinite(parsed) || parsed <= 0) {
+      const amountNative = parseTokenAmountToNative(amountSui, walletCurrency.nativeDecimals);
+      if (!amountNative || amountNative <= 0n) {
         setFormError(`Enter a valid ${walletCurrency.symbol} amount.`);
         return;
       }
-      const amountNative = BigInt(Math.floor(parsed * 10 ** walletCurrency.nativeDecimals));
       await submitWithdrawal({
         targetAddress: targetAddress.trim(),
         amountNative: amountNative.toString(),

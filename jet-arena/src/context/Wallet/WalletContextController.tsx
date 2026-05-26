@@ -14,6 +14,7 @@ import {
   fetchWalletWithdrawals,
   postWalletWithdrawal,
 } from "../../lib/api";
+import { safeNativeBigInt } from "../../lib/nativeAmount";
 import { useAuth } from "../Auth/useAuth";
 import { WalletContext } from "./WalletContext";
 import type {
@@ -42,7 +43,7 @@ const parseWalletSnapshot = (snapshot: {
   network: snapshot.network,
   currency: snapshot.currency ?? getWalletCurrencyMetadata(snapshot.network),
   networkEnv: snapshot.networkEnv,
-  balanceNative: BigInt(snapshot.balanceNative),
+  balanceNative: safeNativeBigInt(snapshot.balanceNative),
   balanceUsd: Number.parseFloat(snapshot.balanceUsd),
   fxNativePerUsd: Number.parseFloat(snapshot.fxNativePerUsd),
 });
@@ -112,7 +113,7 @@ export const WalletContextController = ({ children }: WalletContextControllerPro
             network: "sui",
             currency: getWalletCurrencyMetadata("sui"),
             networkEnv: message.networkEnv,
-            balanceNative: BigInt(message.balanceNative),
+            balanceNative: safeNativeBigInt(message.balanceNative),
             balanceUsd: Number.parseFloat(message.balanceUsd),
             fxNativePerUsd: Number.parseFloat(message.fxNativePerUsd),
           };
@@ -121,7 +122,7 @@ export const WalletContextController = ({ children }: WalletContextControllerPro
           ...current,
           walletId: message.walletId,
           networkEnv: message.networkEnv,
-          balanceNative: BigInt(message.balanceNative),
+          balanceNative: safeNativeBigInt(message.balanceNative),
           balanceUsd: Number.parseFloat(message.balanceUsd),
           fxNativePerUsd: Number.parseFloat(message.fxNativePerUsd),
         };
@@ -134,7 +135,7 @@ export const WalletContextController = ({ children }: WalletContextControllerPro
     if (message.type === "wallet:topup-detected") {
       setLastTopupHighlight({
         txHash: message.txHash,
-        amountNative: BigInt(message.amountNative),
+        amountNative: safeNativeBigInt(message.amountNative),
         expiresAt: Date.now() + 4_000,
       });
       void refreshRef.current();

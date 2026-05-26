@@ -1,16 +1,20 @@
 import { getWalletCurrencyMetadata } from "@ijf/shared";
+import { Link } from "react-router-dom";
 
+import { Button } from "../../components/ui/button";
 import { useFighterBalanceContext } from "../../context/FighterBalance/useFighterBalanceContext";
 import { useWalletContext } from "../../context/Wallet/useWalletContext";
+import { routes } from "../../hooks/useRoutes";
 import { formatTokenAmountFromNative } from "../../lib/formatTokenAmountFromNative";
 import { formatUsdAndNativeEquivalent } from "../../lib/formatUsdAndNativeEquivalent";
+import { safeNativeBigInt } from "../../lib/nativeAmount";
 
 export const FighterLedgerSummary = () => {
-  const { balanceNative } = useFighterBalanceContext();
+  const { balanceNative, fighterId } = useFighterBalanceContext();
   const { wallet } = useWalletContext();
   const walletCurrency = wallet?.currency ?? getWalletCurrencyMetadata(wallet?.network ?? "sui");
   const { nativeDecimals, nativeSymbol, symbol } = walletCurrency;
-  const normalizedNative = /^\d+$/.test(balanceNative) ? BigInt(balanceNative) : 0n;
+  const normalizedNative = safeNativeBigInt(balanceNative);
   const balanceUsdEquivalent =
     wallet && wallet.fxNativePerUsd > 0 ? Number(normalizedNative) / wallet.fxNativePerUsd : 0;
   const tokenDisplay = formatTokenAmountFromNative(normalizedNative, nativeDecimals, {
@@ -30,7 +34,14 @@ export const FighterLedgerSummary = () => {
       <p className="mt-1 text-2xl font-black tracking-tight text-primary">
         {tokenDisplay} {symbol}
       </p>
-      <p className="mt-1 text-[10px] text-muted-foreground uppercase">{equivalenceLabel}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <Button asChild size="xs" type="button" variant="ghost">
+            <Link to={routes.terminalFighterBalance(fighterId)}>Manage Balance</Link>
+          </Button>
+        </div>
+        <p className="mt-1 text-[10px] text-muted-foreground uppercase">{equivalenceLabel}</p>
+      </div>
     </div>
   );
 };

@@ -8,6 +8,7 @@ import { CreateBattlefieldPage } from "./pages/CreateBattlefieldPage";
 import { CreateFighterPage } from "./pages/CreateFighterPage";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
+import { FighterBalancePage } from "./pages/terminal/FighterBalancePage";
 import { MyFightersPage } from "./pages/terminal/MyFightersPage";
 import { TerminalSimulationPage } from "./pages/terminal/TerminalSimulationPage";
 import { WalletPage } from "./pages/terminal/WalletPage";
@@ -37,6 +38,10 @@ export const router = createBrowserRouter([
       {
         path: routes.terminalFighters(),
         element: <MyFightersPage />,
+      },
+      {
+        path: routes.terminalFighterBalance(":id"),
+        element: <FighterBalancePage />,
       },
       {
         path: routes.createFighter(),
