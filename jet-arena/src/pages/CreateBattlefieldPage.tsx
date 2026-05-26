@@ -1,6 +1,19 @@
+import { Crosshair } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import {
+  CockpitBottomCenterSlot,
+  CockpitBottomLeftSlot,
+  CockpitBottomRightSlot,
+  CockpitStatScreens,
+  CockpitTopCenterSlot,
+  CockpitTopLeftSlot,
+  CockpitTopRightSlot,
+  RTLScrollEffect,
+  TypingEffect,
+} from "../components/Navbar/CockpitStatScreens";
+import { NavbarWalletTray } from "../components/Navbar/NavbarWalletTray";
 import { useAuth } from "../context/Auth/useAuth";
 import { routes } from "../hooks/useRoutes";
 import { battlefieldCreatePost, startBattlefieldPipeline } from "../lib/api";
@@ -68,25 +81,57 @@ export const CreateBattlefieldPage = () => {
   }
 
   return (
-    <div className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex min-h-screen w-full max-w-4xl flex-col justify-center gap-6 px-4 md:px-6">
-      <section className="mx-auto flex w-full max-w-2xl flex-col items-center justify-center gap-4">
-        <p className="text-xs tracking-[0.25em] text-muted-foreground uppercase">
-          Battlefield Intake Terminal
-        </p>
-        <PromptBar
-          autoFocus
-          disabled={isSubmitting}
-          onChange={setBriefingPrompt}
-          onSubmit={onStartIntake}
-          placeholder="Describe your battlefield. Terrain, hazards, tactical mood..."
-          value={briefingPrompt}
-        />
-      </section>
-      {errorMessage ? (
-        <div className="mx-auto w-full max-w-2xl rounded-sm border border-destructive/40 bg-destructive/10 p-3 text-sm normal-case">
-          {errorMessage}
-        </div>
-      ) : null}
-    </div>
+    <>
+      <CockpitStatScreens>
+        <CockpitTopLeftSlot>
+          <TypingEffect>
+            <p className="text-xs text-highlight">Greetings, Commander.</p>
+          </TypingEffect>
+        </CockpitTopLeftSlot>
+        <CockpitTopCenterSlot>
+          <RTLScrollEffect>
+            <p className="font-pixel flex items-center gap-4 text-2xl">
+              <Crosshair />
+              Battlefield Intake Terminal
+              <Crosshair />
+            </p>
+          </RTLScrollEffect>
+        </CockpitTopCenterSlot>
+        <CockpitTopRightSlot>
+          <NavbarWalletTray variant="cockpit" />
+        </CockpitTopRightSlot>
+
+        <CockpitBottomLeftSlot>
+          <TypingEffect>
+            <p className="text-xs text-emerald-400">
+              {isSubmitting ? "Submitting intake..." : "Systems Operational"}
+            </p>
+          </TypingEffect>
+        </CockpitBottomLeftSlot>
+        <CockpitBottomCenterSlot>
+          <PromptBar
+            autoFocus
+            disabled={isSubmitting}
+            onChange={setBriefingPrompt}
+            onSubmit={onStartIntake}
+            placeholder="Describe your battlefield. Terrain, hazards, tactical mood..."
+            value={briefingPrompt}
+          />
+        </CockpitBottomCenterSlot>
+        <CockpitBottomRightSlot>
+          <TypingEffect>
+            <p className="text-xs text-highlight">Illicit Jet Fighters, 2026.</p>
+          </TypingEffect>
+        </CockpitBottomRightSlot>
+      </CockpitStatScreens>
+
+      <div className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex min-h-screen w-full max-w-4xl flex-col justify-center gap-6 px-4 md:px-6">
+        {errorMessage ? (
+          <div className="mx-auto w-full max-w-2xl rounded-sm border border-destructive/40 bg-destructive/10 p-3 text-sm normal-case">
+            {errorMessage}
+          </div>
+        ) : null}
+      </div>
+    </>
   );
 };

@@ -87,6 +87,49 @@ const deriveStatusesFromOutputs = (
   return statuses;
 };
 
+const mergeSyncOutputs = (
+  incoming: BattlefieldWizardContextType["outputs"],
+  current: BattlefieldWizardContextType["outputs"],
+): BattlefieldWizardContextType["outputs"] => {
+  const merged = { ...current, ...incoming };
+
+  for (const sectionId of sectionOrder) {
+    if (!merged[sectionId]) {
+      continue;
+    }
+
+    const sectionIndex = sectionOrder.indexOf(sectionId);
+    for (let index = 0; index < sectionIndex; index += 1) {
+      const prerequisiteId = sectionOrder[index]!;
+      if (!merged[prerequisiteId] && current[prerequisiteId]) {
+        merged[prerequisiteId] = current[prerequisiteId];
+      }
+    }
+  }
+
+  return merged;
+};
+
+const mergeSyncHistories = (
+  incoming: BattlefieldWizardContextType["sectionHistories"],
+  current: BattlefieldWizardContextType["sectionHistories"],
+  mergedOutputs: BattlefieldWizardContextType["outputs"],
+): BattlefieldWizardContextType["sectionHistories"] => {
+  const merged = { ...incoming };
+
+  for (const sectionId of sectionOrder) {
+    if (!mergedOutputs[sectionId]) {
+      continue;
+    }
+
+    if (!merged[sectionId] && current[sectionId]) {
+      merged[sectionId] = current[sectionId];
+    }
+  }
+
+  return merged;
+};
+
 const mergeSyncStatuses = (
   incoming: BattlefieldWizardContextType["sectionStatuses"],
   outputs: BattlefieldWizardContextType["outputs"],
@@ -263,8 +306,12 @@ export const BattlefieldWizardContextController = ({
     (message: BattlefieldServerMessage) => {
       if (message.type === "pipeline:sync") {
         pendingStreamResetRef.current.clear();
-        const mergedOutputs = { ...outputsRef.current, ...message.outputs };
-        const mergedHistories = { ...sectionHistoriesRef.current, ...message.histories };
+        const mergedOutputs = mergeSyncOutputs(message.outputs, outputsRef.current);
+        const mergedHistories = mergeSyncHistories(
+          message.histories,
+          sectionHistoriesRef.current,
+          mergedOutputs,
+        );
         const mergedStatuses = mergeSyncStatuses(message.sectionStatuses, mergedOutputs);
         setSectionStatuses(mergedStatuses);
         setOutputs(mergedOutputs);
@@ -405,6 +452,9 @@ export const BattlefieldWizardContextController = ({
         });
         setOutputs({});
         setSectionHistories({});
+        outputsRef.current = {};
+        sectionHistoriesRef.current = {};
+        pendingStreamResetRef.current.clear();
         setGateMessage(null);
         setOriginalBriefing(trimmed);
         await startBattlefieldPipeline(battlefieldNumericId, trimmed);

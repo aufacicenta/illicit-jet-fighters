@@ -1,9 +1,15 @@
 import { type MyFighter, resolveFighterName } from "@ijf/shared";
-import { Trash2 } from "lucide-react";
+import { EllipsisVertical, Trash2 } from "lucide-react";
 
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../../components/ui/dropdown-menu";
 import { cn } from "../../../lib/utils";
 import { WizardCardTitle } from "../../wizard/sections/WizardCardTitle";
 
@@ -68,17 +74,30 @@ export const FighterBadgeCard = ({
               {statusLabelByCode[fighter.status]}
             </Badge>
             {onDelete ? (
-              <Button
-                aria-label={`Delete ${displayName}`}
-                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                disabled={isDeleting}
-                onClick={() => onDelete(fighter.id)}
-                size="sm"
-                type="button"
-                variant="outline"
-              >
-                <Trash2 className="size-3.5" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    aria-label={`Open actions for ${displayName}`}
+                    className="h-7 w-7 p-0"
+                    disabled={isDeleting}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                    color="muted"
+                  >
+                    <EllipsisVertical className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onSelect={() => onDelete(fighter.id)}
+                  >
+                    <Trash2 className="size-3.5" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : null}
           </div>
         </div>

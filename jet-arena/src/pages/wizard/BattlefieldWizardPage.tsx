@@ -1,6 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Navigate, useParams } from "react-router-dom";
 
+import {
+  CockpitBottomCenterSlot,
+  CockpitBottomLeftSlot,
+  CockpitBottomRightSlot,
+  CockpitStatScreens,
+  CockpitTopCenterSlot,
+  CockpitTopLeftSlot,
+  CockpitTopRightSlot,
+  RTLScrollEffect,
+  TypingEffect,
+} from "../../components/Navbar/CockpitStatScreens";
+import { NavbarWalletTray } from "../../components/Navbar/NavbarWalletTray";
+import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
 import { Skeleton } from "../../components/ui/skeleton";
 import { BattlefieldCostsContextController } from "../../context/BattlefieldCosts/BattlefieldCostsContextController";
@@ -14,14 +27,11 @@ import { useBattlefieldWizardContext } from "../../context/BattlefieldWizard/use
 import { useNavbarBreadcrumbContext } from "../../context/NavbarBreadcrumb/useNavbarBreadcrumbContext";
 import { routes } from "../../hooks/useRoutes";
 import { BattlefieldProgressHud } from "./BattlefieldProgressHud";
-import { BattlefieldPromptBar } from "./BattlefieldPromptBar";
 import { BattlefieldConfigSection } from "./sections/BattlefieldConfigSection";
 import { BattlefieldDescriptionSection } from "./sections/BattlefieldDescriptionSection";
 import { wizardCardHeaderClassName } from "./sections/BattlefieldSectionStatusBadge";
 import { BattlefieldSheetSection } from "./sections/BattlefieldSheetSection";
 import { WizardCardTitle } from "./sections/WizardCardTitle";
-
-type WizardView = "briefing" | "debrief";
 
 type SectionNavItem = {
   id: BattlefieldSectionId | "original-briefing";
@@ -114,26 +124,14 @@ const BattlefieldWizardLayout = () => {
     activeSectionId,
   } = useBattlefieldWizardContext();
   const { setCurrentSectionLabel, clearCurrentSectionLabel } = useNavbarBreadcrumbContext();
-  const contentContainerRef = useRef<HTMLDivElement | null>(null);
-  const [briefingMinHeightPx, setBriefingMinHeightPx] = useState<number | null>(null);
 
-  const view = useMemo<WizardView>(() => {
-    if (outputs["battlefield-description"]) {
-      return "debrief";
-    }
-    return "briefing";
-  }, [outputs]);
-  const isGenerating = Object.values(sectionStatuses).some((status) => status === "generating");
   const showConnectionHint = connectionStatus !== "open";
   const activeBreadcrumbSectionLabel = useMemo(() => {
-    if (view === "briefing") {
-      return "Original Briefing";
-    }
     if (activeSectionId) {
       return wizardSectionBreadcrumbLabels[activeSectionId];
     }
     return "Original Briefing";
-  }, [activeSectionId, view]);
+  }, [activeSectionId]);
   const battlefieldTitle = useMemo(() => {
     const markdown = outputs["battlefield-description"]?.content;
     if (!markdown) {
@@ -143,6 +141,18 @@ const BattlefieldWizardLayout = () => {
     const headingMatch = markdown.match(/^#\s+(.+)$/m);
     return headingMatch?.[1]?.trim() || "Unnamed Battlefield";
   }, [outputs]);
+  const topLeftLabel = "Battlefield uplink online.";
+  const statusLabel = `Systems ${connectionStatus === "open" ? "Operational" : "degraded"}`;
+  const centerTitle = battlefieldTitle;
+  const continueLabel = gateMessage ? "Continue" : "Standby";
+  const continueDisabled = !gateMessage;
+  const continueVariant = "cockpit" as const;
+  const handleContinue = () => {
+    if (!gateMessage) {
+      return;
+    }
+    requestContinuePipeline();
+  };
 
   useEffect(() => {
     setCurrentSectionLabel(activeBreadcrumbSectionLabel);
@@ -150,36 +160,6 @@ const BattlefieldWizardLayout = () => {
       clearCurrentSectionLabel();
     };
   }, [activeBreadcrumbSectionLabel, clearCurrentSectionLabel, setCurrentSectionLabel]);
-
-  useEffect(() => {
-    if (view !== "briefing") {
-      return;
-    }
-
-    const updateBriefingMinHeight = () => {
-      const contentContainer = contentContainerRef.current;
-      if (!contentContainer) {
-        return;
-      }
-
-      const navHeight = document.querySelector("nav")?.getBoundingClientRect().height ?? 0;
-      const hudHeight =
-        document.getElementById("battlefield-wizard-progress-hud")?.getBoundingClientRect()
-          .height ?? 0;
-      const containerStyles = window.getComputedStyle(contentContainer);
-      const verticalPadding =
-        Number.parseFloat(containerStyles.paddingTop) +
-        Number.parseFloat(containerStyles.paddingBottom);
-      const usableHeight = window.innerHeight - navHeight - hudHeight - verticalPadding;
-      setBriefingMinHeightPx(Math.max(Math.floor(usableHeight), 0));
-    };
-
-    updateBriefingMinHeight();
-    window.addEventListener("resize", updateBriefingMinHeight);
-    return () => {
-      window.removeEventListener("resize", updateBriefingMinHeight);
-    };
-  }, [view]);
 
   const navigateToSection = (sectionId: BattlefieldSectionId | "original-briefing") => {
     if (isSectionId(sectionId)) {
@@ -193,82 +173,104 @@ const BattlefieldWizardLayout = () => {
   };
 
   return (
-    <div className="relative">
-      <div
-        className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 pb-[190px] md:px-6 md:pb-[170px]"
-        ref={contentContainerRef}
-      >
-        {view === "briefing" ? (
-          <section
-            className="flex w-full flex-col items-center justify-center"
-            style={briefingMinHeightPx ? { minHeight: `${briefingMinHeightPx}px` } : undefined}
-          >
-            <div className="relative mx-auto w-full max-w-2xl">
-              <BattlefieldPromptBar mode="briefing" disabled={isGenerating} autoFocus />
-            </div>
-          </section>
-        ) : (
-          <div className="space-y-6">
-            <header className="space-y-1 rounded-sm border border-primary/40 bg-primary/5 px-4 py-3 md:px-5">
-              <h1 className="text-2xl font-black tracking-wide text-foreground uppercase md:text-3xl">
-                {battlefieldTitle}
-              </h1>
-            </header>
+    <>
+      <CockpitStatScreens>
+        <CockpitTopLeftSlot>
+          <TypingEffect>
+            <p className="text-xs text-highlight">{topLeftLabel}</p>
+          </TypingEffect>
+        </CockpitTopLeftSlot>
+        <CockpitTopCenterSlot>
+          <RTLScrollEffect>
+            <p className="font-pixel text-2xl">{centerTitle}</p>
+          </RTLScrollEffect>
+        </CockpitTopCenterSlot>
+        <CockpitTopRightSlot>
+          <NavbarWalletTray variant="cockpit" />
+        </CockpitTopRightSlot>
 
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start lg:gap-8">
-              <section className="w-full space-y-4">
-                <section className="scroll-mt-6" id="battlefield-wizard-section-original-briefing">
-                  <OriginalBriefingCard originalBriefing={originalBriefing} />
-                </section>
-                <section
-                  className="scroll-mt-6"
-                  id="battlefield-wizard-section-battlefield-description"
-                >
-                  <BattlefieldDescriptionSection />
-                </section>
-                <section
-                  className="scroll-mt-6"
-                  id="battlefield-wizard-section-battlefield-sheet-image"
-                >
-                  <BattlefieldSheetSection />
-                </section>
-                <section className="scroll-mt-6" id="battlefield-wizard-section-battlefield-config">
-                  <BattlefieldConfigSection />
-                </section>
+        <CockpitBottomLeftSlot>
+          <TypingEffect>
+            <p className="text-xs text-emerald-400">{statusLabel}</p>
+          </TypingEffect>
+        </CockpitBottomLeftSlot>
+        <CockpitBottomCenterSlot>
+          <BattlefieldProgressHud sectionStatuses={sectionStatuses} />
+        </CockpitBottomCenterSlot>
+        <CockpitBottomRightSlot>
+          <Button
+            fullWidth
+            disabled={continueDisabled}
+            onClick={handleContinue}
+            type="button"
+            variant={continueVariant}
+          >
+            {continueLabel}
+          </Button>
+        </CockpitBottomRightSlot>
+      </CockpitStatScreens>
+
+      <div className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 md:px-6">
+        <div className="space-y-6">
+          <header className="space-y-1 rounded-sm border border-primary/40 bg-primary/5 px-4 py-3 md:px-5">
+            <h1 className="text-2xl font-black tracking-wide text-foreground uppercase md:text-3xl">
+              {battlefieldTitle}
+            </h1>
+          </header>
+
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start lg:gap-8">
+            <section className="w-full space-y-4">
+              <section className="scroll-mt-6" id="battlefield-wizard-section-original-briefing">
+                <OriginalBriefingCard originalBriefing={originalBriefing} />
               </section>
-              <aside className="w-full lg:sticky lg:top-6">
-                <Card className="border-0 bg-transparent">
-                  <CardContent className="space-y-3">
-                    <BattlefieldCostSummary />
-                    <div className="border-border/80 bg-card/70">
-                      {sectionNavItems.map((item) => {
-                        const status = isSectionId(item.id) ? sectionStatuses[item.id] : null;
-                        const isActive = isSectionId(item.id) && activeSectionId === item.id;
-                        return (
-                          <button
-                            key={item.id}
-                            className={`flex w-full items-center gap-2 rounded-sm border px-2.5 py-2 text-left text-xs tracking-wide uppercase transition-colors ${
-                              isActive
-                                ? "border-secondary bg-secondary/10 text-foreground"
-                                : "border-border/70 bg-background hover:border-border hover:bg-muted/60"
-                            }`}
-                            onClick={() => navigateToSection(item.id)}
-                            type="button"
-                          >
-                            <span
-                              className={`size-1.5 shrink-0 rounded-full ${getSectionStatusClassName(status)}`}
-                            />
-                            <span className="truncate">{item.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              </aside>
-            </div>
+              <section
+                className="scroll-mt-6"
+                id="battlefield-wizard-section-battlefield-description"
+              >
+                <BattlefieldDescriptionSection />
+              </section>
+              <section
+                className="scroll-mt-6"
+                id="battlefield-wizard-section-battlefield-sheet-image"
+              >
+                <BattlefieldSheetSection />
+              </section>
+              <section className="scroll-mt-6" id="battlefield-wizard-section-battlefield-config">
+                <BattlefieldConfigSection />
+              </section>
+            </section>
+            <aside className="w-full lg:sticky lg:top-6">
+              <Card className="border-0 bg-transparent">
+                <CardContent className="space-y-3">
+                  <BattlefieldCostSummary />
+                  <div className="border-border/80 bg-card/70">
+                    {sectionNavItems.map((item) => {
+                      const status = isSectionId(item.id) ? sectionStatuses[item.id] : null;
+                      const isActive = isSectionId(item.id) && activeSectionId === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          className={`flex w-full items-center gap-2 rounded-sm border px-2.5 py-2 text-left text-xs tracking-wide uppercase transition-colors ${
+                            isActive
+                              ? "border-secondary bg-secondary/10 text-foreground"
+                              : "border-border/70 bg-background hover:border-border hover:bg-muted/60"
+                          }`}
+                          onClick={() => navigateToSection(item.id)}
+                          type="button"
+                        >
+                          <span
+                            className={`size-1.5 shrink-0 rounded-full ${getSectionStatusClassName(status)}`}
+                          />
+                          <span className="truncate">{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </aside>
           </div>
-        )}
+        </div>
 
         {showConnectionHint ? (
           <p className="text-xs tracking-wide text-muted-foreground uppercase">
@@ -282,24 +284,7 @@ const BattlefieldWizardLayout = () => {
           </div>
         ) : null}
       </div>
-
-      <div
-        className="fixed right-0 bottom-0 left-0 z-30 border-t border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/90"
-        id="battlefield-wizard-progress-hud"
-      >
-        <div className="mx-auto w-full px-4 py-3 md:px-6">
-          <BattlefieldProgressHud
-            gateMessage={gateMessage}
-            onContinue={() => {
-              if (gateMessage) {
-                requestContinuePipeline();
-              }
-            }}
-            sectionStatuses={sectionStatuses}
-          />
-        </div>
-      </div>
-    </div>
+    </>
   );
 };
 

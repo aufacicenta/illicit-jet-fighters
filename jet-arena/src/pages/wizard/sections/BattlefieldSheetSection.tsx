@@ -16,7 +16,6 @@ export const BattlefieldSheetSection = () => {
 
   const promptStatus = sectionStatuses["battlefield-sheet-prompt"];
   const imageStatus = sectionStatuses["battlefield-sheet-image"];
-  const promptOutput = outputs["battlefield-sheet-prompt"]?.content;
   const imageOutput = outputs["battlefield-sheet-image"];
   const isGenerating = promptStatus === "generating" || imageStatus === "generating";
   const hasDescription = Boolean(outputs["battlefield-description"]?.content);
@@ -53,16 +52,9 @@ export const BattlefieldSheetSection = () => {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {promptOutput ? (
-          <pre className="max-h-[140px] overflow-auto rounded-sm border border-border bg-background p-3 text-xs whitespace-pre-wrap">
-            {promptOutput}
-          </pre>
-        ) : null}
-
         {isGenerating ? (
           <div className="space-y-2">
             <Skeleton className="h-[420px] w-full" />
-            <Skeleton className="h-4 w-4/12" />
           </div>
         ) : imageOutput ? (
           <img
