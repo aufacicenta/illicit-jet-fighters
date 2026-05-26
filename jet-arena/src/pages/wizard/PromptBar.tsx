@@ -49,7 +49,7 @@ export const PromptBar = ({
   }, [onSubmit, wizardContext]);
 
   return (
-    <div className="pointer-events-auto flex justify-center px-4 w-full">
+    <div className="pointer-events-auto flex w-full justify-center px-4">
       <div className="w-full max-w-[652px] p-2.5">
         <div className="flex flex-col gap-2">
           <div className="relative">

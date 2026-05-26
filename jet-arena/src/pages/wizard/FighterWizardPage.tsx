@@ -1,5 +1,5 @@
 import { parseFighterNameAndEpithet } from "@ijf/shared";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -230,13 +230,33 @@ const WizardLayout = () => {
 
     return "Original Briefing";
   }, [activeSectionId]);
-  const { name, epithet } = useMemo(() => {
+  const parsedNameAndEpithet = useMemo(() => {
     const parsed = parseFighterNameAndEpithet(outputs["character-description"]?.content);
     return {
-      name: parsed.name ?? "Unnamed Pilot",
+      name: parsed.name,
       epithet: parsed.epithet,
     };
   }, [outputs]);
+  const [lastResolvedIdentity, setLastResolvedIdentity] = useState<{
+    name: string;
+    epithet?: string;
+  }>({
+    name: "Unnamed Pilot",
+  });
+  useEffect(() => {
+    if (!parsedNameAndEpithet.name) {
+      return;
+    }
+
+    setLastResolvedIdentity({
+      name: parsedNameAndEpithet.name,
+      epithet: parsedNameAndEpithet.epithet,
+    });
+  }, [parsedNameAndEpithet.epithet, parsedNameAndEpithet.name]);
+  const name = parsedNameAndEpithet.name ?? lastResolvedIdentity.name;
+  const epithet = parsedNameAndEpithet.name
+    ? parsedNameAndEpithet.epithet
+    : lastResolvedIdentity.epithet;
   useEffect(() => {
     setCurrentSectionLabel(activeBreadcrumbSectionLabel);
 
@@ -247,7 +267,7 @@ const WizardLayout = () => {
 
   const topLeftLabel = "Greetings, Commander.";
   const statusLabel = `Systems ${connectionStatus === "open" ? "Operational" : "degraded"}`;
-  const centerTitle = `Pilot ${name}${epithet ? ` // ${epithet}` : ""}`;
+  const centerTitle = `${name}${epithet ? ` // ${epithet}` : ""}`;
 
   const navigateToSection = (sectionId: SectionAnchorId) => {
     if (isSectionId(sectionId)) {
