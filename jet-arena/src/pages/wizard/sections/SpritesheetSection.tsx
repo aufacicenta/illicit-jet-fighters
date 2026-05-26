@@ -38,7 +38,8 @@ export const SpritesheetSection = () => {
               event.stopPropagation();
               void requestRegenerateSpritesheetImage();
             }}
-            size="sm"
+            size="xs"
+            color="muted"
             type="button"
             variant="ghost"
           >

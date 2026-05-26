@@ -34,13 +34,11 @@ export const FighterLedgerSummary = () => {
       <p className="mt-1 text-2xl font-black tracking-tight text-primary">
         {tokenDisplay} {symbol}
       </p>
-      <div className="flex items-center justify-between">
-        <div>
-          <Button asChild size="xs" type="button" variant="ghost">
-            <Link to={routes.terminalFighterBalance(fighterId)}>Manage Balance</Link>
-          </Button>
-        </div>
-        <p className="mt-1 text-[10px] text-muted-foreground uppercase">{equivalenceLabel}</p>
+      <p className="mt-1 text-[10px] text-muted-foreground uppercase">{equivalenceLabel}</p>
+      <div>
+        <Button asChild size="xs" type="button" variant="ghost" color="secondary">
+          <Link to={routes.terminalFighterBalance(fighterId)}>Manage Balance</Link>
+        </Button>
       </div>
     </div>
   );

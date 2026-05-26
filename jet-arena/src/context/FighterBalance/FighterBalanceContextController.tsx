@@ -8,6 +8,7 @@ import {
   fetchPipelineState,
   postFighterTransferIn,
 } from "../../lib/api";
+import { formatTokenAmountFromNative } from "../../lib/formatTokenAmountFromNative";
 import {
   isPositiveIntegerString,
   parseTokenAmountToNative,
@@ -132,9 +133,17 @@ export const FighterBalanceContextController = ({
         return;
       }
 
-      await submitTopUpNative(amountNative.toString());
+      const walletCurrency =
+        wallet?.currency ?? getWalletCurrencyMetadata(wallet?.network ?? "sui");
+      setManualTopUpAmount(
+        formatTokenAmountFromNative(amountNative, walletCurrency.nativeDecimals, {
+          fractionDigits: walletCurrency.nativeDecimals,
+          trimTrailingZeros: true,
+        }),
+      );
+      setErrorMessage(null);
     },
-    [submitTopUpNative, walletBalanceNative],
+    [wallet, walletBalanceNative],
   );
 
   useEffect(() => {

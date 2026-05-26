@@ -12,6 +12,7 @@ import {
 import { NavbarWalletPill } from "../../components/Navbar/NavbarWalletPill";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
+import { Input } from "../../components/ui/input";
 import { FighterBalanceContextController } from "../../context/FighterBalance/FighterBalanceContextController";
 import { useFighterBalanceContext } from "../../context/FighterBalance/useFighterBalanceContext";
 import { useWalletContext } from "../../context/Wallet/useWalletContext";
@@ -93,6 +94,7 @@ const FighterBalancePageInner = () => {
                     onClick={() => void refreshLedgerSnapshot()}
                     type="button"
                     variant="outline"
+                    color="muted"
                   >
                     Refresh
                   </Button>
@@ -105,7 +107,8 @@ const FighterBalancePageInner = () => {
                     onClick={() => void topUpByPercent(25)}
                     size="sm"
                     type="button"
-                    variant="secondary"
+                    variant="outline"
+                    color="muted"
                   >
                     Top Up 25%
                   </Button>
@@ -114,7 +117,8 @@ const FighterBalancePageInner = () => {
                     onClick={() => void topUpByPercent(50)}
                     size="sm"
                     type="button"
-                    variant="secondary"
+                    variant="outline"
+                    color="muted"
                   >
                     Top Up 50%
                   </Button>
@@ -123,6 +127,7 @@ const FighterBalancePageInner = () => {
                     onClick={() => void topUpByPercent(100)}
                     size="sm"
                     type="button"
+                    variant="outline"
                   >
                     Top Up MAX
                   </Button>
@@ -136,8 +141,8 @@ const FighterBalancePageInner = () => {
                     Manual amount ({symbol})
                   </label>
                   <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      className="min-w-[220px] flex-1 rounded-sm border border-border/70 bg-background px-3 py-2 text-sm"
+                    <Input
+                      className="min-w-[220px] flex-1"
                       id="fighter-topup-amount"
                       onChange={(event) => setManualTopUpAmount(event.target.value)}
                       placeholder="0.00"
@@ -187,10 +192,10 @@ const FighterBalancePageInner = () => {
                         className="flex flex-wrap items-center gap-2 rounded-sm border border-border/70 px-3 py-2 text-xs"
                         key={entry.id}
                       >
-                        <span className="min-w-[116px] shrink-0 font-semibold uppercase">
+                        <span className="w-3/12 shrink-0 font-semibold uppercase">
                           {kindLabel[entry.kind] ?? entry.kind}
                         </span>
-                        <span className="shrink-0 font-mono text-[10px] text-muted-foreground tabular-nums">
+                        <span className="w-3/12 shrink-0 font-mono text-[10px] text-muted-foreground tabular-nums">
                           {formatDateTime(entry.createdAt)}
                         </span>
                         <span className="text-muted-foreground">

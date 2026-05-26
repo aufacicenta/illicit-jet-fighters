@@ -191,7 +191,7 @@ export const WalletPage = () => {
                         className="flex flex-wrap items-center gap-2 rounded-sm border border-border/70 px-3 py-2 text-xs"
                         key={entry.id}
                       >
-                        <span className="w-2/12 shrink-0 font-semibold uppercase">
+                        <span className="w-3/12 shrink-0 font-semibold uppercase">
                           {entry.kind}
                         </span>
                         <span className="w-3/12 shrink-0 font-mono text-[10px] text-muted-foreground tabular-nums">

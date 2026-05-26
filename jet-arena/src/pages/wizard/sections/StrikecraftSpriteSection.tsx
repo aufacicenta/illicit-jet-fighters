@@ -38,7 +38,8 @@ export const StrikecraftSpriteSection = () => {
               event.stopPropagation();
               void requestRegenerateStrikecraftSpriteImage();
             }}
-            size="sm"
+            size="xs"
+            color="muted"
             type="button"
             variant="ghost"
           >

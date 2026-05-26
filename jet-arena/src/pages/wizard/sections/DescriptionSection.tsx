@@ -55,7 +55,7 @@ export const DescriptionSection = () => {
           <div className="flex items-center gap-2">
             {description && status !== "generating" ? (
               <CollapsibleTrigger asChild>
-                <Button size="sm" variant="ghost">
+                <Button size="xs" variant="ghost" color="muted">
                   {isNarrativeVisible ? "Hide briefing narrative" : "Show briefing narrative"}
                 </Button>
               </CollapsibleTrigger>

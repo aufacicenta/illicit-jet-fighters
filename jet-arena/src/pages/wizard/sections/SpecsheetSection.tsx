@@ -46,7 +46,8 @@ export const SpecsheetSection = () => {
                 event.stopPropagation();
                 void requestRegenerateSpecsheet();
               }}
-              size="sm"
+              size="xs"
+              color="muted"
               type="button"
               variant="ghost"
             >

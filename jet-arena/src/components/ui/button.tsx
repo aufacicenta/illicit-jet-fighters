@@ -9,17 +9,21 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "border border-x-primary border-t-accent border-b-[var(--color-primary-shadow)] bg-primary text-primary-foreground hover:bg-[#f05a32]",
-        secondary:
-          "border border-border bg-muted text-foreground hover:border-secondary hover:bg-muted/80",
-        outline:
-          "border border-border bg-transparent text-foreground hover:border-secondary hover:bg-muted/40",
-        ghost: "text-foreground hover:bg-muted/50",
+        default: "border",
+        secondary: "border",
+        outline: "border bg-transparent",
+        ghost: "",
         gradient:
           "group relative rounded-md bg-[length:200%] bg-[linear-gradient(45deg,var(--color-1),var(--color-5),var(--color-3),var(--color-4),var(--color-2))] animate-rainbow active:scale-[0.95] overflow-hidden",
         cockpit:
           "group relative overflow-hidden border-0 bg-transparent font-bold tracking-wide text-foreground active:scale-[0.98]",
+      },
+      color: {
+        primary: "",
+        secondary: "",
+        accent: "",
+        destructive: "",
+        muted: "",
       },
       size: {
         xs: "p-1 text-[9px]",
@@ -28,21 +32,132 @@ const buttonVariants = cva(
         lg: "h-11 px-8",
       },
     },
+    compoundVariants: [
+      {
+        variant: "default",
+        color: "primary",
+        className:
+          "border-x-primary border-t-accent border-b-[var(--color-primary-shadow)] bg-primary text-primary-foreground hover:bg-[#f05a32]",
+      },
+      {
+        variant: "default",
+        color: "secondary",
+        className: "border-secondary bg-secondary text-secondary-foreground hover:bg-secondary/90",
+      },
+      {
+        variant: "default",
+        color: "accent",
+        className: "border-accent bg-accent text-accent-foreground hover:bg-accent/90",
+      },
+      {
+        variant: "default",
+        color: "destructive",
+        className:
+          "border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90",
+      },
+      {
+        variant: "default",
+        color: "muted",
+        className: "border-border bg-muted text-foreground hover:bg-muted/80",
+      },
+      {
+        variant: "secondary",
+        color: "primary",
+        className:
+          "border-primary/40 bg-primary/10 text-primary hover:border-primary hover:bg-primary/20",
+      },
+      {
+        variant: "secondary",
+        color: "secondary",
+        className:
+          "border-secondary/40 bg-secondary/10 text-secondary hover:border-secondary hover:bg-secondary/20",
+      },
+      {
+        variant: "secondary",
+        color: "accent",
+        className:
+          "border-accent/40 bg-accent/20 text-accent-foreground hover:border-accent hover:bg-accent/30",
+      },
+      {
+        variant: "secondary",
+        color: "destructive",
+        className:
+          "border-destructive/40 bg-destructive/10 text-destructive hover:border-destructive hover:bg-destructive/20",
+      },
+      {
+        variant: "secondary",
+        color: "muted",
+        className: "border-border bg-muted text-foreground hover:bg-muted/80",
+      },
+      {
+        variant: "outline",
+        color: "primary",
+        className: "border-primary text-primary hover:bg-primary/10",
+      },
+      {
+        variant: "outline",
+        color: "secondary",
+        className: "border-secondary text-secondary hover:bg-secondary/10",
+      },
+      {
+        variant: "outline",
+        color: "accent",
+        className: "border-accent text-accent hover:bg-accent/10",
+      },
+      {
+        variant: "outline",
+        color: "destructive",
+        className: "border-destructive text-destructive hover:bg-destructive/10",
+      },
+      {
+        variant: "outline",
+        color: "muted",
+        className: "border-border text-foreground hover:bg-muted/40",
+      },
+      {
+        variant: "ghost",
+        color: "primary",
+        className: "text-primary hover:bg-primary/10",
+      },
+      {
+        variant: "ghost",
+        color: "secondary",
+        className: "text-secondary hover:bg-secondary/10",
+      },
+      {
+        variant: "ghost",
+        color: "accent",
+        className: "text-accent hover:bg-accent/10",
+      },
+      {
+        variant: "ghost",
+        color: "destructive",
+        className: "text-destructive hover:bg-destructive/10",
+      },
+      {
+        variant: "ghost",
+        color: "muted",
+        className: "text-foreground hover:bg-muted/50",
+      },
+    ],
     defaultVariants: {
       variant: "default",
+      color: "primary",
       size: "default",
     },
   },
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
+  extends
+    Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "color">,
+    VariantProps<typeof buttonVariants> {
   asChild?: boolean;
   fullWidth?: boolean;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, fullWidth, children, ...props }, ref) => {
+  ({ className, variant, color, size, asChild = false, fullWidth, children, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
     const isGradient = variant === "gradient";
     const isCockpit = variant === "cockpit";
@@ -59,7 +174,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size }), fullWidth && "flex w-full", className)}
+        className={cn(
+          buttonVariants({ variant, color, size }),
+          fullWidth && "flex w-full",
+          className,
+        )}
         ref={ref}
         {...props}
       >

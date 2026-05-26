@@ -37,7 +37,8 @@ export const StrikecraftSpecsheetSection = () => {
               event.stopPropagation();
               void requestRegenerateStrikecraftSpecsheetImage();
             }}
-            size="sm"
+            size="xs"
+            color="muted"
             type="button"
             variant="ghost"
           >

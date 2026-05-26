@@ -77,7 +77,8 @@ export const AgentCodeSection = ({ showRegenerateButton = false }: AgentCodeSect
                   event.stopPropagation();
                   void requestRegenerateAgentCode();
                 }}
-                size="sm"
+                size="xs"
+                color="muted"
                 type="button"
                 variant="ghost"
               >
