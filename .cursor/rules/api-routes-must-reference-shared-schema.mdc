@@ -1,0 +1,6 @@
+---
+description: creating api endpoints with validated schema references
+alwaysApply: false
+---
+
+When creating new API routes, always reference schemas from `@shared/src/schemas/`.

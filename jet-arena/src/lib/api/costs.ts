@@ -1,3 +1,5 @@
+import { battlefieldCostSnapshotSchema, fighterCostSnapshotSchema } from "@ijf/shared";
+
 import { apiRoutes } from "../../hooks/useRoutes";
 import { authHeadersJson, readErrorText } from "./client";
 import type { BattlefieldCostSnapshot, FighterCostSnapshot } from "./types";
@@ -19,7 +21,7 @@ export const fetchFighterCosts = async (fighterId: string): Promise<FighterCostS
     throw new Error(await readErrorText(response));
   }
 
-  return (await response.json()) as FighterCostSnapshot;
+  return fighterCostSnapshotSchema.parse(await response.json()) as FighterCostSnapshot;
 };
 
 export const fetchBattlefieldCosts = async (
@@ -41,5 +43,5 @@ export const fetchBattlefieldCosts = async (
     throw new Error(await readErrorText(response));
   }
 
-  return (await response.json()) as BattlefieldCostSnapshot;
+  return battlefieldCostSnapshotSchema.parse(await response.json()) as BattlefieldCostSnapshot;
 };

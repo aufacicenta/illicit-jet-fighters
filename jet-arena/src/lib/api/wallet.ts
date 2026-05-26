@@ -1,18 +1,8 @@
-import type { NetworkEnvName, WalletCurrencyMetadata } from "@ijf/shared";
+import type { WalletSnapshot } from "@ijf/shared";
+import { walletSnapshotSchema } from "@ijf/shared";
 
 import { apiRoutes } from "../../hooks/useRoutes";
 import { authHeadersJson, readErrorText } from "./client";
-
-export type WalletSnapshot = {
-  walletId: string;
-  address: string;
-  network: "sui";
-  currency?: WalletCurrencyMetadata;
-  networkEnv: NetworkEnvName;
-  balanceNative: string;
-  balanceUsd: string;
-  fxNativePerUsd: string;
-};
 
 export type WalletLedgerEntry = {
   id: string;
@@ -58,7 +48,7 @@ export const fetchWalletSnapshot = async (): Promise<WalletSnapshot> => {
   if (!response.ok) {
     throw new Error(await readErrorText(response));
   }
-  return (await response.json()) as WalletSnapshot;
+  return walletSnapshotSchema.parse(await response.json()) as WalletSnapshot;
 };
 
 export const fetchWalletLedger = async ({

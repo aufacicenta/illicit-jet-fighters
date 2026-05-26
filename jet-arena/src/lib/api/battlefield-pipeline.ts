@@ -1,4 +1,7 @@
-import { battlefieldPipelineStartSchema } from "@ijf/shared";
+import {
+  battlefieldPipelineStartSchema,
+  battlefieldPipelineStateSnapshotSchema,
+} from "@ijf/shared";
 
 import { apiRoutes } from "../../hooks/useRoutes";
 import { authHeadersJson, post, readErrorText } from "./client";
@@ -23,7 +26,9 @@ export const fetchBattlefieldPipelineState = async (
     throw new Error(await readErrorText(response));
   }
 
-  return (await response.json()) as BattlefieldPipelineStateSnapshot;
+  return battlefieldPipelineStateSnapshotSchema.parse(
+    await response.json(),
+  ) as BattlefieldPipelineStateSnapshot;
 };
 
 export const startBattlefieldPipeline = (battlefieldId: number, prompt: string) => {

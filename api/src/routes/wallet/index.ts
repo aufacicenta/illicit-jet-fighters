@@ -1,5 +1,22 @@
 import { and, db, desc, eq, lt, not, sql, walletLedgerEntries } from "@ijf/database";
-import { getWalletCurrencyMetadata } from "@ijf/shared";
+import {
+  fighterLedgerPathParamsSchema,
+  fighterLedgerSnapshotSchema,
+  getWalletCurrencyMetadata,
+  limitQuerySchema,
+  walletAmountNativeRequestSchema,
+  walletFighterTransferSnapshotSchema,
+  walletLedgerQuerySchema,
+  walletLedgerSnapshotSchema,
+  walletSettlementRequestSchema,
+  walletSettlementSnapshotSchema,
+  walletSnapshotSchema,
+  walletWithdrawalCancelResponseSchema,
+  walletWithdrawalRequestResponseSchema,
+  walletWithdrawalRequestSchema,
+  walletWithdrawalsSnapshotSchema,
+  withdrawalGroupPathParamsSchema,
+} from "@ijf/shared";
 import { Elysia, t } from "elysia";
 
 import { getOwnedFighter } from "../../lib/fighter-access";
@@ -34,30 +51,40 @@ const parseNativeAmount = (value: string) => {
 const isValidSuiAddress = (value: string) => /^0x[a-fA-F0-9]{40,64}$/.test(value.trim());
 
 export const walletRoutes = new Elysia({ prefix: "/wallet" })
-  .get("/me", async ({ request, headers }) => {
-    const auth = await requireBearerAuth(request, headers);
-    const network = getWalletNetwork();
-    const networkEnv = getWalletNetworkEnv();
-    const wallet = await ensureUserWallet({ userId: auth.userId, network });
-    const suiUsd = await getSuiUsdPrice();
-    const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
-    const snapshot = await buildWalletBalanceSnapshot({
-      walletId: wallet.id,
-      networkEnv,
-      fxNativePerUsd,
-    });
+  .get(
+    "/me",
+    async ({ request, headers }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const network = getWalletNetwork();
+      const networkEnv = getWalletNetworkEnv();
+      const wallet = await ensureUserWallet({ userId: auth.userId, network });
+      const suiUsd = await getSuiUsdPrice();
+      const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
+      const snapshot = await buildWalletBalanceSnapshot({
+        walletId: wallet.id,
+        networkEnv,
+        fxNativePerUsd,
+      });
 
-    return {
-      walletId: wallet.id,
-      address: wallet.address,
-      network: wallet.network,
-      currency: getWalletCurrencyMetadata(wallet.network),
-      networkEnv,
-      balanceNative: snapshot.balanceNative.toString(),
-      balanceUsd: snapshot.balanceUsd.toFixed(8),
-      fxNativePerUsd: snapshot.fxNativePerUsd.toFixed(12),
-    };
-  })
+      return {
+        walletId: wallet.id,
+        address: wallet.address,
+        network: wallet.network,
+        currency: getWalletCurrencyMetadata(wallet.network),
+        networkEnv,
+        balanceNative: snapshot.balanceNative.toString(),
+        balanceUsd: snapshot.balanceUsd.toFixed(8),
+        fxNativePerUsd: snapshot.fxNativePerUsd.toFixed(12),
+      };
+    },
+    {
+      response: {
+        200: walletSnapshotSchema,
+        401: t.String(),
+        403: t.String(),
+      },
+    },
+  )
   .get(
     "/me/ledger",
     async ({ query, request, headers, status }) => {
@@ -133,10 +160,13 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       };
     },
     {
-      query: t.Object({
-        limit: t.Optional(t.String()),
-        cursor: t.Optional(t.String()),
-      }),
+      query: walletLedgerQuerySchema,
+      response: {
+        200: walletLedgerSnapshotSchema,
+        400: t.String(),
+        401: t.String(),
+        403: t.String(),
+      },
     },
   )
   .get(
@@ -176,12 +206,15 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       }
     },
     {
-      params: t.Object({
-        fighterId: t.String(),
-      }),
-      query: t.Object({
-        limit: t.Optional(t.String()),
-      }),
+      params: fighterLedgerPathParamsSchema,
+      query: limitQuerySchema,
+      response: {
+        200: fighterLedgerSnapshotSchema,
+        400: t.String(),
+        401: t.String(),
+        403: t.String(),
+        404: t.String(),
+      },
     },
   )
   .post(
@@ -229,12 +262,16 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       }
     },
     {
-      params: t.Object({
-        fighterId: t.String(),
-      }),
-      body: t.Object({
-        amountNative: t.String(),
-      }),
+      params: fighterLedgerPathParamsSchema,
+      body: walletAmountNativeRequestSchema,
+      response: {
+        200: walletFighterTransferSnapshotSchema,
+        400: t.String(),
+        401: t.String(),
+        403: t.String(),
+        404: t.String(),
+        500: t.String(),
+      },
     },
   )
   .post(
@@ -282,12 +319,16 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       }
     },
     {
-      params: t.Object({
-        fighterId: t.String(),
-      }),
-      body: t.Object({
-        amountNative: t.String(),
-      }),
+      params: fighterLedgerPathParamsSchema,
+      body: walletAmountNativeRequestSchema,
+      response: {
+        200: walletFighterTransferSnapshotSchema,
+        400: t.String(),
+        401: t.String(),
+        403: t.String(),
+        404: t.String(),
+        500: t.String(),
+      },
     },
   )
   .post(
@@ -331,30 +372,44 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       }
     },
     {
-      body: t.Object({
-        losingFighterId: t.Number(),
-        winningFighterId: t.Number(),
-        amountNative: t.String(),
-      }),
+      body: walletSettlementRequestSchema,
+      response: {
+        200: walletSettlementSnapshotSchema,
+        400: t.String(),
+        401: t.String(),
+        403: t.String(),
+        404: t.String(),
+        500: t.String(),
+      },
     },
   )
-  .get("/me/withdrawals", async ({ request, headers }) => {
-    const auth = await requireBearerAuth(request, headers);
-    const network = getWalletNetwork();
-    const networkEnv = getWalletNetworkEnv();
-    const wallet = await ensureUserWallet({ userId: auth.userId, network });
-    const withdrawals = await listWithdrawals(wallet.id, networkEnv);
+  .get(
+    "/me/withdrawals",
+    async ({ request, headers }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const network = getWalletNetwork();
+      const networkEnv = getWalletNetworkEnv();
+      const wallet = await ensureUserWallet({ userId: auth.userId, network });
+      const withdrawals = await listWithdrawals(wallet.id, networkEnv);
 
-    return {
-      walletId: wallet.id,
-      withdrawals: withdrawals.map((withdrawal) => ({
-        ...withdrawal,
-        amountNative: withdrawal.amountNative.toString(),
-        requestedAt: withdrawal.requestedAt.toISOString(),
-        settledAt: withdrawal.settledAt?.toISOString() ?? null,
-      })),
-    };
-  })
+      return {
+        walletId: wallet.id,
+        withdrawals: withdrawals.map((withdrawal) => ({
+          ...withdrawal,
+          amountNative: withdrawal.amountNative.toString(),
+          requestedAt: withdrawal.requestedAt.toISOString(),
+          settledAt: withdrawal.settledAt?.toISOString() ?? null,
+        })),
+      };
+    },
+    {
+      response: {
+        200: walletWithdrawalsSnapshotSchema,
+        401: t.String(),
+        403: t.String(),
+      },
+    },
+  )
   .post(
     "/me/withdrawals",
     async ({ body, request, headers, status }) => {
@@ -417,10 +472,13 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       };
     },
     {
-      body: t.Object({
-        targetAddress: t.String(),
-        amountNative: t.String(),
-      }),
+      body: walletWithdrawalRequestSchema,
+      response: {
+        200: walletWithdrawalRequestResponseSchema,
+        400: t.String(),
+        401: t.String(),
+        403: t.String(),
+      },
     },
   )
   .post(
@@ -473,8 +531,13 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       return { status: "cancelled" as const, groupId: params.groupId };
     },
     {
-      params: t.Object({
-        groupId: t.String(),
-      }),
+      params: withdrawalGroupPathParamsSchema,
+      response: {
+        200: walletWithdrawalCancelResponseSchema,
+        401: t.String(),
+        403: t.String(),
+        404: t.String(),
+        409: t.String(),
+      },
     },
   );

@@ -1,4 +1,4 @@
-import { pipelineStartSchema } from "@ijf/shared";
+import { pipelineStartSchema, pipelineStateSnapshotSchema } from "@ijf/shared";
 
 import { apiRoutes } from "../../hooks/useRoutes";
 import { authHeadersJson, post, readErrorText } from "./client";
@@ -23,7 +23,7 @@ export const fetchPipelineState = async (
     throw new Error(await readErrorText(response));
   }
 
-  return (await response.json()) as PipelineStateSnapshot;
+  return pipelineStateSnapshotSchema.parse(await response.json()) as PipelineStateSnapshot;
 };
 
 export const startPipeline = (fighterId: number, prompt: string) => {

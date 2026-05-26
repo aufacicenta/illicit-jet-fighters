@@ -1,11 +1,9 @@
+import type { BattlefieldCostSnapshot as SharedBattlefieldCostSnapshot } from "@ijf/shared";
 import type { ReactNode } from "react";
 
 import type { BattlefieldSectionId } from "../BattlefieldWizard/BattlefieldWizardContext.types";
 
-export type BattlefieldCostSnapshot = {
-  battlefieldId: number;
-  totalCostUsd: string;
-  latestRunCorrelationId: string | null;
+export type BattlefieldCostSnapshot = SharedBattlefieldCostSnapshot & {
   latestRunSectionCosts: Partial<Record<BattlefieldSectionId, string>>;
 };
 

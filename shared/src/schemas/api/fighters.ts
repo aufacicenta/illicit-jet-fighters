@@ -1,28 +1,5 @@
 import { z } from "zod";
 
-export const pipelineStartSchema = z.object({
-  id: z.number().int().positive(),
-  prompt: z.string().trim().min(1).max(10_000),
-});
-
-export type PipelineStartPayload = z.infer<typeof pipelineStartSchema>;
-
-export const battlefieldPipelineStartSchema = z.object({
-  id: z.number().int().positive(),
-  prompt: z.string().trim().min(1).max(10_000),
-});
-
-export type BattlefieldPipelineStartPayload = z.infer<typeof battlefieldPipelineStartSchema>;
-
-export const battlefieldSectionIdSchema = z.enum([
-  "battlefield-description",
-  "battlefield-sheet-prompt",
-  "battlefield-sheet-image",
-  "battlefield-config",
-]);
-
-export type BattlefieldSectionId = z.infer<typeof battlefieldSectionIdSchema>;
-
 export const fighterSectionStatusSchema = z.enum([
   "locked",
   "ready",
@@ -60,8 +37,13 @@ export const fighterAgentVersionsResponseSchema = z.object({
   versions: z.array(fighterAgentVersionSchema),
 });
 
+export const fighterIdResponseSchema = z.object({
+  id: z.number().int().positive(),
+});
+
 export type FighterSectionStatus = z.infer<typeof fighterSectionStatusSchema>;
 export type MyFighter = z.infer<typeof myFighterSchema>;
 export type MyFightersResponse = z.infer<typeof myFightersResponseSchema>;
 export type FighterAgentVersion = z.infer<typeof fighterAgentVersionSchema>;
 export type FighterAgentVersionsResponse = z.infer<typeof fighterAgentVersionsResponseSchema>;
+export type FighterIdResponse = z.infer<typeof fighterIdResponseSchema>;

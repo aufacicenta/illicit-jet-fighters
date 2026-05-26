@@ -1,3 +1,9 @@
+import {
+  fighterAgentPackageRequestSchema,
+  fighterAgentPackageResponseSchema,
+  fighterIdPathParamsSchema,
+  fighterSpecsheetAssetResponseSchema,
+} from "@ijf/shared";
 import { Elysia, t } from "elysia";
 
 import { archiveAgentSlugToZipBuffer } from "../../lib/agent-packager";
@@ -49,6 +55,16 @@ export const assetRoutes = new Elysia({ prefix: "/assets" }).get(
     const signedUrl = await getSignedReadUrl(objectKey);
     return { signedUrl };
   },
+  {
+    params: fighterIdPathParamsSchema,
+    response: {
+      200: fighterSpecsheetAssetResponseSchema,
+      400: t.String(),
+      401: t.String(),
+      403: t.String(),
+      404: t.String(),
+    },
+  },
 );
 
 export const agentRoutes = new Elysia({ prefix: "/agents" }).post(
@@ -80,8 +96,14 @@ export const agentRoutes = new Elysia({ prefix: "/agents" }).post(
     }
   },
   {
-    body: t.Object({
-      agentSlug: t.String(),
-    }),
+    params: fighterIdPathParamsSchema,
+    body: fighterAgentPackageRequestSchema,
+    response: {
+      200: fighterAgentPackageResponseSchema,
+      400: t.String(),
+      401: t.String(),
+      403: t.String(),
+      404: t.String(),
+    },
   },
 );

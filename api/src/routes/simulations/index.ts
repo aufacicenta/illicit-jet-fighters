@@ -1,3 +1,12 @@
+import {
+  simulationDetailsSchema,
+  simulationIdPathParamsSchema,
+  simulationListResponseSchema,
+  simulationReplaySnapshotSchema,
+  simulationStartRequestSchema,
+  simulationStartResponseSchema,
+  simulationStatusSnapshotSchema,
+} from "@ijf/shared";
 import { Elysia, t } from "elysia";
 
 import { createCorrelationId } from "../../lib/correlation-id";
@@ -81,13 +90,23 @@ const resolveSimulationFighters = async (
 };
 
 export const simulationRoutes = new Elysia({ prefix: "/simulations" })
-  .get("", async ({ request, headers }) => {
-    const auth = await requireBearerAuth(request, headers);
+  .get(
+    "",
+    async ({ request, headers }) => {
+      const auth = await requireBearerAuth(request, headers);
 
-    return {
-      simulations: await listSimulationsForUser(auth.userId),
-    };
-  })
+      return {
+        simulations: await listSimulationsForUser(auth.userId),
+      };
+    },
+    {
+      response: {
+        200: simulationListResponseSchema,
+        401: t.String(),
+        403: t.String(),
+      },
+    },
+  )
   .post(
     "",
     async ({ body, request, headers, status }) => {
@@ -124,7 +143,7 @@ export const simulationRoutes = new Elysia({ prefix: "/simulations" })
             fighterIds,
             reason: resolution.error,
           });
-          return status(400, resolution.error);
+          return status(400, resolution.error ?? "Invalid simulation fighters.");
         }
 
         logger.info("simulation start roster resolved", {
@@ -170,7 +189,7 @@ export const simulationRoutes = new Elysia({ prefix: "/simulations" })
             seed,
             error: error.message,
           });
-          return status(error.statusCode, error.message);
+          return status(error.statusCode === 404 ? 404 : 400, error.message);
         }
 
         logger.error("simulation start endpoint failed", {
@@ -184,51 +203,83 @@ export const simulationRoutes = new Elysia({ prefix: "/simulations" })
       }
     },
     {
-      body: t.Object({
-        participants: t.Optional(
-          t.Array(
-            t.Object({
-              fighterId: t.Number(),
-              agentVersionId: t.Optional(t.Union([t.String(), t.Null()])),
-            }),
-          ),
-        ),
-        fighterId: t.Optional(t.Number()),
-        fighterIds: t.Optional(t.Array(t.Number())),
-        seed: t.Optional(t.Number()),
-      }),
+      body: simulationStartRequestSchema,
+      response: {
+        200: simulationStartResponseSchema,
+        400: t.String(),
+        401: t.String(),
+        403: t.String(),
+        404: t.String(),
+        500: t.String(),
+      },
     },
   )
-  .get("/:id/status", async ({ params, request, headers, status }) => {
-    const auth = await requireBearerAuth(request, headers);
-    const summary = await getSimulationStatusForBroadcast({
-      userId: auth.userId,
-      broadcastId: params.id,
-    });
-    if (!summary) {
-      return status(404, "Simulation not found.");
-    }
-    return summary;
-  })
-  .get("/:id/replay", async ({ params, request, headers, status }) => {
-    const auth = await requireBearerAuth(request, headers);
-    const replay = await getReplayForBroadcast({
-      userId: auth.userId,
-      broadcastId: params.id,
-    });
-    if (!replay) {
-      return status(404, "Simulation not found.");
-    }
-    return replay;
-  })
-  .get("/:id", async ({ params, request, headers, status }) => {
-    const auth = await requireBearerAuth(request, headers);
-    const simulation = await getSimulationDetails({
-      userId: auth.userId,
-      simulationId: params.id,
-    });
-    if (!simulation) {
-      return status(404, "Simulation not found.");
-    }
-    return simulation;
-  });
+  .get(
+    "/:id/status",
+    async ({ params, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const summary = await getSimulationStatusForBroadcast({
+        userId: auth.userId,
+        broadcastId: params.id ?? "",
+      });
+      if (!summary) {
+        return status(404, "Simulation not found.");
+      }
+      return summary;
+    },
+    {
+      params: simulationIdPathParamsSchema,
+      response: {
+        200: simulationStatusSnapshotSchema,
+        401: t.String(),
+        403: t.String(),
+        404: t.String(),
+      },
+    },
+  )
+  .get(
+    "/:id/replay",
+    async ({ params, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const replay = await getReplayForBroadcast({
+        userId: auth.userId,
+        broadcastId: params.id ?? "",
+      });
+      if (!replay) {
+        return status(404, "Simulation not found.");
+      }
+      return replay;
+    },
+    {
+      params: simulationIdPathParamsSchema,
+      response: {
+        200: simulationReplaySnapshotSchema,
+        401: t.String(),
+        403: t.String(),
+        404: t.String(),
+      },
+    },
+  )
+  .get(
+    "/:id",
+    async ({ params, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const simulation = await getSimulationDetails({
+        userId: auth.userId,
+        simulationId: params.id ?? "",
+      });
+      if (!simulation) {
+        return status(404, "Simulation not found.");
+      }
+      return simulation;
+    },
+    {
+      params: simulationIdPathParamsSchema,
+      response: {
+        200: simulationDetailsSchema,
+        401: t.String(),
+        403: t.String(),
+        404: t.String(),
+      },
+    },
+  );

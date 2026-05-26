@@ -1,4 +1,8 @@
 import { db, eq, userWallets } from "@ijf/database";
+import {
+  walletTopupNotificationRequestSchema,
+  walletTopupNotificationResponseSchema,
+} from "@ijf/shared";
 import { Elysia, t } from "elysia";
 
 import { env } from "../../config/env";
@@ -53,11 +57,13 @@ export const internalWalletRoutes = new Elysia({ prefix: "/internal/wallet" }).p
     return { ok: true as const };
   },
   {
-    body: t.Object({
-      walletId: t.String(),
-      txHash: t.String(),
-      amountNative: t.String(),
-      amountUsd: t.String(),
-    }),
+    body: walletTopupNotificationRequestSchema,
+    response: {
+      200: walletTopupNotificationResponseSchema,
+      400: t.String(),
+      401: t.String(),
+      404: t.String(),
+      503: t.String(),
+    },
   },
 );

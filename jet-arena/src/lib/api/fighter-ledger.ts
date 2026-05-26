@@ -1,25 +1,13 @@
+import type {
+  FighterLedgerEntry as SharedFighterLedgerEntry,
+  FighterLedgerSnapshot,
+} from "@ijf/shared";
+import { fighterLedgerSnapshotSchema } from "@ijf/shared";
+
 import { apiRoutes } from "../../hooks/useRoutes";
 import { authHeadersJson, readErrorText } from "./client";
 
-export type FighterLedgerEntry = {
-  id: string;
-  kind:
-    | "fighter_transfer_in"
-    | "fighter_transfer_out"
-    | "fighter_sim_bounty_in"
-    | "fighter_sim_bet_out";
-  amountNative: string;
-  walletLedgerEntryId: string;
-  metadata: unknown;
-  createdAt: string;
-};
-
-export type FighterLedgerSnapshot = {
-  fighterId: number;
-  fighterBalanceNative: string;
-  walletBalanceNative: string;
-  entries: FighterLedgerEntry[];
-};
+export type FighterLedgerEntry = SharedFighterLedgerEntry;
 
 export const fetchFighterLedgerSnapshot = async ({
   fighterId,
@@ -39,7 +27,7 @@ export const fetchFighterLedgerSnapshot = async ({
   if (!response.ok) {
     throw new Error(await readErrorText(response));
   }
-  return (await response.json()) as FighterLedgerSnapshot;
+  return fighterLedgerSnapshotSchema.parse(await response.json()) as FighterLedgerSnapshot;
 };
 
 export const postFighterTransferIn = async ({

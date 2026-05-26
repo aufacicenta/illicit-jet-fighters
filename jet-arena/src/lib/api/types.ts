@@ -1,3 +1,9 @@
+import type {
+  BattlefieldCostSnapshot as SharedBattlefieldCostSnapshot,
+  BattlefieldPipelineStateSnapshot as SharedBattlefieldPipelineStateSnapshot,
+  FighterCostSnapshot as SharedFighterCostSnapshot,
+  PipelineStateSnapshot as SharedPipelineStateSnapshot,
+} from "@ijf/shared";
 import { type BroadcastMessage } from "@ijf/shared";
 
 export type ChatMessage = {
@@ -44,40 +50,13 @@ export type BattlefieldApiSectionOutput = {
   assetUrl?: string;
 };
 
-export type PipelineStateSnapshot = {
-  sectionStatuses: Record<ApiSectionId, ApiSectionStatus>;
-  outputs: Partial<Record<ApiSectionId, ApiSectionOutput>>;
-  histories: Partial<Record<ApiSectionId, ChatMessage[]>>;
-  gateMessage: string | null;
-  briefing: string | null;
-  fighterLedger: {
-    isReady: boolean;
-    balanceNative: string;
-  };
-};
+export type PipelineStateSnapshot = SharedPipelineStateSnapshot;
 
-export type FighterCostSnapshot = {
-  fighterId: number;
-  totalCostUsd: string;
-  totalCostNative: string;
-  latestRunCorrelationId: string | null;
-  latestRunSectionCosts: Partial<Record<ApiSectionId, string>>;
-};
+export type FighterCostSnapshot = SharedFighterCostSnapshot;
 
-export type BattlefieldPipelineStateSnapshot = {
-  sectionStatuses: Record<BattlefieldApiSectionId, ApiSectionStatus>;
-  outputs: Partial<Record<BattlefieldApiSectionId, BattlefieldApiSectionOutput>>;
-  histories: Partial<Record<BattlefieldApiSectionId, ChatMessage[]>>;
-  gateMessage: string | null;
-  briefing: string | null;
-};
+export type BattlefieldPipelineStateSnapshot = SharedBattlefieldPipelineStateSnapshot;
 
-export type BattlefieldCostSnapshot = {
-  battlefieldId: number;
-  totalCostUsd: string;
-  latestRunCorrelationId: string | null;
-  latestRunSectionCosts: Partial<Record<BattlefieldApiSectionId, string>>;
-};
+export type BattlefieldCostSnapshot = SharedBattlefieldCostSnapshot;
 
 export type BattlefieldListItem = {
   id: number;

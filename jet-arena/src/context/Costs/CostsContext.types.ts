@@ -1,12 +1,9 @@
+import type { FighterCostSnapshot as SharedFighterCostSnapshot } from "@ijf/shared";
 import type { ReactNode } from "react";
 
 import type { SectionId } from "../Wizard/WizardContext.types";
 
-export type FighterCostSnapshot = {
-  fighterId: number;
-  totalCostUsd: string;
-  totalCostNative: string;
-  latestRunCorrelationId: string | null;
+export type FighterCostSnapshot = SharedFighterCostSnapshot & {
   latestRunSectionCosts: Partial<Record<SectionId, string>>;
 };
 

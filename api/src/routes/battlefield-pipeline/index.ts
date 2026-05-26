@@ -1,4 +1,10 @@
-import { battlefieldPipelineStartSchema } from "@ijf/shared";
+import {
+  battlefieldIdPathParamsSchema,
+  battlefieldPipelineStartSchema,
+  battlefieldPipelineStateSnapshotSchema,
+  pipelineIdRequestSchema,
+  pipelineStartResponseSchema,
+} from "@ijf/shared";
 import { Elysia, t } from "elysia";
 
 import {
@@ -17,11 +23,7 @@ import {
 import { createCorrelationId } from "../../lib/correlation-id";
 import { logger } from "../../lib/logger";
 import { requireBearerAuth } from "../../lib/require-bearer-auth";
-import type {
-  BattlefieldPipelineConfigRequest,
-  BattlefieldPipelineSheetRequest,
-  BattlefieldPipelineStartResponse,
-} from "./types";
+import type { BattlefieldPipelineStartResponse } from "./types";
 
 const resolveBattlefieldAccess = async (authUserId: string, rawId: string) => {
   const battlefieldId = parseBattlefieldIdParam(rawId);
@@ -40,68 +42,89 @@ const resolveBattlefieldAccess = async (authUserId: string, rawId: string) => {
 };
 
 export const battlefieldPipelineRoutes = new Elysia({ prefix: "/battlefield-pipeline" })
-  .get("/:id/state", async ({ params, request, headers, status }) => {
-    const auth = await requireBearerAuth(request, headers);
-    const resolution = await resolveBattlefieldAccess(auth.userId, params.id);
-    if ("error" in resolution) {
-      return status(404, resolution.error);
-    }
+  .get(
+    "/:id/state",
+    async ({ params, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const resolution = await resolveBattlefieldAccess(auth.userId, params.id ?? "");
+      if ("error" in resolution) {
+        return status(404, resolution.error ?? "Battlefield not found.");
+      }
 
-    const snapshot = await serializeClientBattlefieldPipelineState(resolution.battlefieldKey);
-    if (!snapshot) {
-      return status(500, "Unable to load battlefield pipeline state.");
-    }
+      const snapshot = await serializeClientBattlefieldPipelineState(resolution.battlefieldKey);
+      if (!snapshot) {
+        return status(500, "Unable to load battlefield pipeline state.");
+      }
 
-    return {
-      ...snapshot,
-      briefing: resolution.briefing,
-    };
-  })
-  .post("/start", async ({ body, request, headers, status }) => {
-    let payload;
-    try {
-      payload = battlefieldPipelineStartSchema.parse(body);
-    } catch {
-      return status(400, "Invalid battlefield pipeline start payload.");
-    }
-
-    const auth = await requireBearerAuth(request, headers);
-    const resolution = await resolveBattlefieldAccess(auth.userId, String(payload.id));
-    if ("error" in resolution) {
-      return status(404, resolution.error);
-    }
-
-    await saveBattlefieldBriefing(resolution.battlefieldId, payload.prompt);
-
-    const correlationId = createCorrelationId("battlefield-pipeline-start");
-    logger.info("battlefield pipeline start endpoint hit", {
-      path: "/battlefield-pipeline/start",
-      battlefieldId: resolution.battlefieldId,
-      correlationId,
-      promptLength: typeof payload.prompt === "string" ? payload.prompt.length : undefined,
-    });
-
-    void startBattlefieldPipeline(resolution.battlefieldKey, payload.prompt, correlationId).catch(
-      (error) => {
-        logger.error("battlefield pipeline start endpoint async execution failed", {
-          path: "/battlefield-pipeline/start",
-          battlefieldId: resolution.battlefieldId,
-          correlationId,
-          error: error instanceof Error ? error.message : String(error),
-        });
+      return battlefieldPipelineStateSnapshotSchema.parse({
+        ...snapshot,
+        briefing: resolution.briefing,
+      });
+    },
+    {
+      params: battlefieldIdPathParamsSchema,
+      response: {
+        200: battlefieldPipelineStateSnapshotSchema,
+        401: t.String(),
+        403: t.String(),
+        404: t.String(),
+        500: t.String(),
       },
-    );
+    },
+  )
+  .post(
+    "/start",
+    async ({ body, request, headers, status }) => {
+      const payload = body;
+      const auth = await requireBearerAuth(request, headers);
+      const resolution = await resolveBattlefieldAccess(auth.userId, String(payload.id));
+      if ("error" in resolution) {
+        return status(404, resolution.error ?? "Battlefield not found.");
+      }
 
-    return { status: "started" } satisfies BattlefieldPipelineStartResponse;
-  })
+      await saveBattlefieldBriefing(resolution.battlefieldId, payload.prompt);
+
+      const correlationId = createCorrelationId("battlefield-pipeline-start");
+      logger.info("battlefield pipeline start endpoint hit", {
+        path: "/battlefield-pipeline/start",
+        battlefieldId: resolution.battlefieldId,
+        correlationId,
+        promptLength: typeof payload.prompt === "string" ? payload.prompt.length : undefined,
+      });
+
+      void startBattlefieldPipeline(resolution.battlefieldKey, payload.prompt, correlationId).catch(
+        (error) => {
+          logger.error("battlefield pipeline start endpoint async execution failed", {
+            path: "/battlefield-pipeline/start",
+            battlefieldId: resolution.battlefieldId,
+            correlationId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        },
+      );
+
+      return pipelineStartResponseSchema.parse({
+        status: "started",
+      }) satisfies BattlefieldPipelineStartResponse;
+    },
+    {
+      body: battlefieldPipelineStartSchema,
+      response: {
+        200: pipelineStartResponseSchema,
+        401: t.String(),
+        403: t.String(),
+        404: t.String(),
+      },
+    },
+  )
   .post(
     "/sheet",
     async ({ body, request, headers, status }) => {
       const auth = await requireBearerAuth(request, headers);
-      const payload = body as BattlefieldPipelineSheetRequest;
+      const payload = body;
       const resolution = await resolveBattlefieldAccess(auth.userId, String(payload.id));
       if ("error" in resolution) {
-        return status(404, resolution.error);
+        return status(404, resolution.error ?? "Battlefield not found.");
       }
 
       const correlationId = createCorrelationId("battlefield-pipeline-sheet");
@@ -119,19 +142,23 @@ export const battlefieldPipelineRoutes = new Elysia({ prefix: "/battlefield-pipe
       return { status: "started" } satisfies BattlefieldPipelineStartResponse;
     },
     {
-      body: t.Object({
-        id: t.Number(),
-      }),
+      body: pipelineIdRequestSchema,
+      response: {
+        200: pipelineStartResponseSchema,
+        401: t.String(),
+        403: t.String(),
+        404: t.String(),
+      },
     },
   )
   .post(
     "/config",
     async ({ body, request, headers, status }) => {
       const auth = await requireBearerAuth(request, headers);
-      const payload = body as BattlefieldPipelineConfigRequest;
+      const payload = body;
       const resolution = await resolveBattlefieldAccess(auth.userId, String(payload.id));
       if ("error" in resolution) {
-        return status(404, resolution.error);
+        return status(404, resolution.error ?? "Battlefield not found.");
       }
 
       const correlationId = createCorrelationId("battlefield-pipeline-config");
@@ -149,8 +176,12 @@ export const battlefieldPipelineRoutes = new Elysia({ prefix: "/battlefield-pipe
       return { status: "started" } satisfies BattlefieldPipelineStartResponse;
     },
     {
-      body: t.Object({
-        id: t.Number(),
-      }),
+      body: pipelineIdRequestSchema,
+      response: {
+        200: pipelineStartResponseSchema,
+        401: t.String(),
+        403: t.String(),
+        404: t.String(),
+      },
     },
   );
