@@ -332,7 +332,7 @@ const buildSyncMessage = async (state: BattlefieldPipelineState) => ({
   gateMessage: state.gateMessage,
   fighterLedger: {
     isReady: false,
-    balanceMist: "0",
+    balanceNative: "0",
   },
 });
 
@@ -429,23 +429,23 @@ const emitSectionError = (
     sendToBattlefield(battlefieldKey, {
       type: "wallet:insufficient-balance",
       sectionId,
-      requiredMist: error.requiredMist.toString(),
-      balanceMist: error.balanceMist.toString(),
+      requiredNative: error.requiredNative.toString(),
+      balanceNative: error.balanceNative.toString(),
     });
     sendToBattlefield(battlefieldKey, {
       type: "section:error",
       sectionId,
       error: errorMessage,
       code: "INSUFFICIENT_BALANCE",
-      requiredMist: error.requiredMist.toString(),
-      balanceMist: error.balanceMist.toString(),
+      requiredNative: error.requiredNative.toString(),
+      balanceNative: error.balanceNative.toString(),
     });
     if (tenant) {
       sendToUser(tenant.userId, {
         type: "wallet:insufficient-balance",
         sectionId,
-        requiredMist: error.requiredMist.toString(),
-        balanceMist: error.balanceMist.toString(),
+        requiredNative: error.requiredNative.toString(),
+        balanceNative: error.balanceNative.toString(),
       });
     }
     return;

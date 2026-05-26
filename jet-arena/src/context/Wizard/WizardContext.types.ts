@@ -40,8 +40,8 @@ export type ServerMessage =
       sectionId: SectionId;
       error: string;
       code?: "INSUFFICIENT_BALANCE" | "BILLING_FAILED";
-      requiredMist?: string;
-      balanceMist?: string;
+      requiredNative?: string;
+      balanceNative?: string;
     }
   | { type: "pipeline:complete" }
   | { type: "pipeline:gate"; sectionId: SectionId; message: string }
@@ -53,7 +53,7 @@ export type ServerMessage =
       gateMessage: string | null;
       fighterLedger: {
         isReady: boolean;
-        balanceMist: string;
+        balanceNative: string;
       };
     }
   | {
@@ -66,8 +66,8 @@ export type ServerMessage =
   | {
       type: "wallet:insufficient-balance";
       sectionId: SectionId;
-      requiredMist: string;
-      balanceMist: string;
+      requiredNative: string;
+      balanceNative: string;
     };
 
 export type WebSocketConnectionStatus = "connecting" | "open" | "closed";
@@ -81,7 +81,7 @@ export type WizardContextType = {
   sectionHistories: Partial<Record<SectionId, ChatMessage[]>>;
   gateMessage: string | null;
   fighterLedgerReady: boolean;
-  fighterBalanceMist: string;
+  fighterBalanceNative: string;
   promptInput: string;
   errorMessage: string | null;
   connectionStatus: WebSocketConnectionStatus;

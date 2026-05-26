@@ -107,10 +107,10 @@ export const NavbarWalletPill = ({ variant = "navbar" }: NavbarWalletPillProps) 
   }
 
   const addressLabel = formatCompactId(wallet.address);
-  const walletCurrency = getWalletCurrencyMetadata(wallet.network);
+  const walletCurrency = wallet.currency ?? getWalletCurrencyMetadata(wallet.network);
   const networkLabel = formatNetworkLabel(wallet.networkEnv);
   const balanceAmount = formatTokenAmountFromNative(
-    wallet.balanceMist,
+    wallet.balanceNative,
     walletCurrency.nativeDecimals,
   );
   const balanceAmountNumber = Number(balanceAmount);

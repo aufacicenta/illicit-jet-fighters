@@ -46,7 +46,7 @@ import {
 import { normalizeSpritesheetManifest } from "./spritesheet-manifest";
 import type { ChatMessage, FighterSectionId as SectionId, SectionOutput } from "./types";
 import { InsufficientBalanceError, requirePreflightBalance } from "./wallet";
-import { getFighterBalanceMist } from "./wallet/ledger";
+import { getFighterBalanceNative } from "./wallet/ledger";
 
 export type PipelineTenant = {
   userId: string;
@@ -386,19 +386,19 @@ export type ClientPipelineStateSnapshot = {
   gateMessage: string | null;
   fighterLedger: {
     isReady: boolean;
-    balanceMist: string;
+    balanceNative: string;
   };
 };
 
 const resolveFighterLedgerSnapshot = async (fighterKey: string) => {
   const tenant = tenantByFighter.get(fighterKey);
   if (!tenant) {
-    return { isReady: false, balanceMist: "0" };
+    return { isReady: false, balanceNative: "0" };
   }
-  const balanceMist = await getFighterBalanceMist(tenant.fighterId);
+  const balanceNative = await getFighterBalanceNative(tenant.fighterId);
   return {
     isReady: true,
-    balanceMist: balanceMist.toString(),
+    balanceNative: balanceNative.toString(),
   };
 };
 
@@ -609,23 +609,23 @@ const emitSectionError = (
     sendToFighter(fighterKey, {
       type: "wallet:insufficient-balance",
       sectionId,
-      requiredMist: error.requiredMist.toString(),
-      balanceMist: error.balanceMist.toString(),
+      requiredNative: error.requiredNative.toString(),
+      balanceNative: error.balanceNative.toString(),
     });
     sendToFighter(fighterKey, {
       type: "section:error",
       sectionId,
       error: errorMessage,
       code: "INSUFFICIENT_BALANCE",
-      requiredMist: error.requiredMist.toString(),
-      balanceMist: error.balanceMist.toString(),
+      requiredNative: error.requiredNative.toString(),
+      balanceNative: error.balanceNative.toString(),
     });
     if (tenant) {
       sendToUser(tenant.userId, {
         type: "wallet:insufficient-balance",
         sectionId,
-        requiredMist: error.requiredMist.toString(),
-        balanceMist: error.balanceMist.toString(),
+        requiredNative: error.requiredNative.toString(),
+        balanceNative: error.balanceNative.toString(),
       });
     }
     return;

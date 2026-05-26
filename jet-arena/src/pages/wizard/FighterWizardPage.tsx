@@ -1,4 +1,5 @@
 import { parseFighterNameAndEpithet } from "@ijf/shared";
+import { getWalletCurrencyMetadata } from "@ijf/shared";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 
@@ -20,6 +21,7 @@ import { Skeleton } from "../../components/ui/skeleton";
 import { CostsContextController } from "../../context/Costs/CostsContextController";
 import { useCostsContext } from "../../context/Costs/useCostsContext";
 import { useNavbarBreadcrumbContext } from "../../context/NavbarBreadcrumb/useNavbarBreadcrumbContext";
+import { useWalletContext } from "../../context/Wallet/useWalletContext";
 import { useWizardContext } from "../../context/Wizard/useWizardContext";
 import type { SectionId, SectionStatus } from "../../context/Wizard/WizardContext.types";
 import { WizardContextController } from "../../context/Wizard/WizardContextController";
@@ -149,19 +151,32 @@ const WizardCostSummary = () => {
   );
 };
 
-const FighterLedgerSummary = ({ balanceMist }: { balanceMist: string }) => {
-  const normalizedMist = /^\d+$/.test(balanceMist) ? BigInt(balanceMist) : 0n;
-  const whole = normalizedMist / 1_000_000_000n;
-  const remainder = (normalizedMist % 1_000_000_000n).toString().padStart(9, "0");
-  const suiDisplay = `${whole.toString()}.${remainder.slice(0, 4)}`;
+const FighterLedgerSummary = ({
+  balanceNative,
+  nativeDecimals,
+  symbol,
+  nativeSymbol,
+}: {
+  balanceNative: string;
+  nativeDecimals: number;
+  symbol: string;
+  nativeSymbol: string;
+}) => {
+  const normalizedNative = /^\d+$/.test(balanceNative) ? BigInt(balanceNative) : 0n;
+  const nativeFactor = 10n ** BigInt(nativeDecimals);
+  const whole = normalizedNative / nativeFactor;
+  const remainder = (normalizedNative % nativeFactor).toString().padStart(nativeDecimals, "0");
+  const tokenDisplay = `${whole.toString()}.${remainder.slice(0, 4)}`;
   return (
     <div className="rounded-sm border border-primary/50 bg-primary/10 px-3 py-2.5 text-right">
       <p className="text-[10px] font-semibold tracking-[0.14em] text-primary/90 uppercase">
         Fighter Balance
       </p>
-      <p className="mt-1 text-2xl font-black tracking-tight text-primary">{suiDisplay} SUI</p>
+      <p className="mt-1 text-2xl font-black tracking-tight text-primary">
+        {tokenDisplay} {symbol}
+      </p>
       <p className="mt-1 text-[10px] text-muted-foreground uppercase">
-        {normalizedMist.toString()} MIST
+        {normalizedNative.toString()} {nativeSymbol}
       </p>
     </div>
   );
@@ -180,8 +195,9 @@ const WizardLayout = () => {
     setActiveSection,
     activeSectionId,
     fighterLedgerReady,
-    fighterBalanceMist,
+    fighterBalanceNative,
   } = useWizardContext();
+  const { wallet } = useWalletContext();
   const navigate = useNavigate();
   const { setCurrentSectionLabel, clearCurrentSectionLabel } = useNavbarBreadcrumbContext();
   const contentContainerRef = useRef<HTMLDivElement | null>(null);
@@ -288,6 +304,7 @@ const WizardLayout = () => {
   const topLeftLabel = "Greetings, Commander.";
   const statusLabel = `Systems ${connectionStatus === "open" ? "Operational" : "degraded"}`;
   const centerTitle = `${name}${epithet ? ` // ${epithet}` : ""}`;
+  const walletCurrency = wallet?.currency ?? getWalletCurrencyMetadata(wallet?.network ?? "sui");
 
   const navigateToSection = (sectionId: SectionAnchorId) => {
     if (isSectionId(sectionId)) {
@@ -388,7 +405,12 @@ const WizardLayout = () => {
                 <CardContent className="space-y-3">
                   <WizardCostSummary />
                   {fighterLedgerReady ? (
-                    <FighterLedgerSummary balanceMist={fighterBalanceMist} />
+                    <FighterLedgerSummary
+                      balanceNative={fighterBalanceNative}
+                      nativeDecimals={walletCurrency.nativeDecimals}
+                      nativeSymbol={walletCurrency.nativeSymbol}
+                      symbol={walletCurrency.symbol}
+                    />
                   ) : null}
                   <div className="border-border/80 bg-card/70">
                     {sectionNavItems.map((item) => {

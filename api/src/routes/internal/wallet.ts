@@ -26,9 +26,9 @@ export const internalWalletRoutes = new Elysia({ prefix: "/internal/wallet" }).p
       return status(401, "Unauthorized.");
     }
 
-    const amountMist = BigInt(body.amountMist);
-    if (amountMist <= 0n) {
-      return status(400, "amountMist must be a positive integer string.");
+    const amountNative = BigInt(body.amountNative);
+    if (amountNative <= 0n) {
+      return status(400, "amountNative must be a positive integer string.");
     }
 
     const [wallet] = await db
@@ -46,7 +46,7 @@ export const internalWalletRoutes = new Elysia({ prefix: "/internal/wallet" }).p
       walletId: body.walletId,
       networkEnv: getWalletNetworkEnv(),
       txHash: body.txHash,
-      amountMist,
+      amountNative,
       amountUsd: Number.parseFloat(body.amountUsd),
     });
 
@@ -56,7 +56,7 @@ export const internalWalletRoutes = new Elysia({ prefix: "/internal/wallet" }).p
     body: t.Object({
       walletId: t.String(),
       txHash: t.String(),
-      amountMist: t.String(),
+      amountNative: t.String(),
       amountUsd: t.String(),
     }),
   },

@@ -1,4 +1,4 @@
-import type { NetworkEnvName } from "@ijf/shared";
+import type { NetworkEnvName, WalletCurrencyMetadata } from "@ijf/shared";
 
 import { apiRoutes } from "../../hooks/useRoutes";
 import { authHeadersJson, readErrorText } from "./client";
@@ -7,8 +7,9 @@ export type WalletSnapshot = {
   walletId: string;
   address: string;
   network: "sui";
+  currency?: WalletCurrencyMetadata;
   networkEnv: NetworkEnvName;
-  balanceMist: string;
+  balanceNative: string;
   balanceUsd: string;
   fxNativePerUsd: string;
 };
@@ -39,7 +40,7 @@ export type WalletLedgerPage = {
 export type WalletWithdrawal = {
   groupId: string;
   targetAddress: string;
-  amountMist: string;
+  amountNative: string;
   status: "pending" | "broadcasting" | "confirmed" | "refunded";
   latestTxHash: string | null;
   requestedAt: string;
@@ -103,10 +104,10 @@ export const fetchWalletWithdrawals = async (): Promise<{
 
 export const postWalletWithdrawal = async ({
   targetAddress,
-  amountMist,
+  amountNative,
 }: {
   targetAddress: string;
-  amountMist: string;
+  amountNative: string;
 }) => {
   const response = await fetch(apiRoutes.walletWithdrawals, {
     method: "POST",
@@ -114,7 +115,7 @@ export const postWalletWithdrawal = async ({
       "Content-Type": "application/json",
       ...authHeadersJson(),
     },
-    body: JSON.stringify({ targetAddress, amountMist }),
+    body: JSON.stringify({ targetAddress, amountNative }),
   });
   if (!response.ok) {
     throw new Error(await readErrorText(response));
@@ -122,7 +123,7 @@ export const postWalletWithdrawal = async ({
   return (await response.json()) as {
     walletId: string;
     groupId: string;
-    amountMist: string;
+    amountNative: string;
     targetAddress: string;
     status: "pending";
   };

@@ -239,7 +239,7 @@ const trackLlmUsage = async ({
       type: "wallet:balance-update",
       walletId: chargeResult.billing.wallet.id,
       networkEnv: getWalletNetworkEnv(),
-      balanceMist: chargeResult.billing.balanceMist.toString(),
+      balanceNative: chargeResult.billing.balanceNative.toString(),
       balanceUsd: chargeResult.billing.balanceUsd.toFixed(8),
       fxNativePerUsd: chargeResult.billing.fxNativePerUsd.toFixed(12),
       at: new Date().toISOString(),

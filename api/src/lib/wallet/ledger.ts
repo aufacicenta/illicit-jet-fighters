@@ -34,14 +34,14 @@ const asBigInt = (value: unknown) => {
 
 const asDate = (value: unknown) => (value instanceof Date ? value : new Date(String(value ?? "")));
 
-export const formatMistNumeric = (value: bigint) => value.toString();
+export const formatNativeNumeric = (value: bigint) => value.toString();
 
 export const insertLedgerEntry = async ({
   executor,
   walletId,
   networkEnv,
   kind,
-  amountMist,
+  amountNative,
   amountUsdSnapshot,
   fxNativePerUsd,
   correlationId,
@@ -57,7 +57,7 @@ export const insertLedgerEntry = async ({
   walletId: string;
   networkEnv: NetworkEnvName;
   kind: WalletLedgerKind;
-  amountMist: bigint;
+  amountNative: bigint;
   amountUsdSnapshot: number;
   fxNativePerUsd: number;
   correlationId?: string;
@@ -77,7 +77,7 @@ export const insertLedgerEntry = async ({
       walletId,
       networkEnv,
       kind,
-      amountNative: formatMistNumeric(amountMist),
+      amountNative: formatNativeNumeric(amountNative),
       amountUsdSnapshot: amountUsdSnapshot.toFixed(8),
       fxNativePerUsd: fxNativePerUsd.toFixed(12),
       correlationId: correlationId ?? null,
@@ -101,7 +101,7 @@ export const insertLedgerEntry = async ({
   return row;
 };
 
-export const getWalletBalanceMist = async (
+export const getWalletBalanceNative = async (
   walletId: string,
   networkEnv: NetworkEnvName,
   executor?: DbExecutor,
@@ -122,17 +122,17 @@ export type FighterLedgerKind =
   | "fighter_sim_bounty_in"
   | "fighter_sim_bet_out";
 
-const parsePositiveMist = (value: bigint) => {
+const parsePositiveNativeAmount = (value: bigint) => {
   if (value <= 0n) {
-    throw new Error("amountMist must be a positive integer amount.");
+    throw new Error("amountNative must be a positive integer amount.");
   }
 };
 
-const toUsdSnapshot = (amountMist: bigint, fxNativePerUsd: number) => {
+const toUsdSnapshot = (amountNative: bigint, fxNativePerUsd: number) => {
   if (!Number.isFinite(fxNativePerUsd) || fxNativePerUsd <= 0) {
     throw new Error("fxNativePerUsd must be a positive number.");
   }
-  return Number(amountMist) / fxNativePerUsd;
+  return Number(amountNative) / fxNativePerUsd;
 };
 
 const requireOwnedFighter = async ({
@@ -160,14 +160,14 @@ export const insertFighterLedgerEntry = async ({
   executor,
   fighterId,
   kind,
-  amountMist,
+  amountNative,
   walletLedgerEntryId,
   metadata,
 }: {
   executor?: DbExecutor;
   fighterId: number;
   kind: FighterLedgerKind;
-  amountMist: bigint;
+  amountNative: bigint;
   walletLedgerEntryId: string;
   metadata?: unknown;
 }) => {
@@ -177,7 +177,7 @@ export const insertFighterLedgerEntry = async ({
     .values({
       fighterId,
       kind,
-      amountNative: formatMistNumeric(amountMist),
+      amountNative: formatNativeNumeric(amountNative),
       walletLedgerEntryId,
       metadata: (metadata as object | undefined) ?? null,
     })
@@ -192,7 +192,7 @@ export const insertFighterLedgerEntry = async ({
   return row;
 };
 
-export const getFighterBalanceMist = async (
+export const getFighterBalanceNative = async (
   fighterId: number,
   executor?: DbExecutor,
 ): Promise<bigint> => {
@@ -236,7 +236,7 @@ export const appendUserToFighterTransfer = async ({
   userId,
   fighterId,
   networkEnv,
-  amountMist,
+  amountNative,
   fxNativePerUsd,
   metadata,
 }: {
@@ -244,25 +244,25 @@ export const appendUserToFighterTransfer = async ({
   userId: string;
   fighterId: number;
   networkEnv: NetworkEnvName;
-  amountMist: bigint;
+  amountNative: bigint;
   fxNativePerUsd: number;
   metadata?: Record<string, unknown>;
 }) =>
   db.transaction(async (tx) => {
-    parsePositiveMist(amountMist);
+    parsePositiveNativeAmount(amountNative);
     await requireOwnedFighter({ fighterId, userId, executor: tx });
-    const walletBalanceMist = await getWalletBalanceMist(walletId, networkEnv, tx);
-    if (walletBalanceMist < amountMist) {
+    const walletBalanceNative = await getWalletBalanceNative(walletId, networkEnv, tx);
+    if (walletBalanceNative < amountNative) {
       throw new Error("Insufficient wallet balance.");
     }
-    const amountUsdSnapshot = toUsdSnapshot(amountMist, fxNativePerUsd);
+    const amountUsdSnapshot = toUsdSnapshot(amountNative, fxNativePerUsd);
     const correlationId = randomUUID();
     const walletRow = await insertLedgerEntry({
       executor: tx,
       walletId,
       networkEnv,
       kind: "fighter_transfer_out",
-      amountMist: -amountMist,
+      amountNative: -amountNative,
       amountUsdSnapshot: -Math.abs(amountUsdSnapshot),
       fxNativePerUsd,
       correlationId,
@@ -276,7 +276,7 @@ export const appendUserToFighterTransfer = async ({
       executor: tx,
       fighterId,
       kind: "fighter_transfer_in",
-      amountMist,
+      amountNative,
       walletLedgerEntryId: walletRow.id,
       metadata: {
         transferDirection: "user_to_fighter",
@@ -285,14 +285,14 @@ export const appendUserToFighterTransfer = async ({
         ...(metadata ?? {}),
       },
     });
-    const fighterBalanceMist = await getFighterBalanceMist(fighterId, tx);
-    const nextWalletBalanceMist = await getWalletBalanceMist(walletId, networkEnv, tx);
+    const fighterBalanceNative = await getFighterBalanceNative(fighterId, tx);
+    const nextWalletBalanceNative = await getWalletBalanceNative(walletId, networkEnv, tx);
     return {
       correlationId,
       walletEntryId: walletRow.id,
       fighterEntryId: fighterRow.id,
-      walletBalanceMist: nextWalletBalanceMist,
-      fighterBalanceMist,
+      walletBalanceNative: nextWalletBalanceNative,
+      fighterBalanceNative,
     };
   });
 
@@ -301,7 +301,7 @@ export const appendFighterToUserTransfer = async ({
   userId,
   fighterId,
   networkEnv,
-  amountMist,
+  amountNative,
   fxNativePerUsd,
   metadata,
 }: {
@@ -309,25 +309,25 @@ export const appendFighterToUserTransfer = async ({
   userId: string;
   fighterId: number;
   networkEnv: NetworkEnvName;
-  amountMist: bigint;
+  amountNative: bigint;
   fxNativePerUsd: number;
   metadata?: Record<string, unknown>;
 }) =>
   db.transaction(async (tx) => {
-    parsePositiveMist(amountMist);
+    parsePositiveNativeAmount(amountNative);
     await requireOwnedFighter({ fighterId, userId, executor: tx });
-    const fighterBalanceMist = await getFighterBalanceMist(fighterId, tx);
-    if (fighterBalanceMist < amountMist) {
+    const fighterBalanceNative = await getFighterBalanceNative(fighterId, tx);
+    if (fighterBalanceNative < amountNative) {
       throw new Error("Insufficient fighter balance.");
     }
-    const amountUsdSnapshot = toUsdSnapshot(amountMist, fxNativePerUsd);
+    const amountUsdSnapshot = toUsdSnapshot(amountNative, fxNativePerUsd);
     const correlationId = randomUUID();
     const walletRow = await insertLedgerEntry({
       executor: tx,
       walletId,
       networkEnv,
       kind: "fighter_transfer_in",
-      amountMist,
+      amountNative,
       amountUsdSnapshot: Math.abs(amountUsdSnapshot),
       fxNativePerUsd,
       correlationId,
@@ -341,7 +341,7 @@ export const appendFighterToUserTransfer = async ({
       executor: tx,
       fighterId,
       kind: "fighter_transfer_out",
-      amountMist: -amountMist,
+      amountNative: -amountNative,
       walletLedgerEntryId: walletRow.id,
       metadata: {
         transferDirection: "fighter_to_user",
@@ -350,14 +350,14 @@ export const appendFighterToUserTransfer = async ({
         ...(metadata ?? {}),
       },
     });
-    const nextFighterBalanceMist = await getFighterBalanceMist(fighterId, tx);
-    const walletBalanceMist = await getWalletBalanceMist(walletId, networkEnv, tx);
+    const nextFighterBalanceNative = await getFighterBalanceNative(fighterId, tx);
+    const walletBalanceNative = await getWalletBalanceNative(walletId, networkEnv, tx);
     return {
       correlationId,
       walletEntryId: walletRow.id,
       fighterEntryId: fighterRow.id,
-      walletBalanceMist,
-      fighterBalanceMist: nextFighterBalanceMist,
+      walletBalanceNative,
+      fighterBalanceNative: nextFighterBalanceNative,
     };
   });
 
@@ -367,7 +367,7 @@ export const appendSimulationSettlement = async ({
   losingFighterId,
   winningFighterId,
   networkEnv,
-  amountMist,
+  amountNative,
   fxNativePerUsd,
   metadata,
 }: {
@@ -376,12 +376,12 @@ export const appendSimulationSettlement = async ({
   losingFighterId: number;
   winningFighterId: number;
   networkEnv: NetworkEnvName;
-  amountMist: bigint;
+  amountNative: bigint;
   fxNativePerUsd: number;
   metadata?: Record<string, unknown>;
 }) =>
   db.transaction(async (tx) => {
-    parsePositiveMist(amountMist);
+    parsePositiveNativeAmount(amountNative);
     const ownedFighterRows = await tx
       .select({
         id: fighters.id,
@@ -409,18 +409,18 @@ export const appendSimulationSettlement = async ({
     if (!walletRows[0]) {
       throw new Error("Losing owner's wallet was not found.");
     }
-    const losingFighterBalanceMist = await getFighterBalanceMist(losingFighterId, tx);
-    if (losingFighterBalanceMist < amountMist) {
+    const losingFighterBalanceNative = await getFighterBalanceNative(losingFighterId, tx);
+    if (losingFighterBalanceNative < amountNative) {
       throw new Error("Insufficient losing fighter balance for settlement.");
     }
-    const amountUsdSnapshot = toUsdSnapshot(amountMist, fxNativePerUsd);
+    const amountUsdSnapshot = toUsdSnapshot(amountNative, fxNativePerUsd);
     const correlationId = randomUUID();
     const ownerCredit = await insertLedgerEntry({
       executor: tx,
       walletId: losingOwnerWalletId,
       networkEnv,
       kind: "fighter_transfer_in",
-      amountMist,
+      amountNative,
       amountUsdSnapshot: Math.abs(amountUsdSnapshot),
       fxNativePerUsd,
       correlationId,
@@ -435,7 +435,7 @@ export const appendSimulationSettlement = async ({
       executor: tx,
       fighterId: losingFighterId,
       kind: "fighter_sim_bet_out",
-      amountMist: -amountMist,
+      amountNative: -amountNative,
       walletLedgerEntryId: ownerCredit.id,
       metadata: {
         settlementLeg: "losing_fighter_to_owner_wallet",
@@ -449,7 +449,7 @@ export const appendSimulationSettlement = async ({
       walletId: losingOwnerWalletId,
       networkEnv,
       kind: "fighter_transfer_out",
-      amountMist: -amountMist,
+      amountNative: -amountNative,
       amountUsdSnapshot: -Math.abs(amountUsdSnapshot),
       fxNativePerUsd,
       correlationId,
@@ -464,7 +464,7 @@ export const appendSimulationSettlement = async ({
       executor: tx,
       fighterId: winningFighterId,
       kind: "fighter_sim_bounty_in",
-      amountMist,
+      amountNative,
       walletLedgerEntryId: ownerDebit.id,
       metadata: {
         settlementLeg: "owner_wallet_to_winning_fighter",
@@ -487,7 +487,7 @@ export const appendWithdrawalRequest = async ({
   walletId,
   networkEnv,
   targetAddress,
-  amountMist,
+  amountNative,
   amountUsdSnapshot,
   fxNativePerUsd,
 }: {
@@ -495,7 +495,7 @@ export const appendWithdrawalRequest = async ({
   walletId: string;
   networkEnv: NetworkEnvName;
   targetAddress: string;
-  amountMist: bigint;
+  amountNative: bigint;
   amountUsdSnapshot: number;
   fxNativePerUsd: number;
 }) => {
@@ -505,7 +505,7 @@ export const appendWithdrawalRequest = async ({
     walletId,
     networkEnv,
     kind: "withdrawal_request",
-    amountMist: -amountMist,
+    amountNative: -amountNative,
     amountUsdSnapshot: -Math.abs(amountUsdSnapshot),
     fxNativePerUsd,
     groupId,
@@ -533,7 +533,7 @@ export const appendWithdrawalBroadcast = async ({
     walletId,
     networkEnv,
     kind: "withdrawal_broadcast",
-    amountMist: 0n,
+    amountNative: 0n,
     amountUsdSnapshot: 0,
     fxNativePerUsd: 0,
     groupId,
@@ -558,7 +558,7 @@ export const appendWithdrawalConfirm = async ({
     walletId,
     networkEnv,
     kind: "withdrawal_confirm",
-    amountMist: 0n,
+    amountNative: 0n,
     amountUsdSnapshot: 0,
     fxNativePerUsd: 0,
     groupId,
@@ -606,7 +606,7 @@ export const appendWithdrawalRefund = async ({
     walletId,
     networkEnv,
     kind: "withdrawal_refund",
-    amountMist: BigInt(request.amountNative.replace("-", "")),
+    amountNative: BigInt(request.amountNative.replace("-", "")),
     amountUsdSnapshot: Math.abs(Number.parseFloat(request.amountUsdSnapshot)),
     fxNativePerUsd: Number.parseFloat(request.fxNativePerUsd),
     groupId,
@@ -717,7 +717,7 @@ export const listWithdrawals = async (
     withdrawals.push({
       groupId,
       targetAddress: request.targetAddress ?? "",
-      amountMist: asBigInt(request.amountNative) * -1n,
+      amountNative: asBigInt(request.amountNative) * -1n,
       status,
       latestTxHash,
       requestedAt: asDate(request.createdAt),

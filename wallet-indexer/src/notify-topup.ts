@@ -7,12 +7,12 @@ const log = createLogger("notify-topup");
 export const notifyTopupRecorded = async ({
   walletId,
   txHash,
-  amountMist,
+  amountNative,
   amountUsd,
 }: {
   walletId: string;
   txHash: string;
-  amountMist: bigint;
+  amountNative: bigint;
   amountUsd: number;
 }) => {
   if (!config.apiBaseUrl || !config.walletIndexerSecret) {
@@ -34,7 +34,7 @@ export const notifyTopupRecorded = async ({
       body: JSON.stringify({
         walletId,
         txHash,
-        amountMist: amountMist.toString(),
+        amountNative: amountNative.toString(),
         amountUsd: amountUsd.toFixed(8),
       }),
     });

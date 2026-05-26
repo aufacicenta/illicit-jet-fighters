@@ -27,7 +27,10 @@ const isMissingCursorTransactionError = (error: unknown) => {
   return error.message.includes("Could not find the referenced transaction");
 };
 
-const parseIncomingMist = (changes: BalanceChange[] | undefined, targetAddress: string): bigint => {
+const parseIncomingNative = (
+  changes: BalanceChange[] | undefined,
+  targetAddress: string,
+): bigint => {
   if (!changes?.length) {
     return 0n;
   }
@@ -43,8 +46,8 @@ const parseIncomingMist = (changes: BalanceChange[] | undefined, targetAddress: 
       return acc;
     }
 
-    const mist = BigInt(change.amount);
-    return mist > 0n ? acc + mist : acc;
+    const native = BigInt(change.amount);
+    return native > 0n ? acc + native : acc;
   }, 0n);
 };
 
@@ -125,25 +128,25 @@ export const pollSuiTopups = async () => {
         if (!digest) {
           continue;
         }
-        const amountMist = parseIncomingMist(
+        const amountNative = parseIncomingNative(
           (block.balanceChanges as BalanceChange[] | undefined) ?? [],
           wallet.address,
         );
-        if (amountMist <= 0n) {
+        if (amountNative <= 0n) {
           continue;
         }
 
         log.info("incoming SUI topup detected", {
           walletId: wallet.id,
           address: truncateAddress(wallet.address),
-          amountMist: amountMist.toString(),
+          amountNative: amountNative.toString(),
           txHash: digest,
         });
 
         const recorded = await recordTopup({
           walletId: wallet.id,
           networkEnv: config.networkEnv,
-          amountMist,
+          amountNative,
           txHash: digest,
         });
 
@@ -152,7 +155,7 @@ export const pollSuiTopups = async () => {
           await notifyTopupRecorded({
             walletId: wallet.id,
             txHash: digest,
-            amountMist,
+            amountNative,
             amountUsd: recorded.amountUsdSnapshot,
           });
         } else {

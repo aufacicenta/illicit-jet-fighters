@@ -39,8 +39,13 @@ export const getFeeBps = () => {
   return Math.max(0, value);
 };
 
-export const getMinWalletBalanceMist = () =>
-  BigInt(parseInteger(process.env.MIN_WALLET_BALANCE_MIST, 50_000_000));
+export const getMinWalletBalanceNative = () =>
+  BigInt(
+    parseInteger(
+      process.env.MIN_WALLET_BALANCE_NATIVE ?? process.env.MIN_WALLET_BALANCE_MIST,
+      50_000_000,
+    ),
+  );
 
 export const getMinSectionBufferMultiplier = () =>
   Math.max(1, parseFloatValue(process.env.MIN_SECTION_BUFFER_MULTIPLIER, 1.5));

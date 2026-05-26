@@ -52,7 +52,7 @@ export type PipelineStateSnapshot = {
   briefing: string | null;
   fighterLedger: {
     isReady: boolean;
-    balanceMist: string;
+    balanceNative: string;
   };
 };
 

@@ -1,4 +1,4 @@
-import type { NetworkEnvName } from "@ijf/shared";
+import type { NetworkEnvName, WalletCurrencyMetadata } from "@ijf/shared";
 import type { ReactNode } from "react";
 
 import type { WebSocketConnectionStatus } from "../../hooks/useWebSocket";
@@ -10,7 +10,7 @@ export type WalletContextControllerProps = {
 
 export type WalletTopupHighlight = {
   txHash: string;
-  amountMist: bigint;
+  amountNative: bigint;
   expiresAt: number;
 };
 
@@ -18,8 +18,9 @@ export type WalletSnapshotState = {
   walletId: string;
   address: string;
   network: "sui";
+  currency: WalletCurrencyMetadata;
   networkEnv: NetworkEnvName;
-  balanceMist: bigint;
+  balanceNative: bigint;
   balanceUsd: number;
   fxNativePerUsd: number;
 };
@@ -29,7 +30,7 @@ export type WalletServerMessage =
       type: "wallet:balance-update";
       walletId: string;
       networkEnv: NetworkEnvName;
-      balanceMist: string;
+      balanceNative: string;
       balanceUsd: string;
       fxNativePerUsd: string;
       at: string;
@@ -37,7 +38,7 @@ export type WalletServerMessage =
   | {
       type: "wallet:topup-detected";
       txHash: string;
-      amountMist: string;
+      amountNative: string;
       amountUsd: string;
       at: string;
     }
@@ -60,6 +61,6 @@ export type WalletContextType = {
   errorMessage: string | null;
   refresh: () => Promise<void>;
   provisionIfMissing: () => Promise<void>;
-  submitWithdrawal: (args: { targetAddress: string; amountMist: string }) => Promise<void>;
+  submitWithdrawal: (args: { targetAddress: string; amountNative: string }) => Promise<void>;
   cancelWithdrawal: (groupId: string) => Promise<void>;
 };

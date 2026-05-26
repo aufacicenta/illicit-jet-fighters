@@ -16,8 +16,8 @@ export type FighterLedgerEntry = {
 
 export type FighterLedgerSnapshot = {
   fighterId: number;
-  fighterBalanceMist: string;
-  walletBalanceMist: string;
+  fighterBalanceNative: string;
+  walletBalanceNative: string;
   entries: FighterLedgerEntry[];
 };
 
@@ -44,10 +44,10 @@ export const fetchFighterLedgerSnapshot = async ({
 
 export const postFighterTransferIn = async ({
   fighterId,
-  amountMist,
+  amountNative,
 }: {
   fighterId: string;
-  amountMist: string;
+  amountNative: string;
 }) => {
   const response = await fetch(apiRoutes.walletFighterTransferIn(fighterId), {
     method: "POST",
@@ -55,26 +55,26 @@ export const postFighterTransferIn = async ({
       "Content-Type": "application/json",
       ...authHeadersJson(),
     },
-    body: JSON.stringify({ amountMist }),
+    body: JSON.stringify({ amountNative }),
   });
   if (!response.ok) {
     throw new Error(await readErrorText(response));
   }
   return (await response.json()) as {
     fighterId: number;
-    amountMist: string;
+    amountNative: string;
     correlationId: string;
-    walletBalanceMist: string;
-    fighterBalanceMist: string;
+    walletBalanceNative: string;
+    fighterBalanceNative: string;
   };
 };
 
 export const postFighterTransferOut = async ({
   fighterId,
-  amountMist,
+  amountNative,
 }: {
   fighterId: string;
-  amountMist: string;
+  amountNative: string;
 }) => {
   const response = await fetch(apiRoutes.walletFighterTransferOut(fighterId), {
     method: "POST",
@@ -82,16 +82,16 @@ export const postFighterTransferOut = async ({
       "Content-Type": "application/json",
       ...authHeadersJson(),
     },
-    body: JSON.stringify({ amountMist }),
+    body: JSON.stringify({ amountNative }),
   });
   if (!response.ok) {
     throw new Error(await readErrorText(response));
   }
   return (await response.json()) as {
     fighterId: number;
-    amountMist: string;
+    amountNative: string;
     correlationId: string;
-    walletBalanceMist: string;
-    fighterBalanceMist: string;
+    walletBalanceNative: string;
+    fighterBalanceNative: string;
   };
 };

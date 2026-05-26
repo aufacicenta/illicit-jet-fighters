@@ -33,15 +33,15 @@ export const queryIncomingTransfers = async ({
 export const signAndExecuteTransfer = async ({
   derivationIndex,
   targetAddress,
-  amountMist,
+  amountNative,
 }: {
   derivationIndex: number;
   targetAddress: string;
-  amountMist: bigint;
+  amountNative: bigint;
 }) => {
   const keypair = deriveSuiKeypair(derivationIndex);
   const tx = new Transaction();
-  const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(amountMist)]);
+  const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(amountNative)]);
   tx.transferObjects([coin], tx.pure.address(targetAddress));
 
   return getSuiClient().signAndExecuteTransaction({

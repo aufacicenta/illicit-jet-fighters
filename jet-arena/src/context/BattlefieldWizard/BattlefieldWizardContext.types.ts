@@ -43,8 +43,8 @@ export type BattlefieldServerMessage =
       sectionId: BattlefieldSectionId;
       error: string;
       code?: "INSUFFICIENT_BALANCE" | "BILLING_FAILED";
-      requiredMist?: string;
-      balanceMist?: string;
+      requiredNative?: string;
+      balanceNative?: string;
     }
   | { type: "pipeline:complete" }
   | { type: "pipeline:gate"; sectionId: BattlefieldSectionId; message: string }
@@ -65,8 +65,8 @@ export type BattlefieldServerMessage =
   | {
       type: "wallet:insufficient-balance";
       sectionId: BattlefieldSectionId;
-      requiredMist: string;
-      balanceMist: string;
+      requiredNative: string;
+      balanceNative: string;
     };
 
 export type WebSocketConnectionStatus = "connecting" | "open" | "closed";

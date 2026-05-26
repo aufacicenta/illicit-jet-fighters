@@ -31,6 +31,13 @@ for (const filePath of [
   loadEnvFile(filePath);
 }
 
+if (
+  process.env.MIN_WALLET_BALANCE_NATIVE === undefined &&
+  process.env.MIN_WALLET_BALANCE_MIST !== undefined
+) {
+  process.env.MIN_WALLET_BALANCE_NATIVE = process.env.MIN_WALLET_BALANCE_MIST;
+}
+
 const envSchema = z.object({
   NODE_ENV: z.string().default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
@@ -43,7 +50,7 @@ const envSchema = z.object({
   WALLET_NETWORK_ENV: z.enum(["testnet", "devnet", "mainnet"]).default("testnet"),
   SUI_RPC_URL: z.string().url().optional(),
   FEE_BPS: z.coerce.number().int().min(0).default(2000),
-  MIN_WALLET_BALANCE_MIST: z.coerce.number().int().min(0).default(50_000_000),
+  MIN_WALLET_BALANCE_NATIVE: z.coerce.number().int().min(0).default(50_000_000),
   MIN_SECTION_BUFFER_MULTIPLIER: z.coerce.number().min(1).default(1.5),
   WALLET_INDEXER_POLL_MS: z.coerce.number().int().min(5000).default(15_000),
   WALLET_INDEXER_SECRET: z.string().min(1).optional(),

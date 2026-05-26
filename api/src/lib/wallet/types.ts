@@ -14,7 +14,7 @@ export type WalletLedgerKind =
 
 export type WalletBalanceSnapshot = {
   walletId: string;
-  balanceMist: bigint;
+  balanceNative: bigint;
   fxNativePerUsd: number;
   balanceUsd: number;
 };
@@ -24,7 +24,7 @@ export type WithdrawalStatus = "pending" | "broadcasting" | "confirmed" | "refun
 export type WithdrawalView = {
   groupId: string;
   targetAddress: string;
-  amountMist: bigint;
+  amountNative: bigint;
   status: WithdrawalStatus;
   latestTxHash: string | null;
   requestedAt: Date;

@@ -12,8 +12,8 @@ export type ServerMessage =
       sectionId: SectionId;
       error: string;
       code?: "INSUFFICIENT_BALANCE" | "BILLING_FAILED";
-      requiredMist?: string;
-      balanceMist?: string;
+      requiredNative?: string;
+      balanceNative?: string;
     }
   | { type: "pipeline:complete" }
   | { type: "pipeline:gate"; sectionId: SectionId; message: string }
@@ -25,7 +25,7 @@ export type ServerMessage =
       gateMessage: string | null;
       fighterLedger: {
         isReady: boolean;
-        balanceMist: string;
+        balanceNative: string;
       };
     }
   | {
@@ -40,7 +40,7 @@ export type ServerMessage =
       type: "wallet:balance-update";
       walletId: string;
       networkEnv: NetworkEnvName;
-      balanceMist: string;
+      balanceNative: string;
       balanceUsd: string;
       fxNativePerUsd: string;
       at: string;
@@ -48,7 +48,7 @@ export type ServerMessage =
   | {
       type: "wallet:topup-detected";
       txHash: string;
-      amountMist: string;
+      amountNative: string;
       amountUsd: string;
       at: string;
     }
@@ -63,8 +63,8 @@ export type ServerMessage =
   | {
       type: "wallet:insufficient-balance";
       sectionId: SectionId;
-      requiredMist: string;
-      balanceMist: string;
+      requiredNative: string;
+      balanceNative: string;
     };
 
 export type ClientMessage =

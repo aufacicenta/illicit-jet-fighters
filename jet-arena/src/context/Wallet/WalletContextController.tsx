@@ -1,6 +1,7 @@
 "use client";
 
 import type { NetworkEnvName } from "@ijf/shared";
+import { getWalletCurrencyMetadata } from "@ijf/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { wsRoutes } from "../../hooks/useRoutes";
@@ -26,16 +27,22 @@ const parseWalletSnapshot = (snapshot: {
   walletId: string;
   address: string;
   network: "sui";
+  currency?: {
+    symbol: string;
+    nativeSymbol: string;
+    nativeDecimals: number;
+  };
   networkEnv: NetworkEnvName;
-  balanceMist: string;
+  balanceNative: string;
   balanceUsd: string;
   fxNativePerUsd: string;
 }): WalletSnapshotState => ({
   walletId: snapshot.walletId,
   address: snapshot.address,
   network: snapshot.network,
+  currency: snapshot.currency ?? getWalletCurrencyMetadata(snapshot.network),
   networkEnv: snapshot.networkEnv,
-  balanceMist: BigInt(snapshot.balanceMist),
+  balanceNative: BigInt(snapshot.balanceNative),
   balanceUsd: Number.parseFloat(snapshot.balanceUsd),
   fxNativePerUsd: Number.parseFloat(snapshot.fxNativePerUsd),
 });
@@ -103,8 +110,9 @@ export const WalletContextController = ({ children }: WalletContextControllerPro
             walletId: message.walletId,
             address: "",
             network: "sui",
+            currency: getWalletCurrencyMetadata("sui"),
             networkEnv: message.networkEnv,
-            balanceMist: BigInt(message.balanceMist),
+            balanceNative: BigInt(message.balanceNative),
             balanceUsd: Number.parseFloat(message.balanceUsd),
             fxNativePerUsd: Number.parseFloat(message.fxNativePerUsd),
           };
@@ -113,7 +121,7 @@ export const WalletContextController = ({ children }: WalletContextControllerPro
           ...current,
           walletId: message.walletId,
           networkEnv: message.networkEnv,
-          balanceMist: BigInt(message.balanceMist),
+          balanceNative: BigInt(message.balanceNative),
           balanceUsd: Number.parseFloat(message.balanceUsd),
           fxNativePerUsd: Number.parseFloat(message.fxNativePerUsd),
         };
@@ -126,7 +134,7 @@ export const WalletContextController = ({ children }: WalletContextControllerPro
     if (message.type === "wallet:topup-detected") {
       setLastTopupHighlight({
         txHash: message.txHash,
-        amountMist: BigInt(message.amountMist),
+        amountNative: BigInt(message.amountNative),
         expiresAt: Date.now() + 4_000,
       });
       void refreshRef.current();
@@ -156,7 +164,7 @@ export const WalletContextController = ({ children }: WalletContextControllerPro
         next.unshift({
           groupId: message.groupId,
           targetAddress: "",
-          amountMist: "0",
+          amountNative: "0",
           status: message.status,
           latestTxHash: message.latestTxHash ?? null,
           requestedAt: message.at,
@@ -216,8 +224,8 @@ export const WalletContextController = ({ children }: WalletContextControllerPro
   }, [refresh]);
 
   const submitWithdrawal = useCallback(
-    async ({ targetAddress, amountMist }: { targetAddress: string; amountMist: string }) => {
-      await postWalletWithdrawal({ targetAddress, amountMist });
+    async ({ targetAddress, amountNative }: { targetAddress: string; amountNative: string }) => {
+      await postWalletWithdrawal({ targetAddress, amountNative });
       await refresh();
     },
     [refresh],

@@ -18,7 +18,7 @@ type PendingWithdrawal = {
   walletId: string;
   derivationIndex: number;
   targetAddress: string;
-  amountMist: bigint;
+  amountNative: bigint;
 };
 
 const getDerivationPath = (index: number) => `m/44'/784'/${index}'/0'/0'`;
@@ -37,20 +37,20 @@ const appendLifecycleRow = async ({
   kind,
   txHash,
   errorMessage,
-  amountMist,
+  amountNative,
 }: {
   walletId: string;
   groupId: string;
   kind: "withdrawal_broadcast" | "withdrawal_confirm" | "withdrawal_refund";
   txHash?: string;
   errorMessage?: string;
-  amountMist?: bigint;
+  amountNative?: bigint;
 }) =>
   db.insert(walletLedgerEntries).values({
     walletId,
     networkEnv: config.networkEnv,
     kind,
-    amountNative: (amountMist ?? 0n).toString(),
+    amountNative: (amountNative ?? 0n).toString(),
     amountUsdSnapshot: "0",
     fxNativePerUsd: "0",
     groupId,
@@ -126,7 +126,7 @@ const findPendingWithdrawals = async (): Promise<PendingWithdrawal[]> => {
       walletId: row.walletId,
       derivationIndex: derivationByWalletId.get(row.walletId) ?? -1,
       targetAddress: row.targetAddress as string,
-      amountMist: BigInt(row.amountNative.replace("-", "")),
+      amountNative: BigInt(row.amountNative.replace("-", "")),
     }))
     .filter((row) => row.derivationIndex >= 0);
 };
@@ -146,14 +146,14 @@ export const processPendingWithdrawals = async () => {
       groupId: withdrawal.groupId,
       walletId: withdrawal.walletId,
       derivationIndex: withdrawal.derivationIndex,
-      amountMist: withdrawal.amountMist.toString(),
+      amountNative: withdrawal.amountNative.toString(),
       targetAddress: withdrawal.targetAddress,
     });
 
     try {
       const keypair = getWalletKeypair(withdrawal.derivationIndex);
       const tx = new Transaction();
-      const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(withdrawal.amountMist)]);
+      const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(withdrawal.amountNative)]);
       tx.transferObjects([coin], tx.pure.address(withdrawal.targetAddress));
       const executed = await suiClient.signAndExecuteTransaction({
         signer: keypair,
@@ -206,7 +206,7 @@ export const processPendingWithdrawals = async () => {
           walletId: withdrawal.walletId,
           groupId: withdrawal.groupId,
           kind: "withdrawal_refund",
-          amountMist: withdrawal.amountMist,
+          amountNative: withdrawal.amountNative,
           errorMessage,
         });
         refunded += 1;
@@ -227,7 +227,7 @@ export const processPendingWithdrawals = async () => {
         walletId: withdrawal.walletId,
         groupId: withdrawal.groupId,
         kind: "withdrawal_refund",
-        amountMist: withdrawal.amountMist,
+        amountNative: withdrawal.amountNative,
         errorMessage,
       });
       refunded += 1;

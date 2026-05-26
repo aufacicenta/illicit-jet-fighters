@@ -69,12 +69,12 @@ export const WalletPage = () => {
   const [amountSui, setAmountSui] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [activeSectionId, setActiveSectionId] = useState<WalletSectionId>("deposit");
-  const walletCurrency = getWalletCurrencyMetadata(wallet?.network ?? "sui");
+  const walletCurrency = wallet?.currency ?? getWalletCurrencyMetadata(wallet?.network ?? "sui");
 
   const availableBalanceLabel = useMemo(
     () =>
       wallet
-        ? `${formatTokenAmountFromNative(wallet.balanceMist, walletCurrency.nativeDecimals)} ${walletCurrency.symbol}`
+        ? `${formatTokenAmountFromNative(wallet.balanceNative, walletCurrency.nativeDecimals)} ${walletCurrency.symbol}`
         : `0 ${walletCurrency.symbol}`,
     [wallet, walletCurrency.nativeDecimals, walletCurrency.symbol],
   );
@@ -102,10 +102,10 @@ export const WalletPage = () => {
         setFormError(`Enter a valid ${walletCurrency.symbol} amount.`);
         return;
       }
-      const amountMist = BigInt(Math.floor(parsed * 10 ** walletCurrency.nativeDecimals));
+      const amountNative = BigInt(Math.floor(parsed * 10 ** walletCurrency.nativeDecimals));
       await submitWithdrawal({
         targetAddress: targetAddress.trim(),
-        amountMist: amountMist.toString(),
+        amountNative: amountNative.toString(),
       });
       setAmountSui("");
       setTargetAddress("");

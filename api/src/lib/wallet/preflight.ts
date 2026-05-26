@@ -1,15 +1,15 @@
 import type { SectionId } from "../types";
 import { getSuiUsdPrice } from "./fx";
-import { getWalletBalanceMist } from "./ledger";
+import { getWalletBalanceNative } from "./ledger";
 import {
   getMinSectionBufferMultiplier,
-  getMinWalletBalanceMist,
+  getMinWalletBalanceNative,
   getWalletNetwork,
   getWalletNetworkEnv,
 } from "./wallet-config";
 import { ensureUserWallet } from "./wallet-provision";
 
-const MIST_PER_SUI = 1_000_000_000;
+const NATIVE_BASE_UNITS_PER_SUI = 1_000_000_000;
 
 const estimatedSectionUsd: Record<SectionId, number> = {
   "character-description": 0.003,
@@ -29,13 +29,13 @@ const estimatedSectionUsd: Record<SectionId, number> = {
   "battlefield-config": 0.004,
 };
 
-const estimateRequiredMist = async (sectionId: SectionId) => {
+const estimateRequiredNative = async (sectionId: SectionId) => {
   const suiUsd = await getSuiUsdPrice();
   const baseUsd = estimatedSectionUsd[sectionId] ?? 0.01;
   const bufferedUsd = baseUsd * getMinSectionBufferMultiplier();
-  const convertedMist = BigInt(Math.ceil((bufferedUsd / suiUsd) * MIST_PER_SUI));
-  const floorMist = getMinWalletBalanceMist();
-  return convertedMist > floorMist ? convertedMist : floorMist;
+  const convertedNative = BigInt(Math.ceil((bufferedUsd / suiUsd) * NATIVE_BASE_UNITS_PER_SUI));
+  const floorNative = getMinWalletBalanceNative();
+  return convertedNative > floorNative ? convertedNative : floorNative;
 };
 
 export class InsufficientBalanceError extends Error {
@@ -43,10 +43,10 @@ export class InsufficientBalanceError extends Error {
 
   constructor(
     public readonly sectionId: SectionId,
-    public readonly requiredMist: bigint,
-    public readonly balanceMist: bigint,
+    public readonly requiredNative: bigint,
+    public readonly balanceNative: bigint,
   ) {
-    super(`Insufficient wallet balance for ${sectionId}. Required ${requiredMist} MIST.`);
+    super(`Insufficient wallet balance for ${sectionId}. Required ${requiredNative} native.`);
   }
 }
 
@@ -60,12 +60,12 @@ export const requirePreflightBalance = async ({
   const network = getWalletNetwork();
   const networkEnv = getWalletNetworkEnv();
   const wallet = await ensureUserWallet({ userId, network });
-  const requiredMist = await estimateRequiredMist(sectionId);
-  const balanceMist = await getWalletBalanceMist(wallet.id, networkEnv);
+  const requiredNative = await estimateRequiredNative(sectionId);
+  const balanceNative = await getWalletBalanceNative(wallet.id, networkEnv);
 
-  if (balanceMist < requiredMist) {
-    throw new InsufficientBalanceError(sectionId, requiredMist, balanceMist);
+  if (balanceNative < requiredNative) {
+    throw new InsufficientBalanceError(sectionId, requiredNative, balanceNative);
   }
 
-  return { ok: true as const, balanceMist, requiredMist, walletId: wallet.id };
+  return { ok: true as const, balanceNative, requiredNative, walletId: wallet.id };
 };

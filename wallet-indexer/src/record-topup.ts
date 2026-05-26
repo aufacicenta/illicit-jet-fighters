@@ -6,26 +6,26 @@ import { getSuiUsdPrice } from "./fx-snapshot";
 
 const log = createLogger("record-topup");
 
-const MIST_PER_SUI = 1_000_000_000;
+const NATIVE_BASE_UNITS_PER_SUI = 1_000_000_000;
 
 export const recordTopup = async ({
   walletId,
   networkEnv,
-  amountMist,
+  amountNative,
   txHash,
 }: {
   walletId: string;
   networkEnv: NetworkEnvName;
-  amountMist: bigint;
+  amountNative: bigint;
   txHash: string;
 }) => {
   const suiUsd = await getSuiUsdPrice();
-  const fxNativePerUsd = MIST_PER_SUI / suiUsd;
-  const amountUsdSnapshot = Number(amountMist) / fxNativePerUsd;
+  const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
+  const amountUsdSnapshot = Number(amountNative) / fxNativePerUsd;
 
   log.info("recording topup", {
     walletId,
-    amountMist: amountMist.toString(),
+    amountNative: amountNative.toString(),
     amountUsdSnapshot: amountUsdSnapshot.toFixed(8),
     fxNativePerUsd: fxNativePerUsd.toFixed(12),
     suiUsd,
@@ -46,7 +46,7 @@ export const recordTopup = async ({
       ${walletId},
       ${networkEnv}::public.wallet_network_env,
       'topup',
-      ${amountMist.toString()},
+      ${amountNative.toString()},
       ${amountUsdSnapshot.toFixed(8)},
       ${fxNativePerUsd.toFixed(12)},
       ${txHash}

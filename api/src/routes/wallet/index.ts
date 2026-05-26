@@ -1,4 +1,5 @@
 import { and, db, desc, eq, lt, not, sql, walletLedgerEntries } from "@ijf/database";
+import { getWalletCurrencyMetadata } from "@ijf/shared";
 import { Elysia, t } from "elysia";
 
 import { getOwnedFighter } from "../../lib/fighter-access";
@@ -11,8 +12,8 @@ import {
   appendUserToFighterTransfer,
   appendWithdrawalRefund,
   appendWithdrawalRequest,
-  getFighterBalanceMist,
-  getWalletBalanceMist,
+  getFighterBalanceNative,
+  getWalletBalanceNative,
   listFighterLedgerEntries,
   listWithdrawals,
 } from "../../lib/wallet/ledger";
@@ -20,9 +21,9 @@ import { getWalletNetwork, getWalletNetworkEnv } from "../../lib/wallet/wallet-c
 import { ensureUserWallet } from "../../lib/wallet/wallet-provision";
 import { sendToUser } from "../../ws/store";
 
-const MIST_PER_SUI = 1_000_000_000;
+const NATIVE_BASE_UNITS_PER_SUI = 1_000_000_000;
 
-const parseMist = (value: string) => {
+const parseNativeAmount = (value: string) => {
   const trimmed = value.trim();
   if (!/^\d+$/.test(trimmed)) {
     return null;
@@ -39,7 +40,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
     const networkEnv = getWalletNetworkEnv();
     const wallet = await ensureUserWallet({ userId: auth.userId, network });
     const suiUsd = await getSuiUsdPrice();
-    const fxNativePerUsd = MIST_PER_SUI / suiUsd;
+    const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
     const snapshot = await buildWalletBalanceSnapshot({
       walletId: wallet.id,
       networkEnv,
@@ -50,8 +51,9 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       walletId: wallet.id,
       address: wallet.address,
       network: wallet.network,
+      currency: getWalletCurrencyMetadata(wallet.network),
       networkEnv,
-      balanceMist: snapshot.balanceMist.toString(),
+      balanceNative: snapshot.balanceNative.toString(),
       balanceUsd: snapshot.balanceUsd.toFixed(8),
       fxNativePerUsd: snapshot.fxNativePerUsd.toFixed(12),
     };
@@ -155,12 +157,12 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       }
       try {
         const entries = await listFighterLedgerEntries({ fighterId, limit });
-        const fighterBalanceMist = await getFighterBalanceMist(fighterId);
-        const walletBalanceMist = await getWalletBalanceMist(wallet.id, networkEnv);
+        const fighterBalanceNative = await getFighterBalanceNative(fighterId);
+        const walletBalanceNative = await getWalletBalanceNative(wallet.id, networkEnv);
         return {
           fighterId,
-          fighterBalanceMist: fighterBalanceMist.toString(),
-          walletBalanceMist: walletBalanceMist.toString(),
+          fighterBalanceNative: fighterBalanceNative.toString(),
+          walletBalanceNative: walletBalanceNative.toString(),
           entries: entries.map((entry) => ({
             ...entry,
             createdAt: entry.createdAt.toISOString(),
@@ -193,27 +195,27 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       if (!Number.isInteger(fighterId) || fighterId <= 0) {
         return status(400, "Invalid fighterId.");
       }
-      const amountMist = parseMist(body.amountMist);
-      if (!amountMist || amountMist <= 0n) {
-        return status(400, "amountMist must be a positive integer string.");
+      const amountNative = parseNativeAmount(body.amountNative);
+      if (!amountNative || amountNative <= 0n) {
+        return status(400, "amountNative must be a positive integer string.");
       }
       const suiUsd = await getSuiUsdPrice();
-      const fxNativePerUsd = MIST_PER_SUI / suiUsd;
+      const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
       try {
         const transfer = await appendUserToFighterTransfer({
           walletId: wallet.id,
           userId: auth.userId,
           fighterId,
           networkEnv,
-          amountMist,
+          amountNative,
           fxNativePerUsd,
         });
         return {
           fighterId,
-          amountMist: amountMist.toString(),
+          amountNative: amountNative.toString(),
           correlationId: transfer.correlationId,
-          walletBalanceMist: transfer.walletBalanceMist.toString(),
-          fighterBalanceMist: transfer.fighterBalanceMist.toString(),
+          walletBalanceNative: transfer.walletBalanceNative.toString(),
+          fighterBalanceNative: transfer.fighterBalanceNative.toString(),
         };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Transfer failed.";
@@ -231,7 +233,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
         fighterId: t.String(),
       }),
       body: t.Object({
-        amountMist: t.String(),
+        amountNative: t.String(),
       }),
     },
   )
@@ -246,27 +248,27 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       if (!Number.isInteger(fighterId) || fighterId <= 0) {
         return status(400, "Invalid fighterId.");
       }
-      const amountMist = parseMist(body.amountMist);
-      if (!amountMist || amountMist <= 0n) {
-        return status(400, "amountMist must be a positive integer string.");
+      const amountNative = parseNativeAmount(body.amountNative);
+      if (!amountNative || amountNative <= 0n) {
+        return status(400, "amountNative must be a positive integer string.");
       }
       const suiUsd = await getSuiUsdPrice();
-      const fxNativePerUsd = MIST_PER_SUI / suiUsd;
+      const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
       try {
         const transfer = await appendFighterToUserTransfer({
           walletId: wallet.id,
           userId: auth.userId,
           fighterId,
           networkEnv,
-          amountMist,
+          amountNative,
           fxNativePerUsd,
         });
         return {
           fighterId,
-          amountMist: amountMist.toString(),
+          amountNative: amountNative.toString(),
           correlationId: transfer.correlationId,
-          walletBalanceMist: transfer.walletBalanceMist.toString(),
-          fighterBalanceMist: transfer.fighterBalanceMist.toString(),
+          walletBalanceNative: transfer.walletBalanceNative.toString(),
+          fighterBalanceNative: transfer.fighterBalanceNative.toString(),
         };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Transfer failed.";
@@ -284,7 +286,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
         fighterId: t.String(),
       }),
       body: t.Object({
-        amountMist: t.String(),
+        amountNative: t.String(),
       }),
     },
   )
@@ -295,12 +297,12 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       const network = getWalletNetwork();
       const networkEnv = getWalletNetworkEnv();
       const wallet = await ensureUserWallet({ userId: auth.userId, network });
-      const amountMist = parseMist(body.amountMist);
-      if (!amountMist || amountMist <= 0n) {
-        return status(400, "amountMist must be a positive integer string.");
+      const amountNative = parseNativeAmount(body.amountNative);
+      if (!amountNative || amountNative <= 0n) {
+        return status(400, "amountNative must be a positive integer string.");
       }
       const suiUsd = await getSuiUsdPrice();
-      const fxNativePerUsd = MIST_PER_SUI / suiUsd;
+      const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
       try {
         const settlement = await appendSimulationSettlement({
           losingOwnerUserId: auth.userId,
@@ -308,12 +310,12 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
           losingFighterId: body.losingFighterId,
           winningFighterId: body.winningFighterId,
           networkEnv,
-          amountMist,
+          amountNative,
           fxNativePerUsd,
         });
         return {
           correlationId: settlement.correlationId,
-          amountMist: amountMist.toString(),
+          amountNative: amountNative.toString(),
           losingFighterId: body.losingFighterId,
           winningFighterId: body.winningFighterId,
         };
@@ -332,7 +334,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       body: t.Object({
         losingFighterId: t.Number(),
         winningFighterId: t.Number(),
-        amountMist: t.String(),
+        amountNative: t.String(),
       }),
     },
   )
@@ -347,7 +349,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       walletId: wallet.id,
       withdrawals: withdrawals.map((withdrawal) => ({
         ...withdrawal,
-        amountMist: withdrawal.amountMist.toString(),
+        amountNative: withdrawal.amountNative.toString(),
         requestedAt: withdrawal.requestedAt.toISOString(),
         settledAt: withdrawal.settledAt?.toISOString() ?? null,
       })),
@@ -360,27 +362,27 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       const network = getWalletNetwork();
       const networkEnv = getWalletNetworkEnv();
       const wallet = await ensureUserWallet({ userId: auth.userId, network });
-      const amountMist = parseMist(body.amountMist);
-      if (!amountMist || amountMist <= 0n) {
-        return status(400, "amountMist must be a positive integer string.");
+      const amountNative = parseNativeAmount(body.amountNative);
+      if (!amountNative || amountNative <= 0n) {
+        return status(400, "amountNative must be a positive integer string.");
       }
       if (!isValidSuiAddress(body.targetAddress)) {
         return status(400, "Invalid SUI address.");
       }
 
-      const currentBalanceMist = await getWalletBalanceMist(wallet.id, networkEnv);
-      if (currentBalanceMist < amountMist) {
+      const currentBalanceNative = await getWalletBalanceNative(wallet.id, networkEnv);
+      if (currentBalanceNative < amountNative) {
         return status(400, "Insufficient wallet balance.");
       }
 
       const suiUsd = await getSuiUsdPrice();
-      const fxNativePerUsd = MIST_PER_SUI / suiUsd;
-      const amountUsdSnapshot = Number(amountMist) / fxNativePerUsd;
+      const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
+      const amountUsdSnapshot = Number(amountNative) / fxNativePerUsd;
       const groupId = await appendWithdrawalRequest({
         walletId: wallet.id,
         networkEnv,
         targetAddress: body.targetAddress,
-        amountMist,
+        amountNative,
         amountUsdSnapshot,
         fxNativePerUsd,
       });
@@ -394,7 +396,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
         type: "wallet:balance-update",
         walletId: wallet.id,
         networkEnv,
-        balanceMist: balance.balanceMist.toString(),
+        balanceNative: balance.balanceNative.toString(),
         balanceUsd: balance.balanceUsd.toFixed(8),
         fxNativePerUsd: balance.fxNativePerUsd.toFixed(12),
         at: new Date().toISOString(),
@@ -409,7 +411,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       return {
         walletId: wallet.id,
         groupId,
-        amountMist: amountMist.toString(),
+        amountNative: amountNative.toString(),
         targetAddress: body.targetAddress,
         status: "pending" as const,
       };
@@ -417,7 +419,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
     {
       body: t.Object({
         targetAddress: t.String(),
-        amountMist: t.String(),
+        amountNative: t.String(),
       }),
     },
   )
@@ -445,7 +447,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       });
 
       const suiUsd = await getSuiUsdPrice();
-      const fxNativePerUsd = MIST_PER_SUI / suiUsd;
+      const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
       const balance = await buildWalletBalanceSnapshot({
         walletId: wallet.id,
         networkEnv,
@@ -455,7 +457,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
         type: "wallet:balance-update",
         walletId: wallet.id,
         networkEnv,
-        balanceMist: balance.balanceMist.toString(),
+        balanceNative: balance.balanceNative.toString(),
         balanceUsd: balance.balanceUsd.toFixed(8),
         fxNativePerUsd: balance.fxNativePerUsd.toFixed(12),
         at: new Date().toISOString(),

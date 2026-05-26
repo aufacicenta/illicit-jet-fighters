@@ -4,32 +4,32 @@ import { sendToUser } from "../../ws/store";
 import { buildWalletBalanceSnapshot } from "./charge";
 import { getSuiUsdPrice } from "./fx";
 
-const MIST_PER_SUI = 1_000_000_000;
+const NATIVE_BASE_UNITS_PER_SUI = 1_000_000_000;
 
 export const pushWalletTopupNotifications = async ({
   userId,
   walletId,
   networkEnv,
   txHash,
-  amountMist,
+  amountNative,
   amountUsd,
 }: {
   userId: string;
   walletId: string;
   networkEnv: NetworkEnvName;
   txHash: string;
-  amountMist: bigint;
+  amountNative: bigint;
   amountUsd: number;
 }) => {
   const suiUsd = await getSuiUsdPrice();
-  const fxNativePerUsd = MIST_PER_SUI / suiUsd;
+  const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
   const balance = await buildWalletBalanceSnapshot({ walletId, networkEnv, fxNativePerUsd });
   const at = new Date().toISOString();
 
   sendToUser(userId, {
     type: "wallet:topup-detected",
     txHash,
-    amountMist: amountMist.toString(),
+    amountNative: amountNative.toString(),
     amountUsd: amountUsd.toFixed(8),
     at,
   });
@@ -37,7 +37,7 @@ export const pushWalletTopupNotifications = async ({
     type: "wallet:balance-update",
     walletId,
     networkEnv,
-    balanceMist: balance.balanceMist.toString(),
+    balanceNative: balance.balanceNative.toString(),
     balanceUsd: balance.balanceUsd.toFixed(8),
     fxNativePerUsd: balance.fxNativePerUsd.toFixed(12),
     at,
