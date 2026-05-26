@@ -1,36 +1,31 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { Button } from "../components/ui/button";
-import { useAuth } from "../context/Auth/useAuth";
+import { useTokenGuardedEffect } from "../context/Auth/useTokenGuardedEffect";
 import { routes } from "../hooks/useRoutes";
 import { navigateToNewBattlefieldWizard } from "../lib/navigate-new-battlefield-wizard";
 
 export const CreateBattlefieldPage = () => {
   const navigate = useNavigate();
-  const { token } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!token) return;
-
-    let cancelled = false;
-    void (async () => {
+  const startBattlefieldWizard = useCallback(
+    async ({ isCancelled }: { token: string; isCancelled: () => boolean }) => {
       try {
         await navigateToNewBattlefieldWizard(navigate, { replace: true });
       } catch (error) {
-        if (!cancelled) {
-          setErrorMessage(
-            error instanceof Error ? error.message : "Could not open battlefield intake.",
-          );
+        if (isCancelled()) {
+          return;
         }
-      }
-    })();
 
-    return () => {
-      cancelled = true;
-    };
-  }, [navigate, token]);
+        setErrorMessage(
+          error instanceof Error ? error.message : "Could not open battlefield intake.",
+        );
+      }
+    },
+    [navigate],
+  );
+  const token = useTokenGuardedEffect(startBattlefieldWizard);
 
   const onRetry = () => {
     if (!token) return;
