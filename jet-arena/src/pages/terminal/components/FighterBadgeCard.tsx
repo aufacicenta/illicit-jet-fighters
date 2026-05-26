@@ -1,6 +1,8 @@
 import { type MyFighter, resolveFighterName } from "@ijf/shared";
+import { Trash2 } from "lucide-react";
 
 import { Badge } from "../../../components/ui/badge";
+import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { cn } from "../../../lib/utils";
 import { WizardCardTitle } from "../../wizard/sections/WizardCardTitle";
@@ -24,11 +26,19 @@ const statusClassByCode: Record<MyFighter["status"], string> = {
 type FighterBadgeCardProps = {
   fighter: MyFighter;
   isSelected: boolean;
+  isDeleting?: boolean;
+  onDelete?: (fighterId: number) => void;
   onOpenWizard: (fighterId: number) => void;
   onToggleSelected?: (fighterId: number) => void;
 };
 
-export const FighterBadgeCard = ({ fighter, isSelected, onOpenWizard }: FighterBadgeCardProps) => {
+export const FighterBadgeCard = ({
+  fighter,
+  isSelected,
+  isDeleting = false,
+  onDelete,
+  onOpenWizard,
+}: FighterBadgeCardProps) => {
   const displayName = resolveFighterName({
     storedName: fighter.name,
     characterDescription: fighter.characterDescription,
@@ -47,7 +57,7 @@ export const FighterBadgeCard = ({ fighter, isSelected, onOpenWizard }: FighterB
       <CardHeader className="p-2">
         <div className="flex items-center justify-between gap-2">
           <WizardCardTitle className="min-w-0 truncate">{displayName}</WizardCardTitle>
-          <div>
+          <div className="flex items-center gap-1">
             <Badge
               className={cn(
                 "shrink-0 bg-background/85 px-2 py-1 text-[10px] tracking-[0.14em]",
@@ -57,6 +67,19 @@ export const FighterBadgeCard = ({ fighter, isSelected, onOpenWizard }: FighterB
             >
               {statusLabelByCode[fighter.status]}
             </Badge>
+            {onDelete ? (
+              <Button
+                aria-label={`Delete ${displayName}`}
+                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                disabled={isDeleting}
+                onClick={() => onDelete(fighter.id)}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+            ) : null}
           </div>
         </div>
       </CardHeader>

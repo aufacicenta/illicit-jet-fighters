@@ -270,7 +270,7 @@ const WizardLayout = () => {
         </CockpitTopLeftSlot>
         <CockpitTopCenterSlot>
           <RTLScrollEffect>
-            <p className="text-2xl">{centerTitle}</p>
+            <p className="font-pixel text-2xl">{centerTitle}</p>
           </RTLScrollEffect>
         </CockpitTopCenterSlot>
         <CockpitTopRightSlot>

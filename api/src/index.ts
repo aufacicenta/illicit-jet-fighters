@@ -38,7 +38,7 @@ const app = withLogging(new Elysia())
     cors({
       origin: "http://localhost:5174",
       allowedHeaders: ["Content-Type", "Authorization"],
-      methods: ["GET", "POST", "OPTIONS"],
+      methods: ["GET", "POST", "DELETE", "OPTIONS"],
     }),
   )
   .get("/health", () => ({ ok: true }))

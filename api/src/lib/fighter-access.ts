@@ -135,3 +135,12 @@ export const saveFighterBriefing = async (fighterId: number, briefing: string) =
 export const saveFighterName = async (fighterId: number, name: string | null) => {
   await db.update(fighters).set({ name, updatedAt: new Date() }).where(eq(fighters.id, fighterId));
 };
+
+export const deleteOwnedFighter = async (fighterId: number, userId: string): Promise<boolean> => {
+  const deleted = await db
+    .delete(fighters)
+    .where(and(eq(fighters.id, fighterId), eq(fighters.userId, userId)))
+    .returning({ id: fighters.id });
+
+  return deleted.length > 0;
+};

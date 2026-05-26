@@ -4,6 +4,7 @@ import { Elysia } from "elysia";
 import { listFighterAgentVersionsForOwnerAndFighter } from "../../lib/agent-version-repository";
 import {
   createFighterForUser,
+  deleteOwnedFighter,
   ensureFighterForUser,
   fighterKeyFromId,
   getOwnedFighter,
@@ -13,9 +14,14 @@ import {
 import {
   bindPipelineTenant,
   buildFighterPreviewFromSnapshot,
+  clearPipelineStateForFighter,
   serializeClientPipelineState,
 } from "../../lib/pipeline-runner";
+import { deleteObjectsByPrefix } from "../../lib/r2";
 import { requireBearerAuth } from "../../lib/require-bearer-auth";
+
+const fighterStoragePrefix = (userId: string, fighterId: number) =>
+  `users/${userId}/fighters/${String(fighterId)}/`;
 
 export const fighterSessionRoutes = new Elysia({ prefix: "/fighters" })
   .post("", async ({ request, headers }) => {
@@ -92,4 +98,32 @@ export const fighterSessionRoutes = new Elysia({ prefix: "/fighters" })
         createdAt: version.createdAt.toISOString(),
       })),
     } satisfies FighterAgentVersionsResponse;
+  })
+  .delete("/:id", async ({ params, request, headers, status }) => {
+    const auth = await requireBearerAuth(request, headers);
+    const fighterId = parseFighterIdParam(params.id);
+    if (!fighterId) {
+      return status(400, "Invalid fighter id.");
+    }
+
+    const ownedFighter = await getOwnedFighter(fighterId, auth.userId);
+    if (!ownedFighter) {
+      return status(404, "Fighter not found.");
+    }
+
+    const fighterKey = fighterKeyFromId(fighterId);
+    clearPipelineStateForFighter(fighterKey);
+
+    try {
+      await deleteObjectsByPrefix(fighterStoragePrefix(auth.userId, fighterId));
+    } catch {
+      // Best effort: storage cleanup should not block canonical fighter deletion.
+    }
+
+    const deleted = await deleteOwnedFighter(fighterId, auth.userId);
+    if (!deleted) {
+      return status(404, "Fighter not found.");
+    }
+
+    return status(204);
   });

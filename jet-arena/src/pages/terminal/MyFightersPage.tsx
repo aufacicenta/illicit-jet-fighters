@@ -1,4 +1,4 @@
-import { type MyFighter } from "@ijf/shared";
+import { type MyFighter, resolveFighterName } from "@ijf/shared";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -15,9 +15,18 @@ import {
 import { NavbarWalletTray } from "../../components/Navbar/NavbarWalletTray";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { routes } from "../../hooks/useRoutes";
 import {
+  deleteFighter,
   fetchBattlefieldPipelineState,
   fetchMyBattlefields,
   fetchMyFighters,
@@ -25,12 +34,14 @@ import {
   fetchSimulationReplay,
 } from "../../lib/api";
 import type { BattlefieldListItem, SimulationListItem } from "../../lib/api/types";
+import { cn } from "../../lib/utils";
 import { BattlefieldCard } from "./components/BattlefieldCard";
 import { FighterBadgeCard } from "./components/FighterBadgeCard";
 import { SimulationPreviewCard } from "./components/SimulationPreviewCard";
 
 const loadingSlots = Array.from({ length: 6 });
 const simulationLoadingSlots = Array.from({ length: 4 });
+const deleteSlideDurationMs = 300;
 
 const tabTitles: Record<MyTab, string> = {
   "my-fighters": "Fighters",
@@ -62,6 +73,10 @@ export const MyFightersPage = () => {
   const [fighters, setFighters] = useState<MyFighter[]>([]);
   const [isLoadingFighters, setIsLoadingFighters] = useState(false);
   const [fightersError, setFightersError] = useState<string | null>(null);
+  const [deleteFighterError, setDeleteFighterError] = useState<string | null>(null);
+  const [deletingFighterId, setDeletingFighterId] = useState<number | null>(null);
+  const [confirmDeleteFighterId, setConfirmDeleteFighterId] = useState<number | null>(null);
+  const [exitingFighterIds, setExitingFighterIds] = useState<number[]>([]);
 
   const [isLoadingBattlefields, setIsLoadingBattlefields] = useState(false);
   const [battlefieldsError, setBattlefieldsError] = useState<string | null>(null);
@@ -177,9 +192,82 @@ export const MyFightersPage = () => {
     navigate(routes.fighterWizard(String(fighterId)));
   };
 
+  const promptDeleteFighter = useCallback(
+    (fighterId: number) => {
+      if (deletingFighterId !== null) {
+        return;
+      }
+      setDeleteFighterError(null);
+      setConfirmDeleteFighterId(fighterId);
+    },
+    [deletingFighterId],
+  );
+
+  const confirmDeleteFighter = useCallback(async () => {
+    const fighterId = confirmDeleteFighterId;
+    if (fighterId === null || deletingFighterId !== null) {
+      return;
+    }
+
+    const fighter = fighters.find((item) => item.id === fighterId);
+    if (!fighter) {
+      setConfirmDeleteFighterId(null);
+      return;
+    }
+
+    setDeleteFighterError(null);
+    setDeletingFighterId(fighterId);
+    setConfirmDeleteFighterId(null);
+    setExitingFighterIds((current) =>
+      current.includes(fighterId) ? current : [...current, fighterId],
+    );
+
+    try {
+      await deleteFighter(fighterId);
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, deleteSlideDurationMs);
+      });
+      setFighters((current) => current.filter((item) => item.id !== fighterId));
+    } catch (error) {
+      setExitingFighterIds((current) => current.filter((id) => id !== fighterId));
+      setDeleteFighterError(
+        error instanceof Error ? error.message : "Unable to delete fighter right now.",
+      );
+    } finally {
+      setDeletingFighterId((current) => (current === fighterId ? null : current));
+      setExitingFighterIds((current) => current.filter((id) => id !== fighterId));
+    }
+  }, [confirmDeleteFighterId, deletingFighterId, fighters]);
+
+  const cancelDeleteFighter = useCallback(() => {
+    if (deletingFighterId !== null) {
+      return;
+    }
+    setConfirmDeleteFighterId(null);
+  }, [deletingFighterId]);
+
+  const handleDeleteFighter = useCallback(
+    async (fighterId: number) => {
+      promptDeleteFighter(fighterId);
+    },
+    [promptDeleteFighter],
+  );
+
   const openBattlefieldWizard = (battlefieldId: number) => {
     navigate(routes.battlefieldWizard(String(battlefieldId)));
   };
+
+  const fighterPendingDelete =
+    confirmDeleteFighterId === null
+      ? null
+      : (fighters.find((item) => item.id === confirmDeleteFighterId) ?? null);
+  const fighterPendingDeleteName = fighterPendingDelete
+    ? resolveFighterName({
+        storedName: fighterPendingDelete.name,
+        characterDescription: fighterPendingDelete.characterDescription,
+        slug: fighterPendingDelete.slug,
+      })
+    : null;
 
   useEffect(() => {
     if (hasFetchedTab[activeTab]) {
@@ -207,7 +295,7 @@ export const MyFightersPage = () => {
         </CockpitTopLeftSlot>
         <CockpitTopCenterSlot>
           <RTLScrollEffect>
-            <p className="text-2xl font-pixel">{tabTitles[activeTab]}</p>
+            <p className="font-pixel text-2xl">{tabTitles[activeTab]}</p>
           </RTLScrollEffect>
         </CockpitTopCenterSlot>
         <CockpitTopRightSlot>
@@ -237,7 +325,7 @@ export const MyFightersPage = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      disabled={isLoadingFighters}
+                      disabled={isLoadingFighters || deletingFighterId !== null}
                       onClick={() => void loadFighters()}
                       type="button"
                     >
@@ -310,6 +398,14 @@ export const MyFightersPage = () => {
                   </Card>
                 ) : null}
 
+                {deleteFighterError ? (
+                  <Card>
+                    <CardContent className="space-y-3 p-5">
+                      <p className="text-sm text-destructive">{deleteFighterError}</p>
+                    </CardContent>
+                  </Card>
+                ) : null}
+
                 {isLoadingFighters ? (
                   <section className="space-y-3">
                     {loadingSlots.map((_, index) => (
@@ -346,10 +442,18 @@ export const MyFightersPage = () => {
                 {!isLoadingFighters && fighters.length > 0 ? (
                   <section className="space-y-3">
                     {fighters.map((fighter) => (
-                      <section className="scroll-mt-6" key={fighter.id}>
+                      <section
+                        className={cn(
+                          "scroll-mt-6 transition-all duration-300 ease-out",
+                          exitingFighterIds.includes(fighter.id) && "-translate-x-[110%] opacity-0",
+                        )}
+                        key={fighter.id}
+                      >
                         <FighterBadgeCard
                           fighter={fighter}
+                          isDeleting={deletingFighterId === fighter.id}
                           isSelected={false}
+                          onDelete={(fighterId) => void handleDeleteFighter(fighterId)}
                           onOpenWizard={openFighterWizard}
                         />
                       </section>
@@ -489,6 +593,44 @@ export const MyFightersPage = () => {
           </div>
         </Tabs>
       </div>
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) {
+            cancelDeleteFighter();
+          }
+        }}
+        open={confirmDeleteFighterId !== null}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Fighter</DialogTitle>
+            <DialogDescription>
+              {fighterPendingDeleteName
+                ? `Delete ${fighterPendingDeleteName}? This action permanently removes this fighter and generated assets.`
+                : "This action permanently removes this fighter and generated assets."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              disabled={deletingFighterId !== null}
+              onClick={cancelDeleteFighter}
+              type="button"
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button
+              className="border-destructive/70 text-destructive hover:border-destructive hover:bg-destructive/10"
+              disabled={deletingFighterId !== null}
+              onClick={() => void confirmDeleteFighter()}
+              type="button"
+              variant="outline"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

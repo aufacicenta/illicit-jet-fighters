@@ -1815,3 +1815,9 @@ export const editSection = async (
     throw error;
   }
 };
+
+export const clearPipelineStateForFighter = (fighterKey: string) => {
+  clearPendingForFighter(fighterKey);
+  stateByFighter.delete(fighterKey);
+  tenantByFighter.delete(fighterKey);
+};

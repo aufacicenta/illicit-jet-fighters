@@ -214,7 +214,7 @@ export const CreateFighterPage = () => {
           </CockpitTopLeftSlot>
           <CockpitTopCenterSlot>
             <RTLScrollEffect>
-              <p className="text-2xl">Fighter Intake Terminal</p>
+              <p className="text-2xl font-pixel">Fighter Intake Terminal</p>
             </RTLScrollEffect>
           </CockpitTopCenterSlot>
           <CockpitTopRightSlot>

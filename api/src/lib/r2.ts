@@ -1,9 +1,11 @@
 import path from "node:path";
 
 import {
+  DeleteObjectsCommand,
   GetObjectCommand,
   type GetObjectCommandOutput,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -190,4 +192,38 @@ export const getSignedReadUrl = async (key: string, expiresInSeconds = 900) => {
   });
 
   return getSignedUrl(getClient(), command, { expiresIn: expiresInSeconds });
+};
+
+export const deleteObjectsByPrefix = async (prefix: string) => {
+  const client = getClient();
+  const bucket = getBucket();
+
+  let continuationToken: string | undefined;
+  do {
+    const listed = await client.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+      }),
+    );
+
+    const keys = (listed.Contents ?? [])
+      .map((entry) => entry.Key)
+      .filter((value): value is string => typeof value === "string" && value.length > 0);
+
+    if (keys.length > 0) {
+      await client.send(
+        new DeleteObjectsCommand({
+          Bucket: bucket,
+          Delete: {
+            Objects: keys.map((key) => ({ Key: key })),
+            Quiet: true,
+          },
+        }),
+      );
+    }
+
+    continuationToken = listed.IsTruncated ? listed.NextContinuationToken : undefined;
+  } while (continuationToken);
 };

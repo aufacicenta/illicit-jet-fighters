@@ -41,6 +41,7 @@ export const routes = {
 
 export const apiRoutes = {
   fighters: `${API_BASE}/fighters`,
+  fighter: (id: number) => `${API_BASE}/fighters/${encodeURIComponent(String(id))}`,
   battlefields: `${API_BASE}/battlefields`,
   battlefieldSession: `${API_BASE}/battlefields/session`,
   fighterAgentVersions: (id: number) =>

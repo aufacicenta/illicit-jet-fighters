@@ -47,3 +47,16 @@ export const fetchFighterAgentVersions = async (
   const payload = (await response.json()) as unknown;
   return fighterAgentVersionsResponseSchema.parse(payload);
 };
+
+export const deleteFighter = async (fighterId: number): Promise<void> => {
+  const response = await fetch(apiRoutes.fighter(fighterId), {
+    method: "DELETE",
+    headers: {
+      ...authHeadersJson(),
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorText(response));
+  }
+};
