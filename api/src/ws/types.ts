@@ -33,6 +33,7 @@ export type ServerMessage =
       fighterId?: number;
       battlefieldId?: number;
       totalCostUsd: string;
+      totalCostNative?: string;
       latestRunCorrelationId: string | null;
       latestRunSectionCosts: Partial<Record<SectionId, string>>;
     }

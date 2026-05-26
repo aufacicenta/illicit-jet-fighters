@@ -19,11 +19,10 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
 import { useWalletContext } from "../../context/Wallet/useWalletContext";
+import { formatTokenAmountFromNative } from "../../lib/formatTokenAmountFromNative";
 import { wizardCardHeaderClassName } from "../wizard/sections/SectionStatusBadge";
 import { WizardCardTitle } from "../wizard/sections/WizardCardTitle";
 
-const formatTokenAmountFromNative = (nativeAmount: bigint, nativeDecimals: number) =>
-  (Number(nativeAmount) / 10 ** nativeDecimals).toFixed(6);
 const formatNetworkLabel = (network: NetworkEnvName) =>
   `${network.charAt(0).toUpperCase()}${network.slice(1)}`;
 const renderHighlightedId = (value: string | null | undefined, fallback = "—") => {
@@ -74,7 +73,9 @@ export const WalletPage = () => {
   const availableBalanceLabel = useMemo(
     () =>
       wallet
-        ? `${formatTokenAmountFromNative(wallet.balanceNative, walletCurrency.nativeDecimals)} ${walletCurrency.symbol}`
+        ? `${formatTokenAmountFromNative(wallet.balanceNative, walletCurrency.nativeDecimals, {
+            fractionDigits: 6,
+          })} ${walletCurrency.symbol}`
         : `0 ${walletCurrency.symbol}`,
     [wallet, walletCurrency.nativeDecimals, walletCurrency.symbol],
   );

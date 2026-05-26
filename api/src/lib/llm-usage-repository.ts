@@ -1,4 +1,13 @@
-import { and, db, desc, eq, llmUsageEvents, sql } from "@ijf/database";
+import {
+  and,
+  db,
+  desc,
+  eq,
+  inArray,
+  llmUsageEvents,
+  sql,
+  walletLedgerEntries,
+} from "@ijf/database";
 
 import type { BattlefieldSectionId, FighterSectionId, SectionId } from "./types";
 
@@ -23,6 +32,7 @@ export type LlmUsageEvent = {
 export type FighterCostSnapshot = {
   fighterId: number;
   totalCostUsd: string;
+  totalCostNative: string;
   latestRunCorrelationId: string | null;
   latestRunSectionCosts: Partial<Record<FighterSectionId, string>>;
 };
@@ -54,6 +64,8 @@ const battlefieldSectionIds: BattlefieldSectionId[] = [
   "battlefield-sheet-image",
   "battlefield-config",
 ];
+
+const billingKinds = ["charge", "fee"] as const;
 
 const buildZeroSectionCosts = <TSectionId extends SectionId>(
   sectionIds: TSectionId[],
@@ -220,6 +232,31 @@ export const sumCostForFighter = async ({
   return rows[0]?.totalCostCredits ?? "0";
 };
 
+export const sumNativeCostForFighter = async ({
+  userId,
+  fighterId,
+}: {
+  userId: string;
+  fighterId: number;
+}): Promise<string> => {
+  const rows = await db
+    .select({
+      totalCostNative: sql<string>`coalesce(sum(abs(${walletLedgerEntries.amountNative})), 0)::text`,
+    })
+    .from(llmUsageEvents)
+    .innerJoin(walletLedgerEntries, eq(walletLedgerEntries.llmUsageEventId, llmUsageEvents.id))
+    .where(
+      and(
+        eq(llmUsageEvents.userId, userId),
+        eq(llmUsageEvents.fighterId, fighterId),
+        inArray(walletLedgerEntries.kind, billingKinds),
+      ),
+    )
+    .limit(1);
+
+  return rows[0]?.totalCostNative ?? "0";
+};
+
 export const sumCostForUser = async (userId: string): Promise<string> => {
   const rows = await db
     .select({
@@ -328,14 +365,16 @@ export const buildFighterCostSnapshot = async ({
   userId: string;
   fighterId: number;
 }): Promise<FighterCostSnapshot> => {
-  const [totalCostUsd, latestRun] = await Promise.all([
+  const [totalCostUsd, totalCostNative, latestRun] = await Promise.all([
     getTotalCostForFighter({ userId, fighterId }),
+    sumNativeCostForFighter({ userId, fighterId }),
     getLatestRunSectionCosts({ userId, fighterId }),
   ]);
 
   return {
     fighterId,
     totalCostUsd,
+    totalCostNative,
     latestRunCorrelationId: latestRun.correlationId,
     latestRunSectionCosts: latestRun.sectionCosts,
   };

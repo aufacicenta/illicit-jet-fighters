@@ -60,6 +60,7 @@ export type ServerMessage =
       type: "pipeline:cost-update";
       fighterId: number;
       totalCostUsd: string;
+      totalCostNative: string;
       latestRunCorrelationId: string | null;
       latestRunSectionCosts: Partial<Record<SectionId, string>>;
     }

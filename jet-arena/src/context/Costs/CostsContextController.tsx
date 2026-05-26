@@ -15,6 +15,7 @@ import { getWizardCostUpdateEventName } from "./CostsContext.types";
 const EMPTY_COST_SNAPSHOT: FighterCostSnapshot = {
   fighterId: 0,
   totalCostUsd: "0",
+  totalCostNative: "0",
   latestRunCorrelationId: null,
   latestRunSectionCosts: {},
 };
@@ -101,6 +102,7 @@ export const CostsContextController = ({ fighterId, children }: CostsContextCont
       isLoading,
       errorMessage,
       totalCostUsd: snapshot.totalCostUsd,
+      totalCostNative: snapshot.totalCostNative,
       latestRunCorrelationId: snapshot.latestRunCorrelationId,
       latestRunSectionCosts: snapshot.latestRunSectionCosts,
       getSectionLatestRunCostUsd,
@@ -112,6 +114,7 @@ export const CostsContextController = ({ fighterId, children }: CostsContextCont
       isLoading,
       errorMessage,
       snapshot.totalCostUsd,
+      snapshot.totalCostNative,
       snapshot.latestRunCorrelationId,
       snapshot.latestRunSectionCosts,
       getSectionLatestRunCostUsd,

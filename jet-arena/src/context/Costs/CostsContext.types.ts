@@ -5,6 +5,7 @@ import type { SectionId } from "../Wizard/WizardContext.types";
 export type FighterCostSnapshot = {
   fighterId: number;
   totalCostUsd: string;
+  totalCostNative: string;
   latestRunCorrelationId: string | null;
   latestRunSectionCosts: Partial<Record<SectionId, string>>;
 };
@@ -19,6 +20,7 @@ export type CostsContextType = {
   isLoading: boolean;
   errorMessage: string | null;
   totalCostUsd: string;
+  totalCostNative: string;
   latestRunCorrelationId: string | null;
   latestRunSectionCosts: Partial<Record<SectionId, string>>;
   getSectionLatestRunCostUsd: (sectionId: SectionId) => string;

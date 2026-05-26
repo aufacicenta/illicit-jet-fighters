@@ -59,6 +59,7 @@ export type PipelineStateSnapshot = {
 export type FighterCostSnapshot = {
   fighterId: number;
   totalCostUsd: string;
+  totalCostNative: string;
   latestRunCorrelationId: string | null;
   latestRunSectionCosts: Partial<Record<ApiSectionId, string>>;
 };

@@ -4,22 +4,14 @@ import { Link } from "react-router-dom";
 
 import { useWalletContext } from "../../context/Wallet/useWalletContext";
 import { routes } from "../../hooks/useRoutes";
+import { formatTokenAmountFromNative } from "../../lib/formatTokenAmountFromNative";
+import { formatUsdAndNativeEquivalent } from "../../lib/formatUsdAndNativeEquivalent";
 import { cn } from "../../lib/utils";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
 
-const formatTokenAmountFromNative = (nativeAmount: bigint, nativeDecimals: number) =>
-  (Number(nativeAmount) / 10 ** nativeDecimals).toFixed(4);
 const formatNetworkLabel = (network: string) =>
   `${network.charAt(0).toUpperCase()}${network.slice(1)}`;
-
-const formatUsd = (usd: number) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 4,
-  }).format(usd);
 
 const connectionDotClassName: Record<"connecting" | "open" | "closed", string> = {
   connecting: "bg-amber-400",
@@ -113,6 +105,11 @@ export const NavbarWalletPill = ({ variant = "navbar" }: NavbarWalletPillProps) 
     wallet.balanceNative,
     walletCurrency.nativeDecimals,
   );
+  const equivalenceLabel = formatUsdAndNativeEquivalent({
+    usdValue: wallet.balanceUsd,
+    nativeValue: wallet.balanceNative,
+    nativeSymbol: walletCurrency.nativeSymbol,
+  });
   const balanceAmountNumber = Number(balanceAmount);
   const balanceToneClassName =
     balanceAmountNumber > 5
@@ -152,7 +149,7 @@ export const NavbarWalletPill = ({ variant = "navbar" }: NavbarWalletPillProps) 
             <AnimatedBalanceAmount value={balanceAmount} /> {walletCurrency.symbol}
           </p>
           <p className="mt-0.5 text-[10px] tracking-wide text-muted-foreground uppercase">
-            {formatUsd(wallet.balanceUsd)}
+            {equivalenceLabel}
           </p>
         </Link>
         {errorMessage ? (
@@ -179,7 +176,7 @@ export const NavbarWalletPill = ({ variant = "navbar" }: NavbarWalletPillProps) 
         <span className={cn("font-semibold transition-colors", balanceToneClassName)}>
           <AnimatedBalanceAmount value={balanceAmount} /> {walletCurrency.symbol}
         </span>
-        <span className="text-muted-foreground">{formatUsd(wallet.balanceUsd)}</span>
+        <span className="text-muted-foreground">{equivalenceLabel}</span>
         <span className="rounded-sm border border-border/70 bg-muted/40 px-1.5 py-0.5 text-[10px] text-muted-foreground uppercase">
           {networkLabel}
         </span>

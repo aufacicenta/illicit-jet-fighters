@@ -518,6 +518,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
             detail: {
               fighterId: message.fighterId,
               totalCostUsd: message.totalCostUsd,
+              totalCostNative: message.totalCostNative,
               latestRunCorrelationId: message.latestRunCorrelationId,
               latestRunSectionCosts: message.latestRunSectionCosts,
             },
