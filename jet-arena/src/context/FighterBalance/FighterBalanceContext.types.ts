@@ -22,13 +22,18 @@ export type FighterBalanceContextType = {
   entries: FighterLedgerEntry[];
   isLoadingLedger: boolean;
   isSubmittingTopUp: boolean;
+  isSubmittingWithdraw: boolean;
   manualTopUpAmount: string;
+  manualWithdrawAmount: string;
   errorMessage: string | null;
   setManualTopUpAmount: (next: string) => void;
+  setManualWithdrawAmount: (next: string) => void;
   setFighterLedgerState: (next: FighterLedgerState) => void;
   refreshLedgerSnapshot: () => Promise<void>;
   submitTopUp: () => Promise<void>;
   topUpByPercent: (percent: number) => Promise<void>;
+  submitWithdraw: () => Promise<void>;
+  withdrawByPercent: (percent: number) => Promise<void>;
 };
 
 export type FighterBalanceUpdateEventDetail = {

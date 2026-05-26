@@ -7,6 +7,7 @@ import {
   fetchFighterLedgerSnapshot,
   fetchPipelineState,
   postFighterTransferIn,
+  postFighterTransferOut,
 } from "../../lib/api";
 import { formatTokenAmountFromNative } from "../../lib/formatTokenAmountFromNative";
 import {
@@ -36,7 +37,9 @@ export const FighterBalanceContextController = ({
   const [entries, setEntries] = useState<FighterBalanceContextType["entries"]>([]);
   const [isLoadingLedger, setIsLoadingLedger] = useState(false);
   const [isSubmittingTopUp, setIsSubmittingTopUp] = useState(false);
+  const [isSubmittingWithdraw, setIsSubmittingWithdraw] = useState(false);
   const [manualTopUpAmount, setManualTopUpAmount] = useState("");
+  const [manualWithdrawAmount, setManualWithdrawAmount] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const setFighterLedgerState = useCallback((next: FighterLedgerState) => {
@@ -78,6 +81,9 @@ export const FighterBalanceContextController = ({
 
   const submitTopUpNative = useCallback(
     async (amountNative: string) => {
+      if (isSubmittingTopUp || isSubmittingWithdraw) {
+        return;
+      }
       if (!isPositiveIntegerString(amountNative) || BigInt(amountNative) <= 0n) {
         throw new Error("Top-up amount must be a positive integer.");
       }
@@ -100,7 +106,14 @@ export const FighterBalanceContextController = ({
         setIsSubmittingTopUp(false);
       }
     },
-    [emitBalanceUpdate, fighterId, refreshLedgerSnapshot, refreshWallet],
+    [
+      emitBalanceUpdate,
+      fighterId,
+      isSubmittingTopUp,
+      isSubmittingWithdraw,
+      refreshLedgerSnapshot,
+      refreshWallet,
+    ],
   );
 
   const submitTopUp = useCallback(async () => {
@@ -115,6 +128,9 @@ export const FighterBalanceContextController = ({
 
   const topUpByPercent = useCallback(
     async (percent: number) => {
+      if (isSubmittingTopUp || isSubmittingWithdraw) {
+        return;
+      }
       if (!Number.isFinite(percent) || percent <= 0) {
         setErrorMessage("Invalid top-up percentage.");
         return;
@@ -143,7 +159,102 @@ export const FighterBalanceContextController = ({
       );
       setErrorMessage(null);
     },
-    [wallet, walletBalanceNative],
+    [isSubmittingTopUp, isSubmittingWithdraw, wallet, walletBalanceNative],
+  );
+
+  const submitWithdrawNative = useCallback(
+    async (amountNative: string) => {
+      if (isSubmittingTopUp || isSubmittingWithdraw) {
+        return;
+      }
+      if (!isPositiveIntegerString(amountNative) || BigInt(amountNative) <= 0n) {
+        throw new Error("Withdraw amount must be a positive integer.");
+      }
+      const availableNative =
+        safeNativeBigInt(balanceNative) - safeNativeBigInt(lockedBalanceNative);
+      const clampedAvailableNative = availableNative > 0n ? availableNative : 0n;
+      if (BigInt(amountNative) > clampedAvailableNative) {
+        throw new Error("Insufficient unlocked fighter balance.");
+      }
+
+      setIsSubmittingWithdraw(true);
+      try {
+        const result = await postFighterTransferOut({ fighterId, amountNative });
+        setBalanceNative(result.fighterBalanceNative);
+        setWalletBalanceNative(result.walletBalanceNative);
+        setManualWithdrawAmount("");
+        setErrorMessage(null);
+        emitBalanceUpdate(result.fighterBalanceNative, result.walletBalanceNative);
+        await Promise.all([refreshLedgerSnapshot(), refreshWallet()]);
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error ? error.message : "Unable to withdraw fighter balance.",
+        );
+        throw error;
+      } finally {
+        setIsSubmittingWithdraw(false);
+      }
+    },
+    [
+      balanceNative,
+      emitBalanceUpdate,
+      fighterId,
+      isSubmittingTopUp,
+      isSubmittingWithdraw,
+      lockedBalanceNative,
+      refreshLedgerSnapshot,
+      refreshWallet,
+    ],
+  );
+
+  const submitWithdraw = useCallback(async () => {
+    const walletCurrency = wallet?.currency ?? getWalletCurrencyMetadata(wallet?.network ?? "sui");
+    const parsed = parseTokenAmountToNative(manualWithdrawAmount, walletCurrency.nativeDecimals);
+    if (!parsed || parsed <= 0n) {
+      setErrorMessage(`Enter a valid ${walletCurrency.symbol} amount.`);
+      return;
+    }
+    await submitWithdrawNative(parsed.toString());
+  }, [manualWithdrawAmount, submitWithdrawNative, wallet]);
+
+  const withdrawByPercent = useCallback(
+    async (percent: number) => {
+      if (isSubmittingTopUp || isSubmittingWithdraw) {
+        return;
+      }
+      if (!Number.isFinite(percent) || percent <= 0) {
+        setErrorMessage("Invalid withdraw percentage.");
+        return;
+      }
+      const availableNative =
+        safeNativeBigInt(balanceNative) - safeNativeBigInt(lockedBalanceNative);
+      const clampedAvailableNative = availableNative > 0n ? availableNative : 0n;
+      if (clampedAvailableNative <= 0n) {
+        setErrorMessage("No unlocked fighter balance available for withdraw.");
+        return;
+      }
+
+      const roundedPercent = Math.floor(percent);
+      const amountNative =
+        roundedPercent >= 100
+          ? clampedAvailableNative
+          : (clampedAvailableNative * BigInt(roundedPercent)) / 100n;
+      if (amountNative <= 0n) {
+        setErrorMessage("Withdraw amount is too small.");
+        return;
+      }
+
+      const walletCurrency =
+        wallet?.currency ?? getWalletCurrencyMetadata(wallet?.network ?? "sui");
+      setManualWithdrawAmount(
+        formatTokenAmountFromNative(amountNative, walletCurrency.nativeDecimals, {
+          fractionDigits: walletCurrency.nativeDecimals,
+          trimTrailingZeros: true,
+        }),
+      );
+      setErrorMessage(null);
+    },
+    [balanceNative, isSubmittingTopUp, isSubmittingWithdraw, lockedBalanceNative, wallet],
   );
 
   useEffect(() => {
@@ -221,13 +332,18 @@ export const FighterBalanceContextController = ({
       entries,
       isLoadingLedger,
       isSubmittingTopUp,
+      isSubmittingWithdraw,
       manualTopUpAmount,
+      manualWithdrawAmount,
       errorMessage,
       setManualTopUpAmount,
+      setManualWithdrawAmount,
       setFighterLedgerState,
       refreshLedgerSnapshot,
       submitTopUp,
       topUpByPercent,
+      submitWithdraw,
+      withdrawByPercent,
     }),
     [
       availableBalanceNative,
@@ -238,12 +354,17 @@ export const FighterBalanceContextController = ({
       isLoadingLedger,
       isReady,
       isSubmittingTopUp,
+      isSubmittingWithdraw,
       lockedBalanceNative,
       manualTopUpAmount,
+      manualWithdrawAmount,
       refreshLedgerSnapshot,
+      setManualWithdrawAmount,
       setFighterLedgerState,
+      submitWithdraw,
       submitTopUp,
       topUpByPercent,
+      withdrawByPercent,
       walletBalanceNative,
     ],
   );

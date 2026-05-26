@@ -36,17 +36,23 @@ const FighterBalancePageInner = () => {
     errorMessage,
     isLoadingLedger,
     isSubmittingTopUp,
+    isSubmittingWithdraw,
     lockedBalanceNative,
     manualTopUpAmount,
+    manualWithdrawAmount,
     refreshLedgerSnapshot,
     setManualTopUpAmount,
+    setManualWithdrawAmount,
+    submitWithdraw,
     submitTopUp,
     topUpByPercent,
+    withdrawByPercent,
     walletBalanceNative,
   } = useFighterBalanceContext();
   const { wallet } = useWalletContext();
   const walletCurrency = wallet?.currency ?? getWalletCurrencyMetadata(wallet?.network ?? "sui");
   const { nativeDecimals, symbol } = walletCurrency;
+  const isSubmittingTransfer = isSubmittingTopUp || isSubmittingWithdraw;
 
   useEffect(() => {
     void refreshLedgerSnapshot();
@@ -103,7 +109,7 @@ const FighterBalancePageInner = () => {
               <CardContent className="space-y-3 p-4">
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    disabled={isSubmittingTopUp}
+                    disabled={isSubmittingTransfer}
                     onClick={() => void topUpByPercent(25)}
                     size="sm"
                     type="button"
@@ -113,7 +119,7 @@ const FighterBalancePageInner = () => {
                     Top Up 25%
                   </Button>
                   <Button
-                    disabled={isSubmittingTopUp}
+                    disabled={isSubmittingTransfer}
                     onClick={() => void topUpByPercent(50)}
                     size="sm"
                     type="button"
@@ -123,7 +129,7 @@ const FighterBalancePageInner = () => {
                     Top Up 50%
                   </Button>
                   <Button
-                    disabled={isSubmittingTopUp}
+                    disabled={isSubmittingTransfer}
                     onClick={() => void topUpByPercent(100)}
                     size="sm"
                     type="button"
@@ -149,7 +155,7 @@ const FighterBalancePageInner = () => {
                       value={manualTopUpAmount}
                     />
                     <Button
-                      disabled={isSubmittingTopUp}
+                      disabled={isSubmittingTransfer}
                       onClick={() => void submitTopUp()}
                       type="button"
                     >
@@ -159,6 +165,75 @@ const FighterBalancePageInner = () => {
                 </div>
 
                 {errorMessage ? <p className="text-xs text-destructive">{errorMessage}</p> : null}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className={`space-y-2 ${wizardCardHeaderClassName}`}>
+                <div>
+                  <WizardCardTitle>Withdraw</WizardCardTitle>
+                  <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                    Move unlocked fighter funds back to owner wallet
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3 p-4">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    disabled={isSubmittingTransfer}
+                    onClick={() => void withdrawByPercent(25)}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                    color="muted"
+                  >
+                    Withdraw 25%
+                  </Button>
+                  <Button
+                    disabled={isSubmittingTransfer}
+                    onClick={() => void withdrawByPercent(50)}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                    color="muted"
+                  >
+                    Withdraw 50%
+                  </Button>
+                  <Button
+                    disabled={isSubmittingTransfer}
+                    onClick={() => void withdrawByPercent(100)}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    Withdraw MAX
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase"
+                    htmlFor="fighter-withdraw-amount"
+                  >
+                    Manual amount ({symbol})
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Input
+                      className="min-w-[220px] flex-1"
+                      id="fighter-withdraw-amount"
+                      onChange={(event) => setManualWithdrawAmount(event.target.value)}
+                      placeholder="0.00"
+                      value={manualWithdrawAmount}
+                    />
+                    <Button
+                      disabled={isSubmittingTransfer}
+                      onClick={() => void submitWithdraw()}
+                      type="button"
+                    >
+                      Submit Withdraw
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
