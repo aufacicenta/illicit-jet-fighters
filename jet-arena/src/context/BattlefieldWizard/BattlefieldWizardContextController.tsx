@@ -162,6 +162,7 @@ export const BattlefieldWizardContextController = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const outputsRef = useRef(outputs);
   const sectionHistoriesRef = useRef(sectionHistories);
+  const pendingStreamResetRef = useRef<Set<BattlefieldSectionId>>(new Set());
 
   useEffect(() => {
     outputsRef.current = outputs;
@@ -261,6 +262,7 @@ export const BattlefieldWizardContextController = ({
   const onMessage = useCallback(
     (message: BattlefieldServerMessage) => {
       if (message.type === "pipeline:sync") {
+        pendingStreamResetRef.current.clear();
         const mergedOutputs = { ...outputsRef.current, ...message.outputs };
         const mergedHistories = { ...sectionHistoriesRef.current, ...message.histories };
         const mergedStatuses = mergeSyncStatuses(message.sectionStatuses, mergedOutputs);
@@ -276,15 +278,7 @@ export const BattlefieldWizardContextController = ({
       if (message.type === "section:start") {
         setSectionStatuses((current) => ({ ...current, [message.sectionId]: "generating" }));
         if (streamableSectionIds.has(message.sectionId)) {
-          setOutputs((current) => ({
-            ...current,
-            [message.sectionId]: {
-              sectionId: message.sectionId,
-              content: "",
-              generatedAt: new Date().toISOString(),
-              model: current[message.sectionId]?.model ?? "streaming",
-            },
-          }));
+          pendingStreamResetRef.current.add(message.sectionId);
         }
         setErrorMessage(null);
         return;
@@ -294,12 +288,19 @@ export const BattlefieldWizardContextController = ({
         if (streamableSectionIds.has(message.sectionId) && message.delta.length > 0) {
           setOutputs((current) => {
             const previous = current[message.sectionId];
+            const shouldResetContent = pendingStreamResetRef.current.has(message.sectionId);
+            const baseContent = shouldResetContent ? "" : (previous?.content ?? "");
+            if (shouldResetContent) {
+              pendingStreamResetRef.current.delete(message.sectionId);
+            }
             return {
               ...current,
               [message.sectionId]: {
                 sectionId: message.sectionId,
-                content: `${previous?.content ?? ""}${message.delta}`,
-                generatedAt: previous?.generatedAt ?? new Date().toISOString(),
+                content: `${baseContent}${message.delta}`,
+                generatedAt: shouldResetContent
+                  ? new Date().toISOString()
+                  : (previous?.generatedAt ?? new Date().toISOString()),
                 model: previous?.model ?? "streaming",
                 mimeType: previous?.mimeType,
                 assetUrl: previous?.assetUrl,
@@ -311,6 +312,7 @@ export const BattlefieldWizardContextController = ({
       }
 
       if (message.type === "section:error") {
+        pendingStreamResetRef.current.delete(message.sectionId);
         if (message.code === "INSUFFICIENT_BALANCE") {
           setSectionStatuses((current) => applyBlockedStatuses(current, message.sectionId));
           setErrorMessage(
@@ -325,6 +327,7 @@ export const BattlefieldWizardContextController = ({
       }
 
       if (message.type === "section:complete") {
+        pendingStreamResetRef.current.delete(message.sectionId);
         const completedSection = message.sectionId;
         const completedSectionIndex = sectionOrder.indexOf(completedSection);
         const nextSection = sectionOrder[completedSectionIndex + 1];

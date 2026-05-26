@@ -237,6 +237,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const outputsRef = useRef(outputs);
   const sectionHistoriesRef = useRef(sectionHistories);
+  const pendingStreamResetRef = useRef<Set<SectionId>>(new Set());
 
   useEffect(() => {
     outputsRef.current = outputs;
@@ -392,6 +393,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
   const onMessage = useCallback(
     (message: ServerMessage) => {
       if (message.type === "pipeline:sync") {
+        pendingStreamResetRef.current.clear();
         const mergedOutputs = mergeSyncOutputs(message.outputs, outputsRef.current);
         const mergedHistories = mergeSyncHistories(
           message.histories,
@@ -425,15 +427,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
           [message.sectionId]: "generating",
         }));
         if (streamableSectionIds.has(message.sectionId)) {
-          setOutputs((current) => ({
-            ...current,
-            [message.sectionId]: {
-              sectionId: message.sectionId,
-              content: "",
-              generatedAt: new Date().toISOString(),
-              model: current[message.sectionId]?.model ?? "streaming",
-            },
-          }));
+          pendingStreamResetRef.current.add(message.sectionId);
         }
         setErrorMessage(null);
         setIsContinuingPipeline(false);
@@ -444,12 +438,19 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
         if (streamableSectionIds.has(message.sectionId) && message.delta.length > 0) {
           setOutputs((current) => {
             const previous = current[message.sectionId];
+            const shouldResetContent = pendingStreamResetRef.current.has(message.sectionId);
+            const baseContent = shouldResetContent ? "" : (previous?.content ?? "");
+            if (shouldResetContent) {
+              pendingStreamResetRef.current.delete(message.sectionId);
+            }
             return {
               ...current,
               [message.sectionId]: {
                 sectionId: message.sectionId,
-                content: `${previous?.content ?? ""}${message.delta}`,
-                generatedAt: previous?.generatedAt ?? new Date().toISOString(),
+                content: `${baseContent}${message.delta}`,
+                generatedAt: shouldResetContent
+                  ? new Date().toISOString()
+                  : (previous?.generatedAt ?? new Date().toISOString()),
                 model: previous?.model ?? "streaming",
                 mimeType: previous?.mimeType,
                 assetUrl: previous?.assetUrl,
@@ -462,6 +463,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
 
       if (message.type === "section:error") {
         setIsContinuingPipeline(false);
+        pendingStreamResetRef.current.delete(message.sectionId);
         if (message.code === "INSUFFICIENT_BALANCE") {
           setSectionStatuses((current) => applyBlockedStatuses(current, message.sectionId));
           setErrorMessage(
@@ -479,6 +481,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       }
 
       if (message.type === "section:complete") {
+        pendingStreamResetRef.current.delete(message.sectionId);
         const completedSection = message.sectionId;
         const completedSectionIndex = sectionOrder.indexOf(completedSection);
         const firstNextSection = sectionOrder[completedSectionIndex + 1];
