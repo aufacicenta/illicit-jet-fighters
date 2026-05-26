@@ -207,7 +207,7 @@ export const MyFightersPage = () => {
         </CockpitTopLeftSlot>
         <CockpitTopCenterSlot>
           <RTLScrollEffect>
-            <p className="text-2xl">{tabTitles[activeTab]}</p>
+            <p className="text-2xl font-pixel">{tabTitles[activeTab]}</p>
           </RTLScrollEffect>
         </CockpitTopCenterSlot>
         <CockpitTopRightSlot>

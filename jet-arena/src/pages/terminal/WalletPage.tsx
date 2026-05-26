@@ -5,6 +5,7 @@ import {
   formatNullableHighlightedId,
   getWalletCurrencyMetadata,
 } from "@ijf/shared";
+import { Sparkle } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import {
@@ -118,7 +119,17 @@ export const WalletPage = () => {
       <CockpitStatScreens>
         <CockpitTopCenterSlot>
           <RTLScrollEffect>
-            <p className="text-2xl">War Chest</p>
+            <p className="font-pixel flex items-center gap-2 text-2xl">
+              <Sparkle />
+              War Chest
+              <Sparkle />
+              War Chest
+              <Sparkle />
+              War Chest
+              <Sparkle />
+              War Chest
+              <Sparkle />
+            </p>
           </RTLScrollEffect>
         </CockpitTopCenterSlot>
         <CockpitTopRightSlot>
