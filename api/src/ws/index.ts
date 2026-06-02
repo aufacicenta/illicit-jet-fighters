@@ -36,6 +36,8 @@ import type { ClientMessage } from "./types";
 
 const fighterSectionIds = new Set<FighterSectionId>([
   "character-description",
+  "character-pfp-prompt",
+  "character-pfp-image",
   "specsheet-prompt",
   "specsheet-image",
   "spritesheet-prompt",

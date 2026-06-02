@@ -5,6 +5,8 @@ export type ChatMessage = {
 
 export type SectionId =
   | "character-description"
+  | "character-pfp-prompt"
+  | "character-pfp-image"
   | "specsheet-prompt"
   | "specsheet-image"
   | "spritesheet-prompt"

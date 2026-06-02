@@ -37,6 +37,11 @@ export const generatePipelineSpecsheet = (fighterId: number, characterDescriptio
     characterDescription,
   });
 
+export const generatePipelineCharacterPfp = (fighterId: number) =>
+  post<{ status: "started" }>(apiRoutes.pipelineCharacterPfp, {
+    id: fighterId,
+  });
+
 export const generatePipelineAgentCode = (fighterId: number) =>
   post<{ status: "started" }>(apiRoutes.pipelineAgentCode, {
     id: fighterId,

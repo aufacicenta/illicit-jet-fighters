@@ -57,6 +57,9 @@ const getClient = (): S3Client => {
 export const specsheetObjectKey = (userId: string, fighterId: number, extension: string) =>
   path.posix.join(`users/${userId}/fighters/${String(fighterId)}`, `specsheet-image.${extension}`);
 
+export const characterPfpObjectKey = (userId: string, fighterId: number, extension: string) =>
+  path.posix.join(`users/${userId}/fighters/${String(fighterId)}`, `character-pfp.${extension}`);
+
 export const spritesheetImageObjectKey = (userId: string, fighterId: number, extension: string) =>
   path.posix.join(
     `users/${userId}/fighters/${String(fighterId)}`,

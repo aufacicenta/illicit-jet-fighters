@@ -46,6 +46,8 @@ export type BattlefieldCostSnapshot = {
 
 const fighterSectionIds: FighterSectionId[] = [
   "character-description",
+  "character-pfp-prompt",
+  "character-pfp-image",
   "specsheet-prompt",
   "specsheet-image",
   "spritesheet-prompt",

@@ -5,6 +5,8 @@ import { fighterSectionStatusSchema } from "./fighters";
 
 export const apiSectionIdSchema = z.enum([
   "character-description",
+  "character-pfp-prompt",
+  "character-pfp-image",
   "specsheet-prompt",
   "specsheet-image",
   "spritesheet-prompt",

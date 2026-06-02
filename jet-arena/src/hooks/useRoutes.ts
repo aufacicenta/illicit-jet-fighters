@@ -54,6 +54,7 @@ export const apiRoutes = {
   simulationReplay: (id: string) => `${API_BASE}/simulations/${encodeURIComponent(id)}/replay`,
   pipelineStart: `${API_BASE}/pipeline/start`,
   pipelineSpecsheet: `${API_BASE}/pipeline/specsheet`,
+  pipelineCharacterPfp: `${API_BASE}/pipeline/character-pfp`,
   pipelineAgentCode: `${API_BASE}/pipeline/agent-code`,
   pipelineSpritesheetImage: `${API_BASE}/pipeline/spritesheet-image`,
   pipelineStrikecraftSpecsheetImage: `${API_BASE}/pipeline/strikecraft-specsheet-image`,

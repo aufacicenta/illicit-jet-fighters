@@ -583,6 +583,37 @@ export const generateSpecsheetImage = async (prompt: string, context?: LlmCallCo
   );
 };
 
+export const generateCharacterPfpPrompt = async (
+  characterDescription: string,
+  onDelta?: StreamDeltaHandler,
+  context?: LlmCallContext,
+) => {
+  const prompt = await generateTextWithModel({
+    model: aiModels.characterPfpPrompt,
+    messages: [
+      { role: "system", content: skills.characterPfpPrompt },
+      { role: "user", content: characterDescription },
+    ],
+    emptyErrorMessage: "Character PFP prompt generation returned empty output.",
+    onDelta,
+    context,
+  });
+
+  return {
+    prompt,
+    model: aiModels.characterPfpPrompt,
+  };
+};
+
+export const generateCharacterPfpImage = async (prompt: string, context?: LlmCallContext) => {
+  return generateImageWithModel(
+    aiModels.characterPfpImage,
+    prompt,
+    "Character PFP image generation",
+    context,
+  );
+};
+
 export const generateSpritesheetPrompt = async (
   characterDescription: string,
   onDelta?: StreamDeltaHandler,

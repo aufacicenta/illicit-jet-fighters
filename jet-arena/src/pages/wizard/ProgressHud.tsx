@@ -5,6 +5,8 @@ import type { SectionId, SectionStatus } from "../../context/Wizard/WizardContex
 
 const phaseOneSections: Array<{ id: SectionId; label: string }> = [
   { id: "character-description", label: "briefing" },
+  { id: "character-pfp-prompt", label: "pfp brief" },
+  { id: "character-pfp-image", label: "pfp render" },
   { id: "specsheet-prompt", label: "targeting" },
   { id: "specsheet-image", label: "render" },
 ];

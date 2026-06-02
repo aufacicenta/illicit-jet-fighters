@@ -13,6 +13,8 @@ import {
   generateAgentCode,
   generateCharacterDescription,
   generateCharacterDescriptionRefine,
+  generateCharacterPfpImage,
+  generateCharacterPfpPrompt,
   generateSpecsheetImage,
   generateSpecsheetPrompt,
   generateSpecsheetPromptRefine,
@@ -31,6 +33,7 @@ import { logger } from "./logger";
 import type { SectionStatus } from "./pipeline-status";
 import { deriveSectionStatuses } from "./pipeline-status";
 import {
+  characterPfpObjectKey,
   fighterAgentVersionScriptObjectKey,
   getObjectBuffer,
   getSignedReadUrl,
@@ -74,6 +77,8 @@ type PersistedPipelineSnapshot = {
 const PIPELINE_STORAGE_VERSION = 1 as const;
 const stepOrder: SectionId[] = [
   "character-description",
+  "character-pfp-prompt",
+  "character-pfp-image",
   "specsheet-prompt",
   "specsheet-image",
   "spritesheet-prompt",
@@ -87,6 +92,7 @@ const stepOrder: SectionId[] = [
 ];
 
 const imageSections = new Set<SectionId>([
+  "character-pfp-image",
   "specsheet-image",
   "spritesheet-image",
   "strikecraft-specsheet-image",
@@ -96,6 +102,7 @@ const imageSections = new Set<SectionId>([
 const assetBackedSections = new Set<SectionId>([...imageSections, "spritesheet-manifest"]);
 
 const imageObjectKeyBuilders = {
+  "character-pfp-image": characterPfpObjectKey,
   "specsheet-image": specsheetObjectKey,
   "spritesheet-image": spritesheetImageObjectKey,
   "strikecraft-specsheet-image": strikecraftSpecsheetObjectKey,
@@ -754,6 +761,7 @@ const runTextSectionStep = async ({
   fighterKey: string;
   sectionId:
     | "character-description"
+    | "character-pfp-prompt"
     | "specsheet-prompt"
     | "spritesheet-prompt"
     | "agent-code"
@@ -863,6 +871,40 @@ const runSpecsheetImageStep = async (
   });
 };
 
+const runCharacterPfpImageStep = async (
+  fighterKey: string,
+  prompt: string,
+  correlationId?: string,
+) => {
+  return runImageSectionStep({
+    fighterKey,
+    sectionId: "character-pfp-image",
+    prompt,
+    correlationId,
+    objectKeyBuilder: characterPfpObjectKey,
+    generator: generateCharacterPfpImage,
+  });
+};
+
+const runCharacterPfpFromCharacterDescription = async (
+  fighterKey: string,
+  characterDescription: string,
+  correlationId?: string,
+) => {
+  const pfpPrompt = await runTextSectionStep({
+    fighterKey,
+    sectionId: "character-pfp-prompt",
+    input: characterDescription,
+    correlationId,
+    generator: async (input, onDelta, context) => {
+      const generated = await generateCharacterPfpPrompt(input, onDelta, context);
+      return { content: generated.prompt, model: generated.model };
+    },
+  });
+
+  await runCharacterPfpImageStep(fighterKey, pfpPrompt.content, correlationId);
+};
+
 const runImageSectionStep = async ({
   fighterKey,
   sectionId,
@@ -875,6 +917,7 @@ const runImageSectionStep = async ({
 }: {
   fighterKey: string;
   sectionId:
+    | "character-pfp-image"
     | "specsheet-image"
     | "spritesheet-image"
     | "strikecraft-specsheet-image"
@@ -1198,18 +1241,23 @@ export const startPipeline = async (fighterKey: string, prompt: string, correlat
       },
     });
 
-    const specPrompt = await runTextSectionStep({
-      fighterKey,
-      sectionId: "specsheet-prompt",
-      input: character.content,
-      correlationId,
-      generator: async (input, onDelta, context) => {
-        const generated = await generateSpecsheetPrompt(input, onDelta, context);
-        return { content: generated.prompt, model: generated.model };
-      },
-    });
+    await Promise.all([
+      (async () => {
+        const specPrompt = await runTextSectionStep({
+          fighterKey,
+          sectionId: "specsheet-prompt",
+          input: character.content,
+          correlationId,
+          generator: async (input, onDelta, context) => {
+            const generated = await generateSpecsheetPrompt(input, onDelta, context);
+            return { content: generated.prompt, model: generated.model };
+          },
+        });
 
-    await runSpecsheetImageStep(fighterKey, specPrompt.content, correlationId, startedAt);
+        await runSpecsheetImageStep(fighterKey, specPrompt.content, correlationId, startedAt);
+      })(),
+      runCharacterPfpFromCharacterDescription(fighterKey, character.content, correlationId),
+    ]);
     if (tenant) {
       await syncPipelineState(fighterKey);
     }
@@ -1271,6 +1319,63 @@ export const generateSpecsheetFromCharacterDescription = async (
     emitSectionError(
       fighterKey,
       getState(fighterKey, correlationId).activeSectionIds[0] ?? "specsheet-prompt",
+      error,
+      correlationId,
+    );
+  }
+};
+
+export const generateCharacterPfpFromCharacterDescription = async (
+  fighterKey: string,
+  characterDescription?: string,
+  correlationId?: string,
+) => {
+  requireTenant(fighterKey);
+
+  const startedAt = Date.now();
+  const state = getState(fighterKey, correlationId);
+  const resolvedCharacterDescription =
+    characterDescription?.trim() || state.outputs["character-description"]?.content;
+  logger.info("pipeline character-pfp generation requested", {
+    ...withContext(fighterKey, correlationId),
+    descriptionLength: resolvedCharacterDescription?.length ?? 0,
+  });
+
+  if (!resolvedCharacterDescription) {
+    const error = new Error(
+      "Character description is required before regenerating character profile picture.",
+    );
+    logger.error("pipeline character-pfp generation failed", {
+      ...withContext(fighterKey, correlationId),
+      durationMs: Date.now() - startedAt,
+      error: error.message,
+    });
+    emitSectionError(fighterKey, "character-pfp-prompt", error, correlationId);
+    return;
+  }
+
+  state.gateMessage = null;
+  state.lastErrorSectionId = null;
+  const tenant = tenantByFighter.get(fighterKey);
+
+  try {
+    await runCharacterPfpFromCharacterDescription(
+      fighterKey,
+      resolvedCharacterDescription,
+      correlationId,
+    );
+    if (tenant) {
+      await syncPipelineState(fighterKey);
+    }
+  } catch (error) {
+    logger.error("pipeline character-pfp generation failed", {
+      ...withContext(fighterKey, correlationId),
+      durationMs: Date.now() - startedAt,
+      error: getErrorMessage(error),
+    });
+    emitSectionError(
+      fighterKey,
+      getState(fighterKey, correlationId).activeSectionIds[0] ?? "character-pfp-prompt",
       error,
       correlationId,
     );

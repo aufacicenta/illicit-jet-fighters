@@ -8,6 +8,7 @@ import type { ChatMessage } from "../../lib/api";
 import {
   fetchPipelineState,
   generatePipelineAgentCode,
+  generatePipelineCharacterPfp,
   generatePipelineSpecsheet,
   generatePipelineSpritesheetImage,
   generatePipelineStrikecraftSpecsheetImage,
@@ -30,6 +31,8 @@ import type {
 
 const baseStatuses = {
   "character-description": "ready",
+  "character-pfp-prompt": "locked",
+  "character-pfp-image": "locked",
   "specsheet-prompt": "locked",
   "specsheet-image": "locked",
   "spritesheet-prompt": "locked",
@@ -44,6 +47,8 @@ const baseStatuses = {
 
 const sectionOrder: SectionId[] = [
   "character-description",
+  "character-pfp-prompt",
+  "character-pfp-image",
   "specsheet-prompt",
   "specsheet-image",
   "spritesheet-prompt",
@@ -58,6 +63,7 @@ const sectionOrder: SectionId[] = [
 
 const streamableSectionIds = new Set<SectionId>([
   "character-description",
+  "character-pfp-prompt",
   "specsheet-prompt",
   "spritesheet-prompt",
   "agent-code",
@@ -723,6 +729,39 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     }
   }, [fighterNumericId, outputs]);
 
+  const requestRegenerateCharacterPfp = useCallback(async () => {
+    if (!Number.isInteger(fighterNumericId) || fighterNumericId <= 0) {
+      setErrorMessage("Invalid fighter id for profile picture regeneration.");
+      return;
+    }
+
+    const characterDescription = outputs["character-description"]?.content?.trim();
+    if (!characterDescription) {
+      setErrorMessage("Character description is required before regenerating profile picture.");
+      return;
+    }
+
+    setErrorMessage(null);
+    setSectionStatuses((current) => ({
+      ...current,
+      "character-pfp-prompt": "generating",
+      "character-pfp-image": "generating",
+    }));
+
+    try {
+      await generatePipelineCharacterPfp(fighterNumericId);
+    } catch (error) {
+      setSectionStatuses((current) => ({
+        ...current,
+        "character-pfp-prompt": "error",
+        "character-pfp-image": "error",
+      }));
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to regenerate profile picture.",
+      );
+    }
+  }, [fighterNumericId, outputs]);
+
   const requestRegenerateAgentCode = useCallback(async () => {
     if (!Number.isInteger(fighterNumericId) || fighterNumericId <= 0) {
       setErrorMessage("Invalid fighter id for agent regeneration.");
@@ -843,6 +882,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       submitPrompt,
       requestContinuePipeline,
       requestRegenerateSpecsheet,
+      requestRegenerateCharacterPfp,
       requestRegenerateAgentCode,
       requestRegenerateStrikecraftSpecsheetImage,
       requestRegenerateSpritesheetImage,
@@ -865,6 +905,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       submitPrompt,
       requestContinuePipeline,
       requestRegenerateSpecsheet,
+      requestRegenerateCharacterPfp,
       requestRegenerateAgentCode,
       requestRegenerateStrikecraftSpecsheetImage,
       requestRegenerateSpritesheetImage,

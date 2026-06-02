@@ -19,6 +19,7 @@ import { logger } from "../../lib/logger";
 import {
   bindPipelineTenant,
   generateAgentCodeFromCharacterDescription,
+  generateCharacterPfpFromCharacterDescription,
   generateSpecsheetFromCharacterDescription,
   generateSpritesheetImageFromPrompt,
   generateStrikecraftSpecsheetImageFromPrompt,
@@ -173,6 +174,56 @@ export const pipelineRoutes = new Elysia({ prefix: "/pipeline" })
     },
     {
       body: pipelineSpecsheetRequestSchema,
+      response: {
+        200: pipelineStartResponseSchema,
+        401: t.String(),
+        403: t.String(),
+        404: t.String(),
+      },
+    },
+  )
+  .post(
+    "/character-pfp",
+    async ({ body, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const payload = body;
+      const resolution = await resolveFighterAccess(auth.userId, String(payload.id));
+      if ("error" in resolution) {
+        return status(404, resolution.error ?? "Fighter not found.");
+      }
+
+      const correlationId = createCorrelationId("pipeline-character-pfp");
+      logger.info("pipeline character-pfp endpoint hit", {
+        path: "/pipeline/character-pfp",
+        fighterId: resolution.fighterId,
+        correlationId,
+      });
+
+      void generateCharacterPfpFromCharacterDescription(
+        resolution.fighterKey,
+        undefined,
+        correlationId,
+      )
+        .then(() => {
+          logger.info("pipeline character-pfp endpoint async execution completed", {
+            path: "/pipeline/character-pfp",
+            fighterId: resolution.fighterId,
+            correlationId,
+          });
+        })
+        .catch((error) => {
+          logger.error("pipeline character-pfp endpoint async execution failed", {
+            path: "/pipeline/character-pfp",
+            fighterId: resolution.fighterId,
+            correlationId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+
+      return { status: "started" } satisfies PipelineStartResponse;
+    },
+    {
+      body: pipelineIdRequestSchema,
       response: {
         200: pipelineStartResponseSchema,
         401: t.String(),

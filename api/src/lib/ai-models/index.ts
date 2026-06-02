@@ -1,5 +1,7 @@
 export const aiModels = {
   characterDescription: "anthropic/claude-sonnet-4",
+  characterPfpPrompt: "anthropic/claude-sonnet-4",
+  characterPfpImage: "google/gemini-3.1-flash-image-preview",
   specsheetPrompt: "anthropic/claude-sonnet-4",
   specsheetImage: "google/gemini-3.1-flash-image-preview",
   spritesheetPrompt: "anthropic/claude-sonnet-4",

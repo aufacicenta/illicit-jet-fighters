@@ -28,6 +28,7 @@ import { FighterLedgerSummary } from "./FighterLedgerSummary";
 import { ProgressHud } from "./ProgressHud";
 import { AgentCodeSection } from "./sections/AgentCodeSection";
 import { DescriptionSection } from "./sections/DescriptionSection";
+import { ProfilePictureSection } from "./sections/ProfilePictureSection";
 import { wizardCardHeaderClassName } from "./sections/SectionStatusBadge";
 import { SpecsheetSection } from "./sections/SpecsheetSection";
 import { SpritesheetSection } from "./sections/SpritesheetSection";
@@ -44,7 +45,13 @@ type SectionNavItem = {
 };
 
 const phaseSections: Record<WizardPhase, SectionId[]> = {
-  "phase-one": ["character-description", "specsheet-prompt", "specsheet-image"],
+  "phase-one": [
+    "character-description",
+    "character-pfp-prompt",
+    "character-pfp-image",
+    "specsheet-prompt",
+    "specsheet-image",
+  ],
   "phase-two": [
     "spritesheet-prompt",
     "spritesheet-image",
@@ -70,6 +77,7 @@ const phaseOneNavItems: SectionNavItem[] = [
   { id: "original-briefing", label: "Original Briefing" },
   { id: "character-description", label: "Full Briefing" },
   { id: "specsheet-image", label: "Pilot Specsheet" },
+  { id: "character-pfp-image", label: "Profile Picture" },
 ];
 
 const phaseTwoNavItems: SectionNavItem[] = [
@@ -81,6 +89,8 @@ const phaseTwoNavItems: SectionNavItem[] = [
 
 const wizardSectionBreadcrumbLabels: Record<SectionId, string> = {
   "character-description": "Full Briefing",
+  "character-pfp-prompt": "Profile Picture Prompt",
+  "character-pfp-image": "Profile Picture",
   "specsheet-prompt": "Pilot Spec Prompt",
   "specsheet-image": "Pilot Specsheet",
   "spritesheet-prompt": "Character Spritesheet Prompt",
@@ -345,36 +355,35 @@ const WizardLayout = () => {
                 </>
               ) : null}
             </section>
-            <aside className="w-full lg:sticky lg:top-6">
-              <Card className="border-0 bg-transparent">
-                <CardContent className="space-y-3">
-                  <WizardCostSummary />
-                  {fighterLedgerReady ? <FighterLedgerSummary /> : null}
-                  <div className="border-border/80 bg-card/70">
-                    {sectionNavItems.map((item) => {
-                      const status = isSectionId(item.id) ? sectionStatuses[item.id] : null;
-                      const isActive = isSectionId(item.id) && activeSectionId === item.id;
-                      return (
-                        <button
-                          key={item.id}
-                          className={`flex w-full items-center gap-2 rounded-sm border px-2.5 py-2 text-left text-xs tracking-wide uppercase transition-colors ${
-                            isActive
-                              ? "border-secondary bg-secondary/10 text-foreground"
-                              : "border-border/70 bg-background hover:border-border hover:bg-muted/60"
-                          }`}
-                          onClick={() => navigateToSection(item.id)}
-                          type="button"
-                        >
-                          <span
-                            className={`size-1.5 shrink-0 rounded-full ${getSectionStatusClassName(status)}`}
-                          />
-                          <span className="truncate">{item.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+            <aside className="w-full space-y-3 lg:sticky lg:top-6">
+              <section id="wizard-section-character-pfp-image">
+                <ProfilePictureSection />
+              </section>
+              <WizardCostSummary />
+              {fighterLedgerReady ? <FighterLedgerSummary /> : null}
+              <div className="border-border/80 bg-card/70">
+                {sectionNavItems.map((item) => {
+                  const status = isSectionId(item.id) ? sectionStatuses[item.id] : null;
+                  const isActive = isSectionId(item.id) && activeSectionId === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      className={`flex w-full items-center gap-2 rounded-sm border px-2.5 py-2 text-left text-xs tracking-wide uppercase transition-colors ${
+                        isActive
+                          ? "border-secondary bg-secondary/10 text-foreground"
+                          : "border-border/70 bg-background hover:border-border hover:bg-muted/60"
+                      }`}
+                      onClick={() => navigateToSection(item.id)}
+                      type="button"
+                    >
+                      <span
+                        className={`size-1.5 shrink-0 rounded-full ${getSectionStatusClassName(status)}`}
+                      />
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </aside>
           </div>
         </div>

@@ -13,6 +13,8 @@ const NATIVE_BASE_UNITS_PER_SUI = 1_000_000_000;
 
 const estimatedSectionUsd: Record<SectionId, number> = {
   "character-description": 0.003,
+  "character-pfp-prompt": 0.003,
+  "character-pfp-image": 0.012,
   "specsheet-prompt": 0.003,
   "specsheet-image": 0.012,
   "spritesheet-prompt": 0.003,

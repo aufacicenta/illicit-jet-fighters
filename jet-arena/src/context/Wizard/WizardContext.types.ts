@@ -9,6 +9,8 @@ export type WizardContextControllerProps = {
 
 export type SectionId =
   | "character-description"
+  | "character-pfp-prompt"
+  | "character-pfp-image"
   | "specsheet-prompt"
   | "specsheet-image"
   | "spritesheet-prompt"
@@ -90,6 +92,7 @@ export type WizardContextType = {
   submitPrompt: () => Promise<void>;
   requestContinuePipeline: () => void;
   requestRegenerateSpecsheet: () => Promise<void>;
+  requestRegenerateCharacterPfp: () => Promise<void>;
   requestRegenerateAgentCode: () => Promise<void>;
   requestRegenerateStrikecraftSpecsheetImage: () => Promise<void>;
   requestRegenerateSpritesheetImage: () => Promise<void>;

@@ -4,6 +4,8 @@ export type SectionStatus = "locked" | "ready" | "generating" | "complete" | "er
 
 const sectionOrder: FighterSectionId[] = [
   "character-description",
+  "character-pfp-prompt",
+  "character-pfp-image",
   "specsheet-prompt",
   "specsheet-image",
   "spritesheet-prompt",
@@ -29,6 +31,8 @@ export const deriveSectionStatuses = ({
 }: PipelineSnapshot): Record<FighterSectionId, SectionStatus> => {
   const statuses: Record<FighterSectionId, SectionStatus> = {
     "character-description": "ready",
+    "character-pfp-prompt": "locked",
+    "character-pfp-image": "locked",
     "specsheet-prompt": "locked",
     "specsheet-image": "locked",
     "spritesheet-prompt": "locked",
