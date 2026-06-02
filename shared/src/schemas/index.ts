@@ -12,6 +12,10 @@ export {
   fighterSectionStatusSchema,
   myFightersResponseSchema,
   myFighterSchema,
+  publicFighterDetailSchema,
+  publicFighterSchema,
+  publicFightersQuerySchema,
+  publicFightersResponseSchema,
 } from "./api/fighters";
 export type {
   FighterAgentVersion,
@@ -20,6 +24,10 @@ export type {
   FighterSectionStatus,
   MyFighter,
   MyFightersResponse,
+  PublicFighter,
+  PublicFighterDetail,
+  PublicFightersQuery,
+  PublicFightersResponse,
 } from "./api/fighters";
 export {
   pipelineIdRequestSchema,

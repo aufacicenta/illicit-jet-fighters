@@ -6,6 +6,7 @@ export * from "./api/fighter-ledger";
 export * from "./api/fighters";
 export * from "./api/generate";
 export * from "./api/pipeline";
+export * from "./api/public-fighters";
 export * from "./api/simulation";
 export * from "./api/types";
 export * from "./api/wallet";

@@ -25,6 +25,7 @@ const resolveWsBase = (): string => {
 const WS_BASE = resolveWsBase();
 
 export const routes = {
+  home: () => "/",
   broadcast: (id: string) => `/broadcast/${id}`,
   /** Opens the create-fighter flow and provisions a fresh fighter record. */
   createFighter: () => `/fighters/new`,
@@ -41,6 +42,8 @@ export const routes = {
 };
 
 export const apiRoutes = {
+  publicFighters: `${API_BASE}/public/fighters`,
+  publicFighter: (id: number) => `${API_BASE}/public/fighters/${encodeURIComponent(String(id))}`,
   fighters: `${API_BASE}/fighters`,
   fighter: (id: number) => `${API_BASE}/fighters/${encodeURIComponent(String(id))}`,
   battlefields: `${API_BASE}/battlefields`,

@@ -1,5 +1,5 @@
 import { Crosshair } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import {
@@ -14,18 +14,13 @@ import {
   TypingEffect,
 } from "../components/Navbar/CockpitStatScreens";
 import { NavbarWalletTray } from "../components/Navbar/NavbarWalletTray";
+import { SettingStoryFrame } from "../components/SettingStory/SettingStoryFrame";
 import { Checkbox } from "../components/ui/checkbox";
 import { Label } from "../components/ui/label";
 import { useAuth } from "../context/Auth/useAuth";
 import { routes } from "../hooks/useRoutes";
 import { fighterCreatePost, startPipeline } from "../lib/api";
 import { PromptBar } from "./wizard/PromptBar";
-
-type StorySegment = {
-  text: string;
-  className?: string;
-  delayMs?: number;
-};
 
 const SETTING_STORY_DISMISSED_STORAGE_KEY = "ijf:wizard-setting-story-dismissed";
 const settingStoryDoNotShowAgainId = "wizard-setting-story-do-not-show-again";
@@ -50,39 +45,6 @@ const persistSettingStoryDismissed = (dismissed: boolean) => {
   }
 };
 
-const settingStorySegments: StorySegment[] = [
-  {
-    text: "2187\n\n",
-    delayMs: 500,
-  },
-  {
-    text: "Wazscania fractured Earth into combat zones.\n\n",
-  },
-  {
-    text: "The IJF emerged.\n\n",
-    delayMs: 150,
-  },
-  {
-    text: "A network of bounty contractors, midflight in-cockpit, midflight in exchange.\n\n",
-  },
-  {
-    text: "Each hunter flies an Airmach.\n\n",
-    delayMs: 120,
-  },
-  {
-    text: "Part fighter jet, ",
-    delayMs: 90,
-  },
-  {
-    text: "part expression of identity",
-    delayMs: 112,
-  },
-  {
-    text: ".",
-    delayMs: 1500,
-  },
-];
-
 export const CreateFighterPage = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
@@ -91,8 +53,7 @@ export const CreateFighterPage = () => {
   const isSubmittingRef = useRef(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [settingStoryDismissed, setSettingStoryDismissed] = useState(readSettingStoryDismissed);
-  const [visibleStoryChars, setVisibleStoryChars] = useState(0);
-  const [storyFinished, setStoryFinished] = useState(false);
+  const [storyFinished, setStoryFinished] = useState(readSettingStoryDismissed);
 
   const handleSettingStoryDoNotShowAgainChange = useCallback(
     (checked: boolean | "indeterminate") => {
@@ -103,56 +64,9 @@ export const CreateFighterPage = () => {
     [],
   );
 
-  const settingStoryTextLength = useMemo(
-    () => settingStorySegments.reduce((length, segment) => length + segment.text.length, 0),
-    [],
-  );
-
-  useEffect(() => {
-    if (settingStoryDismissed) {
-      setVisibleStoryChars(settingStoryTextLength);
-      setStoryFinished(true);
-      return;
-    }
-
-    setVisibleStoryChars(0);
-    setStoryFinished(false);
-    let cancelled = false;
-    let charIndex = 0;
-    let currentSegmentIndex = 0;
-    let charsInPriorSegments = 0;
-
-    const tick = () => {
-      if (cancelled) {
-        return;
-      }
-      if (charIndex >= settingStoryTextLength) {
-        setStoryFinished(true);
-        return;
-      }
-
-      charIndex += 1;
-      setVisibleStoryChars(charIndex);
-
-      while (
-        currentSegmentIndex < settingStorySegments.length &&
-        charIndex >= charsInPriorSegments + settingStorySegments[currentSegmentIndex].text.length
-      ) {
-        charsInPriorSegments += settingStorySegments[currentSegmentIndex].text.length;
-        currentSegmentIndex += 1;
-      }
-
-      const segment = settingStorySegments[currentSegmentIndex];
-      const delay = segment?.delayMs ?? 55;
-      window.setTimeout(tick, delay);
-    };
-
-    window.setTimeout(tick, settingStorySegments[0]?.delayMs ?? 55);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [settingStoryDismissed, settingStoryTextLength]);
+  const handleSettingStoryFinished = useCallback(() => {
+    setStoryFinished(true);
+  }, []);
 
   const onStartIntake = useCallback(() => {
     if (!token || isSubmittingRef.current) return;
@@ -255,34 +169,7 @@ export const CreateFighterPage = () => {
         <section className="mx-auto flex max-w-xl flex-col items-center justify-center">
           {!settingStoryDismissed ? (
             <>
-              <div className="flex flex-col justify-center bg-[url('/cockpit-center-frame.svg')] bg-contain bg-center bg-no-repeat p-[30%] md:h-[50vh] md:w-[50vw]">
-                <p className="font-pixel text-xl whitespace-pre-wrap text-highlight">
-                  {settingStorySegments.map((segment, index) => {
-                    const charsBeforeSegment = settingStorySegments
-                      .slice(0, index)
-                      .reduce((length, priorSegment) => length + priorSegment.text.length, 0);
-                    const visibleSegmentChars = Math.max(
-                      0,
-                      Math.min(segment.text.length, visibleStoryChars - charsBeforeSegment),
-                    );
-
-                    if (visibleSegmentChars <= 0) {
-                      return null;
-                    }
-
-                    return (
-                      <span className={segment.className} key={`${segment.text}-${index}`}>
-                        {segment.text.slice(0, visibleSegmentChars)}
-                      </span>
-                    );
-                  })}
-                  {visibleStoryChars < settingStoryTextLength ? (
-                    <span aria-hidden className="ml-0.5 animate-pulse text-[#fecaca]">
-                      ▋
-                    </span>
-                  ) : null}
-                </p>
-              </div>
+              <SettingStoryFrame onFinished={handleSettingStoryFinished} />
               {storyFinished && (
                 <div className="mt-4 flex shrink-0 items-center gap-2 pt-10">
                   <Checkbox

@@ -6,6 +6,7 @@ import { routes } from "./hooks/useRoutes";
 import { BroadcastPage } from "./pages/BroadcastPage";
 import { CreateBattlefieldPage } from "./pages/CreateBattlefieldPage";
 import { CreateFighterPage } from "./pages/CreateFighterPage";
+import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
 import { FighterBalancePage } from "./pages/terminal/FighterBalancePage";
@@ -16,6 +17,10 @@ import { BattlefieldWizardPage } from "./pages/wizard/BattlefieldWizardPage";
 import { FighterWizardPage } from "./pages/wizard/FighterWizardPage";
 
 export const router = createBrowserRouter([
+  {
+    path: routes.home(),
+    element: <HomePage />,
+  },
   {
     path: routes.login(),
     element: <LoginPage />,
@@ -75,6 +80,6 @@ export const router = createBrowserRouter([
   },
   {
     path: "*",
-    element: <Navigate replace to={routes.broadcast("local")} />,
+    element: <Navigate replace to={routes.home()} />,
   },
 ]);

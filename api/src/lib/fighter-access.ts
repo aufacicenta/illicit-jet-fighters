@@ -56,6 +56,52 @@ export const getFightersByIds = async (fighterIds: number[]): Promise<FighterByI
     .where(inArray(fighters.id, fighterIds));
 };
 
+export type PublicGalleryFighterRecord = {
+  id: number;
+  slug: string;
+  name: string | null;
+  briefing: string | null;
+  userId: string;
+  createdAt: Date;
+};
+
+export const listFightersForPublicGallery = async ({
+  limit,
+}: {
+  limit: number;
+}): Promise<PublicGalleryFighterRecord[]> =>
+  db
+    .select({
+      id: fighters.id,
+      slug: fighters.slug,
+      name: fighters.name,
+      briefing: fighters.briefing,
+      userId: fighters.userId,
+      createdAt: fighters.createdAt,
+    })
+    .from(fighters)
+    .orderBy(desc(fighters.createdAt), desc(fighters.id))
+    .limit(limit);
+
+export const getFighterForPublicGallery = async (
+  fighterId: number,
+): Promise<PublicGalleryFighterRecord | undefined> => {
+  const rows = await db
+    .select({
+      id: fighters.id,
+      slug: fighters.slug,
+      name: fighters.name,
+      briefing: fighters.briefing,
+      userId: fighters.userId,
+      createdAt: fighters.createdAt,
+    })
+    .from(fighters)
+    .where(eq(fighters.id, fighterId))
+    .limit(1);
+
+  return rows[0];
+};
+
 export const createFighterForUser = async (userId: string): Promise<number> => {
   const slug = await generateUniqueFighterSlug(async (candidate) => {
     const row = await db
