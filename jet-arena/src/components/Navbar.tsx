@@ -57,7 +57,7 @@ export const Navbar = () => {
         <div className="mx-auto flex w-full flex-col">
           <div className="flex max-h-[100px] w-full items-center justify-between gap-3 pb-3">
             <div aria-hidden />
-            <Link className="relative top-[17px] z-30 block justify-self-center" to={routes.home()}>
+            <Link className="relative top-[26px] z-30 block justify-self-center" to={routes.home()}>
               <img
                 alt="Illicit Jet Fighters"
                 className="w-full max-w-[280px]"

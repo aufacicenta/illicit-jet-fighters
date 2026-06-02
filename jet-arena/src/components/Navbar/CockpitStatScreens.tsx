@@ -268,7 +268,7 @@ export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
   return (
     <>
       <section
-        className="fixed top-[calc(var(--navbar-height)+23px)] right-0 left-0 z-10 flex w-screen justify-between"
+        className="fixed top-[calc(var(--navbar-height)+21px)] right-0 left-0 z-10 flex w-screen justify-between"
         id="cockpit-top-screens"
       >
         {customSlots.topLeft !== undefined ? (

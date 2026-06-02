@@ -269,6 +269,7 @@ export const TerminalSimulationPage = () => {
                             </Badge>
                           </div>
                           <Button
+                            disabled={fighter.status !== "complete"}
                             onClick={() => addFighterToLineup(fighter.id)}
                             size="sm"
                             type="button"
