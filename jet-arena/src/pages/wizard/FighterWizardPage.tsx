@@ -160,18 +160,6 @@ const WizardLayout = () => {
   const contentContainerRef = useRef<HTMLDivElement | null>(null);
 
   const showConnectionHint = connectionStatus !== "open";
-  const showPhaseTwo =
-    sectionStatuses["spritesheet-prompt"] === "generating" ||
-    sectionStatuses["spritesheet-image"] === "generating" ||
-    sectionStatuses["agent-code"] === "generating" ||
-    sectionStatuses["strikecraft-specsheet-prompt"] === "generating" ||
-    sectionStatuses["strikecraft-specsheet-image"] === "generating" ||
-    sectionStatuses["strikecraft-sprite-prompt"] === "generating" ||
-    sectionStatuses["strikecraft-sprite-image"] === "generating" ||
-    Boolean(outputs["spritesheet-image"]) ||
-    Boolean(outputs["agent-code"]) ||
-    Boolean(outputs["strikecraft-specsheet-image"]) ||
-    Boolean(outputs["strikecraft-sprite-image"]);
   const nextPhaseOneSection = getNextSectionForPhase("phase-one", sectionStatuses);
   const nextPhaseTwoSection = getNextSectionForPhase("phase-two", sectionStatuses);
   const phaseOneComplete = phaseSections["phase-one"].every(
@@ -213,9 +201,8 @@ const WizardLayout = () => {
 
     navigate(routes.terminalSimulation());
   };
-  const sectionNavItems = showPhaseTwo
-    ? [...phaseOneNavItems, ...phaseTwoNavItems]
-    : phaseOneNavItems;
+  const phaseTwoNavItemIds = new Set(phaseTwoNavItems.map((item) => item.id));
+  const sectionNavItems = [...phaseOneNavItems, ...phaseTwoNavItems];
   const activeBreadcrumbSectionLabel = useMemo(() => {
     if (activeSectionId) {
       return wizardSectionBreadcrumbLabels[activeSectionId];
@@ -338,22 +325,36 @@ const WizardLayout = () => {
               <section className="scroll-mt-6" id="wizard-section-specsheet-image">
                 <SpecsheetSection />
               </section>
-              {showPhaseTwo ? (
-                <>
-                  <section className="scroll-mt-6" id="wizard-section-spritesheet-image">
-                    <SpritesheetSection />
-                  </section>
-                  <section className="scroll-mt-6" id="wizard-section-agent-code">
-                    <AgentCodeSection showRegenerateButton />
-                  </section>
-                  <section className="scroll-mt-6" id="wizard-section-strikecraft-specsheet-image">
-                    <StrikecraftSpecsheetSection />
-                  </section>
-                  <section className="scroll-mt-6" id="wizard-section-strikecraft-sprite-image">
-                    <StrikecraftSpriteSection />
-                  </section>
-                </>
-              ) : null}
+              <div
+                className={`relative space-y-4 ${!phaseOneComplete ? "pointer-events-none select-none" : ""}`}
+              >
+                {!phaseOneComplete && (
+                  <div className="absolute inset-0 z-10 flex items-start justify-center rounded-sm bg-background/60 pt-16 backdrop-blur-[2px]">
+                    <p className="rounded-sm border border-border/70 bg-background/80 px-4 py-2 text-sm tracking-wide text-muted-foreground uppercase">
+                      Complete Phase 1 to unlock
+                    </p>
+                  </div>
+                )}
+                <div className={!phaseOneComplete ? "opacity-40" : undefined}>
+                  <div className="space-y-4">
+                    <section className="scroll-mt-6" id="wizard-section-spritesheet-image">
+                      <SpritesheetSection />
+                    </section>
+                    <section className="scroll-mt-6" id="wizard-section-agent-code">
+                      <AgentCodeSection showRegenerateButton />
+                    </section>
+                    <section
+                      className="scroll-mt-6"
+                      id="wizard-section-strikecraft-specsheet-image"
+                    >
+                      <StrikecraftSpecsheetSection />
+                    </section>
+                    <section className="scroll-mt-6" id="wizard-section-strikecraft-sprite-image">
+                      <StrikecraftSpriteSection />
+                    </section>
+                  </div>
+                </div>
+              </div>
             </section>
             <aside className="w-full space-y-3 lg:sticky lg:top-6">
               <section id="wizard-section-character-pfp-image">
@@ -365,19 +366,23 @@ const WizardLayout = () => {
                 {sectionNavItems.map((item) => {
                   const status = isSectionId(item.id) ? sectionStatuses[item.id] : null;
                   const isActive = isSectionId(item.id) && activeSectionId === item.id;
+                  const isLockedPhaseTwo = !phaseOneComplete && phaseTwoNavItemIds.has(item.id);
                   return (
                     <button
                       key={item.id}
                       className={`flex w-full items-center gap-2 rounded-sm border px-2.5 py-2 text-left text-xs tracking-wide uppercase transition-colors ${
-                        isActive
-                          ? "border-secondary bg-secondary/10 text-foreground"
-                          : "border-border/70 bg-background hover:border-border hover:bg-muted/60"
+                        isLockedPhaseTwo
+                          ? "cursor-not-allowed border-border/40 bg-background/50 text-muted-foreground/50"
+                          : isActive
+                            ? "border-secondary bg-secondary/10 text-foreground"
+                            : "border-border/70 bg-background hover:border-border hover:bg-muted/60"
                       }`}
+                      disabled={isLockedPhaseTwo}
                       onClick={() => navigateToSection(item.id)}
                       type="button"
                     >
                       <span
-                        className={`size-1.5 shrink-0 rounded-full ${getSectionStatusClassName(status)}`}
+                        className={`size-1.5 shrink-0 rounded-full ${isLockedPhaseTwo ? "bg-muted/50" : getSectionStatusClassName(status)}`}
                       />
                       <span className="truncate">{item.label}</span>
                     </button>
