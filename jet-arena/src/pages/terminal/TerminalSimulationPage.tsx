@@ -4,7 +4,7 @@ import {
   type MyFighter,
   resolveFighterName,
 } from "@ijf/shared";
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -134,26 +134,6 @@ export const TerminalSimulationPage = () => {
 
   const removeSlot = (slotId: string) => {
     setLineupSlots((current) => current.filter((slot) => slot.id !== slotId));
-  };
-
-  const moveSlot = (slotId: string, direction: "up" | "down") => {
-    setLineupSlots((current) => {
-      const fromIndex = current.findIndex((slot) => slot.id === slotId);
-      if (fromIndex < 0) {
-        return current;
-      }
-      const toIndex = direction === "up" ? fromIndex - 1 : fromIndex + 1;
-      if (toIndex < 0 || toIndex >= current.length) {
-        return current;
-      }
-      const next = [...current];
-      const [slot] = next.splice(fromIndex, 1);
-      if (!slot) {
-        return current;
-      }
-      next.splice(toIndex, 0, slot);
-      return next;
-    });
   };
 
   const updateSlotAgentVersion = (slotId: string, nextValue: string) => {
@@ -365,28 +345,6 @@ export const TerminalSimulationPage = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button
-                          aria-label={`Move ${displayName} up`}
-                          disabled={index === 0}
-                          className="h-9 w-9 p-0"
-                          onClick={() => moveSlot(slot.id, "up")}
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          <ArrowUp className="size-4" />
-                        </Button>
-                        <Button
-                          aria-label={`Move ${displayName} down`}
-                          disabled={index === lineupSlots.length - 1}
-                          className="h-9 w-9 p-0"
-                          onClick={() => moveSlot(slot.id, "down")}
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          <ArrowDown className="size-4" />
-                        </Button>
                         <Button
                           aria-label={`Remove ${displayName}`}
                           className="h-9 w-9 p-0"
