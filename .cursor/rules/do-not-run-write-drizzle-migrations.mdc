@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+When editing drizzle schema files, do not create the migration files by yourself, instead use: bun run db:generate.
