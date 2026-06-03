@@ -9,6 +9,8 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { fighterArenaStatusEnum } from "./arena-pools";
+
 const neonAuthSchema = pgSchema("neon_auth");
 
 const neonAuthUser = neonAuthSchema.table("user", {
@@ -25,6 +27,7 @@ export const fighters = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => neonAuthUser.id, { onDelete: "cascade" }),
+    arenaStatus: fighterArenaStatusEnum("arena_status").notNull().default("idle"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
   },

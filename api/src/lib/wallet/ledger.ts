@@ -120,7 +120,9 @@ export type FighterLedgerKind =
   | "fighter_transfer_in"
   | "fighter_transfer_out"
   | "fighter_sim_bounty_in"
-  | "fighter_sim_bet_out";
+  | "fighter_sim_bet_out"
+  | "fighter_arena_lock"
+  | "fighter_arena_unlock";
 
 const parsePositiveNativeAmount = (value: bigint) => {
   if (value <= 0n) {
@@ -168,7 +170,7 @@ export const insertFighterLedgerEntry = async ({
   fighterId: number;
   kind: FighterLedgerKind;
   amountNative: bigint;
-  walletLedgerEntryId: string;
+  walletLedgerEntryId?: string | null;
   metadata?: unknown;
 }) => {
   const run = executor ?? db;
@@ -178,7 +180,7 @@ export const insertFighterLedgerEntry = async ({
       fighterId,
       kind,
       amountNative: formatNativeNumeric(amountNative),
-      walletLedgerEntryId,
+      walletLedgerEntryId: walletLedgerEntryId ?? null,
       metadata: (metadata as object | undefined) ?? null,
     })
     .returning({

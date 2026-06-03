@@ -18,11 +18,13 @@ export const createSimulationAndBroadcast = async ({
   broadcastId,
   seed,
   participants,
+  arenaPoolId,
 }: {
   userId: string;
   broadcastId: string;
   seed: number;
   participants: CreateSimulationParticipantInput[];
+  arenaPoolId?: string | null;
 }) => {
   const simulationRows = await db
     .insert(simulations)
@@ -30,6 +32,7 @@ export const createSimulationAndBroadcast = async ({
       userId,
       seed,
       status: "queued",
+      arenaPoolId: arenaPoolId ?? null,
     })
     .returning({
       id: simulations.id,

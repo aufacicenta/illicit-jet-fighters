@@ -26,6 +26,8 @@ const kindLabel: Record<string, string> = {
   fighter_transfer_out: "Withdraw to Wallet",
   fighter_sim_bounty_in: "Simulation Bounty",
   fighter_sim_bet_out: "Simulation Bet",
+  fighter_arena_lock: "Arena Stake Lock",
+  fighter_arena_unlock: "Arena Stake Unlock",
 };
 
 const FighterBalancePageInner = () => {

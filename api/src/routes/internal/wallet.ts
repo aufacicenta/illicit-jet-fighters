@@ -7,6 +7,7 @@ import { Elysia, t } from "elysia";
 
 import { env } from "../../config/env";
 import { pushWalletTopupNotifications } from "../../lib/wallet/push-wallet-updates";
+import { parseWalletNetworkName } from "../../lib/wallet/resolve-fx";
 import { getWalletNetworkEnv } from "../../lib/wallet/wallet-config";
 
 const parseIndexerSecret = (request: Request) => {
@@ -36,7 +37,7 @@ export const internalWalletRoutes = new Elysia({ prefix: "/internal/wallet" }).p
     }
 
     const [wallet] = await db
-      .select({ userId: userWallets.userId })
+      .select({ userId: userWallets.userId, network: userWallets.network })
       .from(userWallets)
       .where(eq(userWallets.id, body.walletId))
       .limit(1);
@@ -48,6 +49,7 @@ export const internalWalletRoutes = new Elysia({ prefix: "/internal/wallet" }).p
     await pushWalletTopupNotifications({
       userId: wallet.userId,
       walletId: body.walletId,
+      network: parseWalletNetworkName(wallet.network),
       networkEnv: getWalletNetworkEnv(),
       txHash: body.txHash,
       amountNative,

@@ -22,7 +22,6 @@ import { Elysia, t } from "elysia";
 import { getOwnedFighter } from "../../lib/fighter-access";
 import { requireBearerAuth } from "../../lib/require-bearer-auth";
 import { buildWalletBalanceSnapshot } from "../../lib/wallet/charge";
-import { getSuiUsdPrice } from "../../lib/wallet/fx";
 import {
   appendFighterToUserTransfer,
   appendSimulationSettlement,
@@ -34,11 +33,10 @@ import {
   listFighterLedgerEntries,
   listWithdrawals,
 } from "../../lib/wallet/ledger";
+import { resolveFxNativePerUsd } from "../../lib/wallet/resolve-fx";
 import { getWalletNetwork, getWalletNetworkEnv } from "../../lib/wallet/wallet-config";
 import { ensureUserWallet } from "../../lib/wallet/wallet-provision";
 import { sendToUser } from "../../ws/store";
-
-const NATIVE_BASE_UNITS_PER_SUI = 1_000_000_000;
 
 const parseNativeAmount = (value: string) => {
   const trimmed = value.trim();
@@ -58,8 +56,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       const network = getWalletNetwork();
       const networkEnv = getWalletNetworkEnv();
       const wallet = await ensureUserWallet({ userId: auth.userId, network });
-      const suiUsd = await getSuiUsdPrice();
-      const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
+      const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
       const snapshot = await buildWalletBalanceSnapshot({
         walletId: wallet.id,
         networkEnv,
@@ -232,8 +229,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       if (!amountNative || amountNative <= 0n) {
         return status(400, "amountNative must be a positive integer string.");
       }
-      const suiUsd = await getSuiUsdPrice();
-      const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
+      const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
       try {
         const transfer = await appendUserToFighterTransfer({
           walletId: wallet.id,
@@ -289,8 +285,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       if (!amountNative || amountNative <= 0n) {
         return status(400, "amountNative must be a positive integer string.");
       }
-      const suiUsd = await getSuiUsdPrice();
-      const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
+      const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
       try {
         const transfer = await appendFighterToUserTransfer({
           walletId: wallet.id,
@@ -342,8 +337,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       if (!amountNative || amountNative <= 0n) {
         return status(400, "amountNative must be a positive integer string.");
       }
-      const suiUsd = await getSuiUsdPrice();
-      const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
+      const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
       try {
         const settlement = await appendSimulationSettlement({
           losingOwnerUserId: auth.userId,
@@ -430,8 +424,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
         return status(400, "Insufficient wallet balance.");
       }
 
-      const suiUsd = await getSuiUsdPrice();
-      const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
+      const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
       const amountUsdSnapshot = Number(amountNative) / fxNativePerUsd;
       const groupId = await appendWithdrawalRequest({
         walletId: wallet.id,
@@ -504,8 +497,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
         errorMessage: "cancelled by user",
       });
 
-      const suiUsd = await getSuiUsdPrice();
-      const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
+      const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
       const balance = await buildWalletBalanceSnapshot({
         walletId: wallet.id,
         networkEnv,

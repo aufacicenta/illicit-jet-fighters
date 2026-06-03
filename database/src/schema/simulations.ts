@@ -11,6 +11,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { arenaPools } from "./arena-pools";
 import { fighterAgentVersions } from "./fighter-agent-versions";
 import { fighters } from "./fighters";
 
@@ -53,6 +54,7 @@ export const simulations = pgTable(
     replayFrameCount: integer("replay_frame_count").notNull().default(0),
     replayObjectKey: text("replay_object_key"),
     broadcastEventsObjectKey: text("broadcast_events_object_key"),
+    arenaPoolId: uuid("arena_pool_id").references(() => arenaPools.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
   },

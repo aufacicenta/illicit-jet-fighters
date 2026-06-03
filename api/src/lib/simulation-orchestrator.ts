@@ -13,6 +13,7 @@ import {
   getFighterAgentVersionByIdForOwnerAndFighter,
   getLatestFighterAgentVersionForHash,
 } from "./agent-version-repository";
+import { releaseArenaSimulationOnError, settleArenaSimulation } from "./arena/arena-settlement";
 import {
   bindPipelineTenant,
   type ClientPipelineStateSnapshot,
@@ -299,6 +300,12 @@ const finalizeEndedSimulation = async ({
     replayObjectKey,
     broadcastEventsObjectKey,
   });
+
+  await settleArenaSimulation({
+    simulationId,
+    winnerFighterId,
+  });
+
   activeByBroadcastId.delete(broadcastId);
 };
 
@@ -335,6 +342,9 @@ const finalizeErroredSimulation = async ({
     replayObjectKey: artifacts.replayObjectKey,
     broadcastEventsObjectKey: artifacts.broadcastEventsObjectKey,
   });
+
+  await releaseArenaSimulationOnError(simulationId);
+
   activeByBroadcastId.delete(broadcastId);
 };
 
@@ -342,6 +352,7 @@ export const startSimulationForRoster = async ({
   initiatorUserId,
   fighters,
   seed,
+  arenaPoolId,
 }: {
   initiatorUserId: string;
   fighters: Array<{
@@ -353,6 +364,7 @@ export const startSimulationForRoster = async ({
     agentVersionId?: string | null;
   }>;
   seed?: number;
+  arenaPoolId?: string | null;
 }) => {
   if (fighters.length === 0) {
     throw new Error("At least one fighter is required to start a simulation.");
@@ -408,6 +420,7 @@ export const startSimulationForRoster = async ({
     userId: initiatorUserId,
     broadcastId,
     seed: resolvedSeed,
+    arenaPoolId: arenaPoolId ?? null,
     participants: players.map((player, index) => ({
       fighterId: player.fighterId,
       playerSlot: index,

@@ -149,6 +149,7 @@ export type OwnedFighterListItem = {
   slug: string;
   name: string | null;
   briefing: string | null;
+  arenaStatus: "idle" | "queued" | "in_simulation" | "settling";
   createdAt: Date;
   updatedAt: Date;
 };
@@ -160,6 +161,7 @@ export const listOwnedFighters = async (userId: string): Promise<OwnedFighterLis
       slug: fighters.slug,
       name: fighters.name,
       briefing: fighters.briefing,
+      arenaStatus: fighters.arenaStatus,
       createdAt: fighters.createdAt,
       updatedAt: fighters.updatedAt,
     })

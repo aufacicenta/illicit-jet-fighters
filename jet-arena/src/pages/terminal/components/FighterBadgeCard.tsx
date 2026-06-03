@@ -29,6 +29,20 @@ const statusClassByCode: Record<MyFighter["status"], string> = {
   error: "border-destructive/60 text-destructive",
 };
 
+const arenaStatusLabel: Record<MyFighter["arenaStatus"], string> = {
+  idle: "",
+  queued: "Arena Queue",
+  in_simulation: "In Sim",
+  settling: "Settling",
+};
+
+const arenaStatusClass: Record<MyFighter["arenaStatus"], string> = {
+  idle: "",
+  queued: "border-amber-400/60 text-amber-300",
+  in_simulation: "border-sky-400/60 text-sky-300",
+  settling: "border-violet-400/60 text-violet-300",
+};
+
 type FighterBadgeCardProps = {
   fighter: MyFighter;
   isSelected: boolean;
@@ -73,6 +87,17 @@ export const FighterBadgeCard = ({
             >
               {statusLabelByCode[fighter.status]}
             </Badge>
+            {fighter.arenaStatus !== "idle" ? (
+              <Badge
+                className={cn(
+                  "shrink-0 bg-background/85 px-2 py-1 text-[10px] tracking-[0.14em]",
+                  arenaStatusClass[fighter.arenaStatus],
+                )}
+                variant="outline"
+              >
+                {arenaStatusLabel[fighter.arenaStatus]}
+              </Badge>
+            ) : null}
             {onDelete ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

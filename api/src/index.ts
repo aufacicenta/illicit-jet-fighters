@@ -3,6 +3,7 @@ import { Elysia } from "elysia";
 
 import { env } from "./config/env";
 import { logServerStartup, withLogging } from "./plugins/logging";
+import { arenaRoutes } from "./routes/arena";
 import { battlefieldPipelineRoutes } from "./routes/battlefield-pipeline";
 import { battlefieldSessionRoutes } from "./routes/battlefields";
 import { broadcastRoutes } from "./routes/broadcasts";
@@ -27,6 +28,7 @@ const guardedHttp = new Elysia({ name: "guarded-http" })
   .use(costRoutes)
   .use(pipelineRoutes)
   .use(battlefieldPipelineRoutes)
+  .use(arenaRoutes)
   .use(simulationRoutes)
   .use(broadcastRoutes)
   .use(assetRoutes)

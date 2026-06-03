@@ -1,3 +1,4 @@
+export * from "./api/arena";
 export * from "./api/battlefield-pipeline";
 export * from "./api/battlefields";
 export * from "./api/client";

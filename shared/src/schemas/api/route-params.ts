@@ -20,6 +20,10 @@ export const broadcastIdPathParamsSchema = z.object({
   id: z.string().min(1),
 });
 
+export const arenaPoolIdPathParamsSchema = z.object({
+  poolId: z.string().uuid(),
+});
+
 export const withdrawalGroupPathParamsSchema = z.object({
   groupId: z.string().min(1),
 });

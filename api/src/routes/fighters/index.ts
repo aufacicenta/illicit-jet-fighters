@@ -86,6 +86,7 @@ export const fighterSessionRoutes = new Elysia({ prefix: "/fighters" })
             slug: fighter.slug,
             name: fighter.name,
             briefing: fighter.briefing,
+            arenaStatus: fighter.arenaStatus,
             createdAt: fighter.createdAt.toISOString(),
             updatedAt: fighter.updatedAt.toISOString(),
             characterDescription: preview.characterDescription,

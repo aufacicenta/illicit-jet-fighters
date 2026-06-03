@@ -13,6 +13,7 @@ export const myFighterSchema = z.object({
   slug: z.string().min(1),
   name: z.string().nullable(),
   briefing: z.string().nullable(),
+  arenaStatus: z.enum(["idle", "queued", "in_simulation", "settling"]),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   characterDescription: z.string().nullable(),

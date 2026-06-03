@@ -1,4 +1,27 @@
 export {
+  arenaBattleModeSchema,
+  arenaEnterPoolRequestSchema,
+  arenaEnterPoolResponseSchema,
+  arenaLeavePoolRequestSchema,
+  arenaLeavePoolResponseSchema,
+  arenaMyActiveFighterSchema,
+  arenaMyActiveResponseSchema,
+  arenaMyQueueEntrySchema,
+  arenaMyQueueResponseSchema,
+  arenaPoolDetailResponseSchema,
+  arenaPoolListResponseSchema,
+  arenaPoolSchema,
+  arenaQueueEntrySchema,
+  arenaQueueStatusSchema,
+  fighterArenaStatusSchema,
+} from "./arena";
+export type {
+  ArenaEnterPoolRequest,
+  ArenaLeavePoolRequest,
+  ArenaPool,
+  ArenaPoolListResponse,
+} from "./arena";
+export {
   battlefieldIdResponseSchema,
   myBattlefieldsResponseSchema,
   myBattlefieldSchema,
@@ -46,6 +69,7 @@ export {
 } from "./pipeline-state";
 export type { BattlefieldPipelineStateSnapshot, PipelineStateSnapshot } from "./pipeline-state";
 export {
+  arenaPoolIdPathParamsSchema,
   battlefieldIdPathParamsSchema,
   broadcastIdPathParamsSchema,
   fighterIdPathParamsSchema,

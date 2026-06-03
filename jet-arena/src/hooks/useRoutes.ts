@@ -52,6 +52,12 @@ export const apiRoutes = {
   fighterAgentVersions: (id: number) =>
     `${API_BASE}/fighters/${encodeURIComponent(String(id))}/agent-versions`,
   fighterSession: `${API_BASE}/fighters/session`,
+  arenaPools: `${API_BASE}/arena/pools`,
+  arenaPool: (poolId: string) => `${API_BASE}/arena/pools/${encodeURIComponent(poolId)}`,
+  arenaPoolEnter: (poolId: string) => `${API_BASE}/arena/pools/${encodeURIComponent(poolId)}/enter`,
+  arenaPoolLeave: (poolId: string) => `${API_BASE}/arena/pools/${encodeURIComponent(poolId)}/leave`,
+  arenaMyQueue: `${API_BASE}/arena/me/queue`,
+  arenaMyActive: `${API_BASE}/arena/me/active`,
   simulations: `${API_BASE}/simulations`,
   simulationStatus: (id: string) => `${API_BASE}/simulations/${encodeURIComponent(id)}/status`,
   simulationReplay: (id: string) => `${API_BASE}/simulations/${encodeURIComponent(id)}/replay`,

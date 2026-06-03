@@ -1,14 +1,14 @@
 import type { NetworkEnvName } from "@ijf/shared";
+import type { WalletNetworkName } from "@ijf/shared";
 
 import { sendToUser } from "../../ws/store";
 import { buildWalletBalanceSnapshot } from "./charge";
-import { getSuiUsdPrice } from "./fx";
-
-const NATIVE_BASE_UNITS_PER_SUI = 1_000_000_000;
+import { resolveFxNativePerUsd } from "./resolve-fx";
 
 export const pushWalletTopupNotifications = async ({
   userId,
   walletId,
+  network,
   networkEnv,
   txHash,
   amountNative,
@@ -16,13 +16,13 @@ export const pushWalletTopupNotifications = async ({
 }: {
   userId: string;
   walletId: string;
+  network: WalletNetworkName;
   networkEnv: NetworkEnvName;
   txHash: string;
   amountNative: bigint;
   amountUsd: number;
 }) => {
-  const suiUsd = await getSuiUsdPrice();
-  const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
+  const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
   const balance = await buildWalletBalanceSnapshot({ walletId, networkEnv, fxNativePerUsd });
   const at = new Date().toISOString();
 

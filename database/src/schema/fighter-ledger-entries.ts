@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -18,6 +19,8 @@ export const fighterLedgerKindEnum = pgEnum("fighter_ledger_kind", [
   "fighter_transfer_out",
   "fighter_sim_bounty_in",
   "fighter_sim_bet_out",
+  "fighter_arena_lock",
+  "fighter_arena_unlock",
 ]);
 
 export const fighterLedgerEntries = pgTable(
@@ -29,14 +32,16 @@ export const fighterLedgerEntries = pgTable(
       .references(() => fighters.id, { onDelete: "cascade" }),
     kind: fighterLedgerKindEnum("kind").notNull(),
     amountNative: numeric("amount_native", { precision: 30, scale: 0 }).notNull(),
-    walletLedgerEntryId: uuid("wallet_ledger_entry_id")
-      .notNull()
-      .references(() => walletLedgerEntries.id, { onDelete: "cascade" }),
+    walletLedgerEntryId: uuid("wallet_ledger_entry_id").references(() => walletLedgerEntries.id, {
+      onDelete: "cascade",
+    }),
     metadata: jsonb("metadata"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
   },
   (table) => [
     index("fighter_ledger_entries_fighter_id_created_at_idx").on(table.fighterId, table.createdAt),
-    uniqueIndex("fighter_ledger_entries_wallet_ledger_entry_id_key").on(table.walletLedgerEntryId),
+    uniqueIndex("fighter_ledger_entries_wallet_ledger_entry_id_key")
+      .on(table.walletLedgerEntryId)
+      .where(sql`${table.walletLedgerEntryId} IS NOT NULL`),
   ],
 );

@@ -1,6 +1,6 @@
 import type { SectionId } from "../types";
-import { getSuiUsdPrice } from "./fx";
 import { getWalletBalanceNative } from "./ledger";
+import { usdToNativeAmount } from "./resolve-fx";
 import {
   getMinSectionBufferMultiplier,
   getMinWalletBalanceNative,
@@ -8,8 +8,6 @@ import {
   getWalletNetworkEnv,
 } from "./wallet-config";
 import { ensureUserWallet } from "./wallet-provision";
-
-const NATIVE_BASE_UNITS_PER_SUI = 1_000_000_000;
 
 const estimatedSectionUsd: Record<SectionId, number> = {
   "character-description": 0.003,
@@ -32,10 +30,10 @@ const estimatedSectionUsd: Record<SectionId, number> = {
 };
 
 const estimateRequiredNative = async (sectionId: SectionId) => {
-  const suiUsd = await getSuiUsdPrice();
+  const network = getWalletNetwork();
   const baseUsd = estimatedSectionUsd[sectionId] ?? 0.01;
   const bufferedUsd = baseUsd * getMinSectionBufferMultiplier();
-  const convertedNative = BigInt(Math.ceil((bufferedUsd / suiUsd) * NATIVE_BASE_UNITS_PER_SUI));
+  const convertedNative = await usdToNativeAmount(bufferedUsd, network);
   const floorNative = getMinWalletBalanceNative();
   return convertedNative > floorNative ? convertedNative : floorNative;
 };

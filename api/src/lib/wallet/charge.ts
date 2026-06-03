@@ -1,21 +1,11 @@
 import { db } from "@ijf/database";
 import type { NetworkEnvName } from "@ijf/shared";
 
-import { getSuiUsdPrice } from "./fx";
 import { getWalletBalanceNative, insertLedgerEntry } from "./ledger";
+import { nativeAmountToUsd, resolveFxNativePerUsd, usdToNativeAmount } from "./resolve-fx";
 import type { WalletBalanceSnapshot } from "./types";
 import { getFeeBps, getWalletNetwork, getWalletNetworkEnv } from "./wallet-config";
 import { ensureUserWallet } from "./wallet-provision";
-
-const NATIVE_BASE_UNITS_PER_SUI = 1_000_000_000;
-
-const toChargeNative = (usd: number, suiUsd: number) => {
-  if (!Number.isFinite(usd) || usd <= 0 || !Number.isFinite(suiUsd) || suiUsd <= 0) {
-    return 0n;
-  }
-  const native = Math.ceil((usd / suiUsd) * NATIVE_BASE_UNITS_PER_SUI);
-  return BigInt(Math.max(0, native));
-};
 
 const applyFeeBps = (amountNative: bigint, feeBps: number) => {
   if (amountNative <= 0n || feeBps <= 0) {
@@ -64,9 +54,8 @@ export const chargeForUsage = async ({
   const network = getWalletNetwork();
   const networkEnv = getWalletNetworkEnv();
   const wallet = await ensureUserWallet({ executor: run, userId, network });
-  const suiUsd = await getSuiUsdPrice();
-  const fxNativePerUsd = NATIVE_BASE_UNITS_PER_SUI / suiUsd;
-  const chargeNative = toChargeNative(costUsd, suiUsd);
+  const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
+  const chargeNative = await usdToNativeAmount(costUsd, network);
   const feeNative = applyFeeBps(chargeNative, getFeeBps());
   let parentId: string | null = null;
 
@@ -86,7 +75,7 @@ export const chargeForUsage = async ({
   }
 
   if (feeNative > 0n && parentId) {
-    const feeUsd = (Number(feeNative) / NATIVE_BASE_UNITS_PER_SUI) * suiUsd;
+    const feeUsd = nativeAmountToUsd(feeNative, fxNativePerUsd);
     await insertLedgerEntry({
       executor: run,
       walletId: wallet.id,
