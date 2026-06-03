@@ -25,10 +25,7 @@ export const SpecsheetSection = () => {
   const hasCharacterDescription = Boolean(outputs["character-description"]?.content);
   const isGeneratingSpecsheet = imageStatus === "generating" || promptStatus === "generating";
   const isRetryDisabled =
-    promptStatus === "locked" ||
-    imageStatus === "locked" ||
-    isGeneratingSpecsheet ||
-    !hasCharacterDescription;
+    imageStatus === "locked" || isGeneratingSpecsheet || !hasCharacterDescription;
   const actionLabel = imageStatus === "error" || promptStatus === "error" ? "Retry" : "Regenerate";
   const headerStatus = resolveSectionStatus([promptStatus, imageStatus]);
   return (

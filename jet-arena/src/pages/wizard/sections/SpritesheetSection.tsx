@@ -18,8 +18,10 @@ export const SpritesheetSection = () => {
   const imageOutput = outputs["spritesheet-image"];
   const imageStatus = sectionStatuses["spritesheet-image"];
   const hasSpritesheetPrompt = Boolean(outputs["spritesheet-prompt"]?.content);
+  const hasCharacterDescription = Boolean(outputs["character-description"]?.content);
+  const canRegenerate = hasSpritesheetPrompt || hasCharacterDescription;
   const isRetryDisabled =
-    imageStatus === "locked" || imageStatus === "generating" || !hasSpritesheetPrompt;
+    imageStatus === "locked" || imageStatus === "generating" || !canRegenerate;
   const actionLabel = imageStatus === "error" ? "Retry" : "Regenerate";
 
   return (

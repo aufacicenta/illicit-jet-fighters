@@ -550,8 +550,12 @@ const setHistory = (
 };
 
 const resetDownstream = (fighterKey: string, sectionId: SectionId, correlationId?: string) => {
+  if (sectionId !== "character-description") {
+    return;
+  }
+
   const state = getState(fighterKey, correlationId);
-  const startIdx = stepOrder.indexOf(sectionId);
+  const startIdx = stepOrder.indexOf("character-description");
   const downstream = stepOrder.slice(startIdx + 1);
 
   for (const step of downstream) {
@@ -1431,7 +1435,6 @@ export const generateAgentCodeFromCharacterDescription = async (
       },
     });
 
-    resetDownstream(fighterKey, "agent-code", correlationId);
     if (tenant) {
       await syncPipelineState(fighterKey);
     }
@@ -1451,6 +1454,155 @@ export const generateAgentCodeFromCharacterDescription = async (
   });
 };
 
+const requireCharacterDescriptionForRegeneration = (
+  fighterKey: string,
+  errorSectionId: SectionId,
+  correlationId?: string,
+): string | null => {
+  const content = getState(fighterKey, correlationId).outputs[
+    "character-description"
+  ]?.content?.trim();
+  if (content) {
+    return content;
+  }
+
+  const error = new Error("Character description is required before regenerating this section.");
+  emitSectionError(fighterKey, errorSectionId, error, correlationId);
+  return null;
+};
+
+const ensureSpritesheetPrompt = async (
+  fighterKey: string,
+  correlationId?: string,
+): Promise<string | null> => {
+  const existing = getState(fighterKey, correlationId).outputs[
+    "spritesheet-prompt"
+  ]?.content?.trim();
+  if (existing) {
+    return existing;
+  }
+
+  const characterDescription = requireCharacterDescriptionForRegeneration(
+    fighterKey,
+    "spritesheet-image",
+    correlationId,
+  );
+  if (!characterDescription) {
+    return null;
+  }
+
+  const generated = await runTextSectionStep({
+    fighterKey,
+    sectionId: "spritesheet-prompt",
+    input: characterDescription,
+    correlationId,
+    generator: async (input, onDelta, context) => {
+      const result = await generateSpritesheetPrompt(input, onDelta, context);
+      return { content: result.prompt, model: result.model };
+    },
+  });
+
+  return generated.content;
+};
+
+const ensureStrikecraftSpecsheetPrompt = async (
+  fighterKey: string,
+  correlationId?: string,
+): Promise<string | null> => {
+  const existing = getState(fighterKey, correlationId).outputs[
+    "strikecraft-specsheet-prompt"
+  ]?.content?.trim();
+  if (existing) {
+    return existing;
+  }
+
+  const characterDescription = requireCharacterDescriptionForRegeneration(
+    fighterKey,
+    "strikecraft-specsheet-image",
+    correlationId,
+  );
+  if (!characterDescription) {
+    return null;
+  }
+
+  const generated = await runTextSectionStep({
+    fighterKey,
+    sectionId: "strikecraft-specsheet-prompt",
+    input: characterDescription,
+    correlationId,
+    generator: async (input, onDelta, context) => {
+      const result = await generateStrikecraftSpecsheetPrompt(input, onDelta, context);
+      return { content: result.prompt, model: result.model };
+    },
+  });
+
+  return generated.content;
+};
+
+const ensureStrikecraftSpritePrompt = async (
+  fighterKey: string,
+  correlationId?: string,
+): Promise<string | null> => {
+  const existing = getState(fighterKey, correlationId).outputs[
+    "strikecraft-sprite-prompt"
+  ]?.content?.trim();
+  if (existing) {
+    return existing;
+  }
+
+  const specsheetPrompt = await ensureStrikecraftSpecsheetPrompt(fighterKey, correlationId);
+  if (!specsheetPrompt) {
+    return null;
+  }
+
+  const generated = await runTextSectionStep({
+    fighterKey,
+    sectionId: "strikecraft-sprite-prompt",
+    input: specsheetPrompt,
+    correlationId,
+    generator: async (input, onDelta, context) => {
+      const result = await generateStrikecraftSpritePrompt(input, onDelta, context);
+      return { content: result.prompt, model: result.model };
+    },
+  });
+
+  return generated.content;
+};
+
+const refreshStrikecraftSpriteAfterSpecsheetRegeneration = async (
+  fighterKey: string,
+  {
+    hadSpecsheetPrompt,
+    hadSpritePrompt,
+  }: {
+    hadSpecsheetPrompt: boolean;
+    hadSpritePrompt: boolean;
+  },
+  correlationId?: string,
+) => {
+  if (!hadSpecsheetPrompt) {
+    const state = getState(fighterKey, correlationId);
+    delete state.outputs["strikecraft-sprite-prompt"];
+    delete state.histories["strikecraft-sprite-prompt"];
+  }
+
+  const spritePrompt = await ensureStrikecraftSpritePrompt(fighterKey, correlationId);
+  if (!spritePrompt) {
+    return;
+  }
+
+  if (!hadSpritePrompt || !hadSpecsheetPrompt) {
+    await runImageSectionStep({
+      fighterKey,
+      sectionId: "strikecraft-sprite-image",
+      prompt: spritePrompt,
+      correlationId,
+      objectKeyBuilder: strikecraftSpriteObjectKey,
+      generator: generateStrikecraftSpriteImage,
+    });
+  }
+};
+
 export const generateSpritesheetImageFromPrompt = async (
   fighterKey: string,
   correlationId?: string,
@@ -1459,30 +1611,21 @@ export const generateSpritesheetImageFromPrompt = async (
 
   const startedAt = Date.now();
   const state = getState(fighterKey, correlationId);
-  const prompt = state.outputs["spritesheet-prompt"]?.content?.trim();
   logger.info("pipeline spritesheet-image regeneration requested", {
     ...withContext(fighterKey, correlationId),
-    promptLength: prompt?.length ?? 0,
+    promptLength: state.outputs["spritesheet-prompt"]?.content?.length ?? 0,
   });
-
-  if (!prompt) {
-    const error = new Error(
-      "Spritesheet prompt is required before regenerating spritesheet image.",
-    );
-    logger.error("pipeline spritesheet-image regeneration failed", {
-      ...withContext(fighterKey, correlationId),
-      durationMs: Date.now() - startedAt,
-      error: error.message,
-    });
-    emitSectionError(fighterKey, "spritesheet-image", error, correlationId);
-    return;
-  }
 
   state.gateMessage = null;
   state.lastErrorSectionId = null;
   const tenant = tenantByFighter.get(fighterKey);
 
   try {
+    const prompt = await ensureSpritesheetPrompt(fighterKey, correlationId);
+    if (!prompt) {
+      return;
+    }
+
     const imageResult = await runImageSectionStep({
       fighterKey,
       sectionId: "spritesheet-image",
@@ -1529,30 +1672,24 @@ export const generateStrikecraftSpriteImageFromPrompt = async (
 
   const startedAt = Date.now();
   const state = getState(fighterKey, correlationId);
-  const prompt = state.outputs["strikecraft-sprite-prompt"]?.content?.trim();
   logger.info("pipeline strikecraft-sprite-image regeneration requested", {
     ...withContext(fighterKey, correlationId),
-    promptLength: prompt?.length ?? 0,
+    promptLength: state.outputs["strikecraft-sprite-prompt"]?.content?.length ?? 0,
   });
-
-  if (!prompt) {
-    const error = new Error(
-      "Strikecraft sprite prompt is required before regenerating strikecraft sprite image.",
-    );
-    logger.error("pipeline strikecraft-sprite-image regeneration failed", {
-      ...withContext(fighterKey, correlationId),
-      durationMs: Date.now() - startedAt,
-      error: error.message,
-    });
-    emitSectionError(fighterKey, "strikecraft-sprite-image", error, correlationId);
-    return;
-  }
 
   state.gateMessage = null;
   state.lastErrorSectionId = null;
   const tenant = tenantByFighter.get(fighterKey);
 
   try {
+    const hadSpritePrompt = Boolean(
+      getState(fighterKey, correlationId).outputs["strikecraft-sprite-prompt"]?.content?.trim(),
+    );
+    const prompt = await ensureStrikecraftSpritePrompt(fighterKey, correlationId);
+    if (!prompt) {
+      return;
+    }
+
     await runImageSectionStep({
       fighterKey,
       sectionId: "strikecraft-sprite-image",
@@ -1561,6 +1698,10 @@ export const generateStrikecraftSpriteImageFromPrompt = async (
       objectKeyBuilder: strikecraftSpriteObjectKey,
       generator: generateStrikecraftSpriteImage,
     });
+
+    if (!hadSpritePrompt && tenant) {
+      await persistSnapshot(fighterKey, getState(fighterKey, correlationId), tenant);
+    }
 
     if (tenant) {
       await syncPipelineState(fighterKey);
@@ -1589,30 +1730,26 @@ export const generateStrikecraftSpecsheetImageFromPrompt = async (
 
   const startedAt = Date.now();
   const state = getState(fighterKey, correlationId);
-  const prompt = state.outputs["strikecraft-specsheet-prompt"]?.content?.trim();
+  const hadSpecsheetPrompt = Boolean(
+    state.outputs["strikecraft-specsheet-prompt"]?.content?.trim(),
+  );
+  const hadSpritePrompt = Boolean(state.outputs["strikecraft-sprite-prompt"]?.content?.trim());
   logger.info("pipeline strikecraft-specsheet-image regeneration requested", {
     ...withContext(fighterKey, correlationId),
-    promptLength: prompt?.length ?? 0,
+    promptLength: state.outputs["strikecraft-specsheet-prompt"]?.content?.length ?? 0,
+    hadSpritePrompt,
   });
-
-  if (!prompt) {
-    const error = new Error(
-      "Strikecraft specsheet prompt is required before regenerating strikecraft specsheet image.",
-    );
-    logger.error("pipeline strikecraft-specsheet-image regeneration failed", {
-      ...withContext(fighterKey, correlationId),
-      durationMs: Date.now() - startedAt,
-      error: error.message,
-    });
-    emitSectionError(fighterKey, "strikecraft-specsheet-image", error, correlationId);
-    return;
-  }
 
   state.gateMessage = null;
   state.lastErrorSectionId = null;
   const tenant = tenantByFighter.get(fighterKey);
 
   try {
+    const prompt = await ensureStrikecraftSpecsheetPrompt(fighterKey, correlationId);
+    if (!prompt) {
+      return;
+    }
+
     await runImageSectionStep({
       fighterKey,
       sectionId: "strikecraft-specsheet-image",
@@ -1621,6 +1758,12 @@ export const generateStrikecraftSpecsheetImageFromPrompt = async (
       objectKeyBuilder: strikecraftSpecsheetObjectKey,
       generator: generateStrikecraftSpecsheetImage,
     });
+
+    await refreshStrikecraftSpriteAfterSpecsheetRegeneration(
+      fighterKey,
+      { hadSpecsheetPrompt, hadSpritePrompt },
+      correlationId,
+    );
 
     if (tenant) {
       await syncPipelineState(fighterKey);
@@ -1758,7 +1901,6 @@ export const refineSection = async (
         ],
         correlationId,
       );
-      resetDownstream(fighterKey, sectionId, correlationId);
       await broadcastSectionComplete(fighterKey, sectionId, outputRecord);
 
       logger.info("pipeline refine generated", {
@@ -1789,7 +1931,6 @@ export const refineSection = async (
         correlationId,
         committed.signedUrl,
       );
-      resetDownstream(fighterKey, sectionId, correlationId);
       await broadcastSectionComplete(fighterKey, sectionId, outputRecord);
       logger.info("pipeline refine generated", {
         ...withContext(fighterKey, correlationId),
@@ -1886,7 +2027,6 @@ export const editSection = async (
         correlationId,
         committed.signedUrl,
       );
-      resetDownstream(fighterKey, sectionId, correlationId);
       await broadcastSectionComplete(fighterKey, sectionId, outputRecord);
     } else {
       const outputRecord = setOutput(
@@ -1897,7 +2037,9 @@ export const editSection = async (
         mimeType,
         correlationId,
       );
-      resetDownstream(fighterKey, sectionId, correlationId);
+      if (sectionId === "character-description") {
+        resetDownstream(fighterKey, sectionId, correlationId);
+      }
       await broadcastSectionComplete(fighterKey, sectionId, outputRecord);
       if (sectionId === "character-description" && tenant) {
         await syncFighterNameFromCharacterDescription({

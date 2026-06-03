@@ -368,7 +368,11 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
   }, [activeSectionId, fighterId]);
 
   const resetDownstream = useCallback((sectionId: SectionId) => {
-    const index = sectionOrder.indexOf(sectionId);
+    if (sectionId !== "character-description") {
+      return;
+    }
+
+    const index = sectionOrder.indexOf("character-description");
     const downstream = sectionOrder.slice(index + 1);
 
     setSectionStatuses((current) => {
@@ -626,7 +630,6 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
           "specsheet-prompt": "complete",
           "specsheet-image": "ready",
         }));
-        resetDownstream("specsheet-prompt");
       } else if (activeSectionId === "specsheet-image") {
         setSectionStatuses((current) => ({
           ...current,
@@ -678,7 +681,9 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
         ...current,
         [sectionId]: "complete",
       }));
-      resetDownstream(sectionId);
+      if (sectionId === "character-description") {
+        resetDownstream(sectionId);
+      }
       send({ type: "edit", sectionId, content });
     },
     [outputs, resetDownstream, send],
@@ -793,9 +798,11 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       return;
     }
 
+    const needsPrompt = !outputsRef.current["spritesheet-prompt"]?.content?.trim();
     setErrorMessage(null);
     setSectionStatuses((current) => ({
       ...current,
+      ...(needsPrompt ? { "spritesheet-prompt": "generating" as const } : {}),
       "spritesheet-image": "generating",
     }));
 
@@ -818,10 +825,16 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       return;
     }
 
+    const snapshot = outputsRef.current;
+    const needsSpecsheetPrompt = !snapshot["strikecraft-specsheet-prompt"]?.content?.trim();
+    const needsSpritePrompt = !snapshot["strikecraft-sprite-prompt"]?.content?.trim();
     setErrorMessage(null);
     setSectionStatuses((current) => ({
       ...current,
+      ...(needsSpecsheetPrompt ? { "strikecraft-specsheet-prompt": "generating" as const } : {}),
       "strikecraft-specsheet-image": "generating",
+      ...(needsSpritePrompt ? { "strikecraft-sprite-prompt": "generating" as const } : {}),
+      ...(needsSpritePrompt ? { "strikecraft-sprite-image": "generating" as const } : {}),
     }));
 
     try {
@@ -843,9 +856,14 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       return;
     }
 
+    const snapshot = outputsRef.current;
+    const needsSpecsheetPrompt = !snapshot["strikecraft-specsheet-prompt"]?.content?.trim();
+    const needsSpritePrompt = !snapshot["strikecraft-sprite-prompt"]?.content?.trim();
     setErrorMessage(null);
     setSectionStatuses((current) => ({
       ...current,
+      ...(needsSpecsheetPrompt ? { "strikecraft-specsheet-prompt": "generating" as const } : {}),
+      ...(needsSpritePrompt ? { "strikecraft-sprite-prompt": "generating" as const } : {}),
       "strikecraft-sprite-image": "generating",
     }));
 

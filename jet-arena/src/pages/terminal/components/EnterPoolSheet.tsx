@@ -156,22 +156,33 @@ export const EnterPoolSheet = ({ open, onOpenChange }: EnterPoolSheetProps) => {
                 const avatarUrl = fighter.pfpUrl ?? fighter.specsheetImageUrl;
 
                 return (
-                  <button
+                  <div
+                    aria-disabled={!isSelectable}
+                    aria-pressed={isSelected}
                     className={cn(
                       "flex w-full flex-col gap-3 rounded-sm border p-3 text-left transition-colors",
                       isSelected
                         ? "border-secondary bg-secondary/10"
                         : "border-border/70 hover:border-border hover:bg-muted/40",
-                      !isSelectable && "cursor-not-allowed opacity-60",
+                      isSelectable ? "cursor-pointer" : "cursor-not-allowed opacity-60",
                     )}
-                    disabled={!isSelectable}
                     key={fighter.id}
                     onClick={() => {
                       if (isSelectable) {
                         toggleFighterSelection(fighter.id);
                       }
                     }}
-                    type="button"
+                    onKeyDown={(event) => {
+                      if (!isSelectable) {
+                        return;
+                      }
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggleFighterSelection(fighter.id);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={isSelectable ? 0 : -1}
                   >
                     <div className="flex items-start gap-3">
                       <div className="relative size-14 shrink-0 overflow-hidden rounded-sm border border-border/70 bg-muted/30">
@@ -268,7 +279,7 @@ export const EnterPoolSheet = ({ open, onOpenChange }: EnterPoolSheetProps) => {
                         Agent v{fighterState.versions[0]!.versionNumber}
                       </p>
                     ) : null}
-                  </button>
+                  </div>
                 );
               })
             : null}

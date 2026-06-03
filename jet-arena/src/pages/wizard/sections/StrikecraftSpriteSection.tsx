@@ -18,8 +18,12 @@ export const StrikecraftSpriteSection = () => {
   const imageOutput = outputs["strikecraft-sprite-image"];
   const imageStatus = sectionStatuses["strikecraft-sprite-image"];
   const hasStrikecraftSpritePrompt = Boolean(outputs["strikecraft-sprite-prompt"]?.content);
+  const hasStrikecraftSpecsheetPrompt = Boolean(outputs["strikecraft-specsheet-prompt"]?.content);
+  const hasCharacterDescription = Boolean(outputs["character-description"]?.content);
+  const canRegenerate =
+    hasStrikecraftSpritePrompt || hasStrikecraftSpecsheetPrompt || hasCharacterDescription;
   const isRetryDisabled =
-    imageStatus === "locked" || imageStatus === "generating" || !hasStrikecraftSpritePrompt;
+    imageStatus === "locked" || imageStatus === "generating" || !canRegenerate;
   const actionLabel = imageStatus === "error" ? "Retry" : "Regenerate";
 
   return (
