@@ -19,6 +19,7 @@ export const myFighterSchema = z.object({
   characterDescription: z.string().nullable(),
   specsheetPrompt: z.string().nullable(),
   specsheetImageUrl: z.string().url().nullable(),
+  pfpUrl: z.string().url().nullable(),
   status: fighterSectionStatusSchema,
 });
 

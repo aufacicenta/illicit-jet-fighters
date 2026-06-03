@@ -1,6 +1,6 @@
 {
-  "id": "174c93fa-6136-45b4-aade-279c42c8efff",
-  "prevId": "e4ded378-bfb7-43b5-9ed1-eaab7573ed71",
+  "id": "ffeb5b5d-9674-4f2d-b3b3-e99be981d7b0",
+  "prevId": "174c93fa-6136-45b4-aade-279c42c8efff",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -148,6 +148,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "agent_version_id": {
+          "name": "agent_version_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "queued_at": {
           "name": "queued_at",
           "type": "timestamp with time zone",
@@ -236,8 +242,12 @@
           "name": "arena_queue_entries_pool_id_arena_pools_id_fk",
           "tableFrom": "arena_queue_entries",
           "tableTo": "arena_pools",
-          "columnsFrom": ["pool_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "pool_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -245,8 +255,12 @@
           "name": "arena_queue_entries_fighter_id_fighters_id_fk",
           "tableFrom": "arena_queue_entries",
           "tableTo": "fighters",
-          "columnsFrom": ["fighter_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "fighter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -254,8 +268,25 @@
           "name": "arena_queue_entries_simulation_id_simulations_id_fk",
           "tableFrom": "arena_queue_entries",
           "tableTo": "simulations",
-          "columnsFrom": ["simulation_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "simulation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "arena_queue_entries_agent_version_id_fighter_agent_versions_id_fk": {
+          "name": "arena_queue_entries_agent_version_id_fighter_agent_versions_id_fk",
+          "tableFrom": "arena_queue_entries",
+          "tableTo": "fighter_agent_versions",
+          "columnsFrom": [
+            "agent_version_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -332,8 +363,12 @@
           "tableFrom": "battlefields",
           "tableTo": "user",
           "schemaTo": "neon_auth",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -450,8 +485,12 @@
           "name": "broadcasts_simulation_id_simulations_id_fk",
           "tableFrom": "broadcasts",
           "tableTo": "simulations",
-          "columnsFrom": ["simulation_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "simulation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -460,8 +499,12 @@
           "tableFrom": "broadcasts",
           "tableTo": "user",
           "schemaTo": "neon_auth",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -585,8 +628,12 @@
           "name": "fighter_agent_versions_fighter_id_fighters_id_fk",
           "tableFrom": "fighter_agent_versions",
           "tableTo": "fighters",
-          "columnsFrom": ["fighter_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "fighter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -595,8 +642,12 @@
           "tableFrom": "fighter_agent_versions",
           "tableTo": "user",
           "schemaTo": "neon_auth",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -701,8 +752,12 @@
           "name": "fighter_ledger_entries_fighter_id_fighters_id_fk",
           "tableFrom": "fighter_ledger_entries",
           "tableTo": "fighters",
-          "columnsFrom": ["fighter_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "fighter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -710,8 +765,12 @@
           "name": "fighter_ledger_entries_wallet_ledger_entry_id_wallet_ledger_entries_id_fk",
           "tableFrom": "fighter_ledger_entries",
           "tableTo": "wallet_ledger_entries",
-          "columnsFrom": ["wallet_ledger_entry_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "wallet_ledger_entry_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -817,8 +876,12 @@
           "tableFrom": "fighters",
           "tableTo": "user",
           "schemaTo": "neon_auth",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1040,8 +1103,12 @@
           "tableFrom": "llm_usage_events",
           "tableTo": "user",
           "schemaTo": "neon_auth",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1049,8 +1116,12 @@
           "name": "llm_usage_events_fighter_id_fighters_id_fk",
           "tableFrom": "llm_usage_events",
           "tableTo": "fighters",
-          "columnsFrom": ["fighter_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "fighter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1058,8 +1129,12 @@
           "name": "llm_usage_events_battlefield_id_battlefields_id_fk",
           "tableFrom": "llm_usage_events",
           "tableTo": "battlefields",
-          "columnsFrom": ["battlefield_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "battlefield_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1217,8 +1292,12 @@
           "name": "simulation_participants_simulation_id_simulations_id_fk",
           "tableFrom": "simulation_participants",
           "tableTo": "simulations",
-          "columnsFrom": ["simulation_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "simulation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1226,8 +1305,12 @@
           "name": "simulation_participants_fighter_id_fighters_id_fk",
           "tableFrom": "simulation_participants",
           "tableTo": "fighters",
-          "columnsFrom": ["fighter_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "fighter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1235,8 +1318,12 @@
           "name": "simulation_participants_agent_version_id_fighter_agent_versions_id_fk",
           "tableFrom": "simulation_participants",
           "tableTo": "fighter_agent_versions",
-          "columnsFrom": ["agent_version_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "agent_version_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1392,8 +1479,12 @@
           "tableFrom": "simulations",
           "tableTo": "user",
           "schemaTo": "neon_auth",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1401,8 +1492,12 @@
           "name": "simulations_winner_fighter_id_fighters_id_fk",
           "tableFrom": "simulations",
           "tableTo": "fighters",
-          "columnsFrom": ["winner_fighter_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "winner_fighter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1410,8 +1505,12 @@
           "name": "simulations_arena_pool_id_arena_pools_id_fk",
           "tableFrom": "simulations",
           "tableTo": "arena_pools",
-          "columnsFrom": ["arena_pool_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "arena_pool_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1572,8 +1671,12 @@
           "tableFrom": "user_wallets",
           "tableTo": "user",
           "schemaTo": "neon_auth",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1871,8 +1974,12 @@
           "name": "wallet_ledger_entries_wallet_id_user_wallets_id_fk",
           "tableFrom": "wallet_ledger_entries",
           "tableTo": "user_wallets",
-          "columnsFrom": ["wallet_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "wallet_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1880,8 +1987,12 @@
           "name": "wallet_ledger_entries_llm_usage_event_id_llm_usage_events_id_fk",
           "tableFrom": "wallet_ledger_entries",
           "tableTo": "llm_usage_events",
-          "columnsFrom": ["llm_usage_event_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "llm_usage_event_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1889,8 +2000,12 @@
           "name": "wallet_ledger_entries_parent_id_wallet_ledger_entries_id_fk",
           "tableFrom": "wallet_ledger_entries",
           "tableTo": "wallet_ledger_entries",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1919,17 +2034,31 @@
     "public.arena_battle_mode": {
       "name": "arena_battle_mode",
       "schema": "public",
-      "values": ["1v1", "squad_4", "squad_8", "world_war"]
+      "values": [
+        "1v1",
+        "squad_4",
+        "squad_8",
+        "world_war"
+      ]
     },
     "public.arena_queue_status": {
       "name": "arena_queue_status",
       "schema": "public",
-      "values": ["queued", "matched", "cancelled"]
+      "values": [
+        "queued",
+        "matched",
+        "cancelled"
+      ]
     },
     "public.fighter_arena_status": {
       "name": "fighter_arena_status",
       "schema": "public",
-      "values": ["idle", "queued", "in_simulation", "settling"]
+      "values": [
+        "idle",
+        "queued",
+        "in_simulation",
+        "settling"
+      ]
     },
     "public.fighter_ledger_kind": {
       "name": "fighter_ledger_kind",
@@ -1946,17 +2075,30 @@
     "public.wallet_network_env": {
       "name": "wallet_network_env",
       "schema": "public",
-      "values": ["testnet", "devnet", "mainnet"]
+      "values": [
+        "testnet",
+        "devnet",
+        "mainnet"
+      ]
     },
     "public.simulation_agent_source": {
       "name": "simulation_agent_source",
       "schema": "public",
-      "values": ["r2", "pipeline", "fallback"]
+      "values": [
+        "r2",
+        "pipeline",
+        "fallback"
+      ]
     },
     "public.simulation_status": {
       "name": "simulation_status",
       "schema": "public",
-      "values": ["queued", "running", "ended", "error"]
+      "values": [
+        "queued",
+        "running",
+        "ended",
+        "error"
+      ]
     },
     "public.wallet_ledger_kind": {
       "name": "wallet_ledger_kind",
@@ -1977,7 +2119,9 @@
     "public.wallet_network": {
       "name": "wallet_network",
       "schema": "public",
-      "values": ["sui"]
+      "values": [
+        "sui"
+      ]
     }
   },
   "schemas": {},

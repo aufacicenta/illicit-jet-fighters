@@ -2,29 +2,16 @@ import { ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { SectionId, SectionStatus } from "../../context/Wizard/WizardContext.types";
+import {
+  type FighterSectionDef,
+  PHASE_ONE_SECTIONS,
+  PHASE_TWO_SECTIONS,
+} from "../../lib/fighter-sections";
 
-const phaseOneSections: Array<{ id: SectionId; label: string }> = [
-  { id: "character-description", label: "briefing" },
-  { id: "character-pfp-prompt", label: "pfp brief" },
-  { id: "character-pfp-image", label: "pfp render" },
-  { id: "specsheet-prompt", label: "targeting" },
-  { id: "specsheet-image", label: "render" },
-];
-
-const phaseTwoSections: Array<{ id: SectionId; label: string }> = [
-  { id: "spritesheet-prompt", label: "sprite brief" },
-  { id: "spritesheet-image", label: "sprite render" },
-  { id: "agent-code", label: "agent code" },
-  { id: "strikecraft-specsheet-prompt", label: "craft brief" },
-  { id: "strikecraft-specsheet-image", label: "craft render" },
-  { id: "strikecraft-sprite-prompt", label: "craft top brief" },
-  { id: "strikecraft-sprite-image", label: "craft top render" },
-];
-
-type WizardStageSection = { id: SectionId; label: string };
+type WizardStageSection = FighterSectionDef;
 
 const getCompletedCount = (
-  sections: Array<{ id: SectionId; label: string }>,
+  sections: FighterSectionDef[],
   sectionStatuses: Record<SectionId, SectionStatus>,
 ) => sections.filter((section) => sectionStatuses[section.id] === "complete").length;
 
@@ -56,7 +43,7 @@ const statusChipClassNameMap: Record<SectionStatus, string> = {
 };
 
 const getStatusCounts = (
-  sections: Array<{ id: SectionId; label: string }>,
+  sections: FighterSectionDef[],
   sectionStatuses: Record<SectionId, SectionStatus>,
 ) =>
   sections.reduce<Record<SectionStatus, number>>(
@@ -196,13 +183,13 @@ export const ProgressHud = ({
 }: {
   sectionStatuses: Record<SectionId, SectionStatus>;
 }) => {
-  const phaseOneCompleted = getCompletedCount(phaseOneSections, sectionStatuses);
-  const phaseTwoCompleted = getCompletedCount(phaseTwoSections, sectionStatuses);
-  const phaseOneStatusCounts = getStatusCounts(phaseOneSections, sectionStatuses);
-  const phaseTwoStatusCounts = getStatusCounts(phaseTwoSections, sectionStatuses);
-  const phaseOneFeatured = getFeaturedSection(phaseOneSections, sectionStatuses);
-  const phaseTwoFeatured = getFeaturedSection(phaseTwoSections, sectionStatuses);
-  const phaseOneComplete = phaseOneCompleted === phaseOneSections.length;
+  const phaseOneCompleted = getCompletedCount(PHASE_ONE_SECTIONS, sectionStatuses);
+  const phaseTwoCompleted = getCompletedCount(PHASE_TWO_SECTIONS, sectionStatuses);
+  const phaseOneStatusCounts = getStatusCounts(PHASE_ONE_SECTIONS, sectionStatuses);
+  const phaseTwoStatusCounts = getStatusCounts(PHASE_TWO_SECTIONS, sectionStatuses);
+  const phaseOneFeatured = getFeaturedSection(PHASE_ONE_SECTIONS, sectionStatuses);
+  const phaseTwoFeatured = getFeaturedSection(PHASE_TWO_SECTIONS, sectionStatuses);
+  const phaseOneComplete = phaseOneCompleted === PHASE_ONE_SECTIONS.length;
 
   return (
     <div className="px-14 pt-2">
@@ -211,7 +198,7 @@ export const ProgressHud = ({
           <div className="mb-2">
             <div className="flex items-center justify-between">
               <p className="text-[10px] tracking-widest text-muted-foreground uppercase">
-                Phase 1 · {phaseOneCompleted}/{phaseOneSections.length}
+                Phase 1 · {phaseOneCompleted}/{PHASE_ONE_SECTIONS.length}
               </p>
               <div className="flex flex-wrap gap-1">
                 {orderedStatusDisplay.map((status) =>
@@ -229,7 +216,7 @@ export const ProgressHud = ({
           </div>
           <div className="space-y-1">
             <p className="text-[9px] tracking-[0.12em] text-muted-foreground uppercase">
-              Step {phaseOneFeatured.index + 1}/{phaseOneSections.length}
+              Step {phaseOneFeatured.index + 1}/{PHASE_ONE_SECTIONS.length}
             </p>
             <StepChevronBar
               key={phaseOneFeatured.section.id}
@@ -244,7 +231,7 @@ export const ProgressHud = ({
           <div className="mb-2">
             <div className="flex items-center justify-between">
               <p className="text-[10px] tracking-widest text-muted-foreground uppercase">
-                Phase 2 · {phaseTwoCompleted}/{phaseTwoSections.length}
+                Phase 2 · {phaseTwoCompleted}/{PHASE_TWO_SECTIONS.length}
               </p>
               <div className="flex flex-wrap gap-1">
                 {orderedStatusDisplay.map((status) =>
@@ -263,7 +250,7 @@ export const ProgressHud = ({
           <div className="space-y-1">
             <StepChevronBar
               key={phaseTwoFeatured.section.id}
-              label={`Step ${phaseTwoFeatured.index + 1}/${phaseTwoSections.length}`}
+              label={`Step ${phaseTwoFeatured.index + 1}/${PHASE_TWO_SECTIONS.length}`}
               status={sectionStatuses[phaseTwoFeatured.section.id]}
               title={`Phase 2: ${phaseTwoFeatured.section.label}`}
             />

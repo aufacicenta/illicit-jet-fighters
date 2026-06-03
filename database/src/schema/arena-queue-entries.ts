@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { arenaPools } from "./arena-pools";
+import { fighterAgentVersions } from "./fighter-agent-versions";
 import { fighters } from "./fighters";
 import { simulations } from "./simulations";
 
@@ -34,6 +35,9 @@ export const arenaQueueEntries = pgTable(
     status: arenaQueueStatusEnum("status").notNull().default("queued"),
     simulationId: uuid("simulation_id").references(() => simulations.id, { onDelete: "set null" }),
     lockCorrelationId: text("lock_correlation_id"),
+    agentVersionId: uuid("agent_version_id").references(() => fighterAgentVersions.id, {
+      onDelete: "set null",
+    }),
     queuedAt: timestamp("queued_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
     matchedAt: timestamp("matched_at", { withTimezone: true, mode: "date" }),
   },

@@ -16,6 +16,7 @@ export const arenaQueueEntrySchema = z.object({
   status: arenaQueueStatusSchema,
   simulationId: z.string().uuid().nullable(),
   lockCorrelationId: z.string().nullable(),
+  agentVersionId: z.string().uuid().nullable(),
   queuedAt: z.string().datetime(),
   matchedAt: z.string().datetime().nullable(),
 });
@@ -42,6 +43,7 @@ export const arenaPoolDetailResponseSchema = z.object({
 
 export const arenaEnterPoolRequestSchema = z.object({
   fighterId: z.number().int().positive(),
+  agentVersionId: z.string().uuid().optional(),
 });
 
 export const arenaLeavePoolRequestSchema = z.object({

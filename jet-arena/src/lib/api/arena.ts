@@ -20,6 +20,7 @@ export type ArenaQueueEntry = {
   status: "queued" | "matched" | "cancelled";
   simulationId: string | null;
   lockCorrelationId: string | null;
+  agentVersionId: string | null;
   queuedAt: string;
   matchedAt: string | null;
 };
@@ -35,6 +36,7 @@ export const fetchArenaPool = async (
 export const postArenaPoolEnter = async (
   poolId: string,
   fighterId: number,
+  agentVersionId?: string,
 ): Promise<{
   entry: ArenaQueueEntry;
   match: {
@@ -50,7 +52,10 @@ export const postArenaPoolEnter = async (
       broadcastId: string;
       matchedFighterIds: number[];
     } | null;
-  }>(apiRoutes.arenaPoolEnter(poolId), { fighterId });
+  }>(apiRoutes.arenaPoolEnter(poolId), {
+    fighterId,
+    ...(agentVersionId ? { agentVersionId } : {}),
+  });
 
 export const postArenaPoolLeave = async (poolId: string, fighterId: number) =>
   post<{ cancelled: boolean }>(apiRoutes.arenaPoolLeave(poolId), { fighterId });

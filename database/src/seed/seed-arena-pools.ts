@@ -1,11 +1,7 @@
 import "./load-env";
 
 import { db } from "../db";
-import {
-  ARENA_BATTLE_MODE_LIMITS,
-  type ArenaBattleMode,
-  arenaPools,
-} from "../schema/arena-pools";
+import { ARENA_BATTLE_MODE_LIMITS, type ArenaBattleMode, arenaPools } from "../schema/arena-pools";
 
 /** Default SUI stake tiers in MIST (whole SUI × 10^9). */
 const ARENA_STAKE_TIERS_SUI_MIST = [

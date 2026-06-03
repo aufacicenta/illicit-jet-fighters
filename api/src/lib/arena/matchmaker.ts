@@ -1,3 +1,7 @@
+import {
+  getFighterAgentVersionByIdForOwnerAndFighter,
+  getLatestFighterAgentVersion,
+} from "../agent-version-repository";
 import { fighterKeyFromId, getFightersByIds, getOwnedFighter } from "../fighter-access";
 import { startSimulationForRoster } from "../simulation-orchestrator";
 import {
@@ -62,7 +66,7 @@ export const tryMatchPool = async (poolId: string) => {
       fighterName: fighter.name,
       fighterSlug: fighter.slug,
       ownerUserId: fighter.userId,
-      agentVersionId: null as string | null,
+      agentVersionId: entry.agentVersionId,
     };
   });
 
@@ -93,10 +97,12 @@ export const enterFighterInArenaPool = async ({
   poolId,
   fighterId,
   userId,
+  agentVersionId: requestedAgentVersionId,
 }: {
   poolId: string;
   fighterId: number;
   userId: string;
+  agentVersionId?: string;
 }) => {
   const pool = await getPoolById(poolId);
   if (!pool || !pool.isActive) {
@@ -106,6 +112,25 @@ export const enterFighterInArenaPool = async ({
   const ownedFighter = await getOwnedFighter(fighterId, userId);
   if (!ownedFighter) {
     throw new Error("Fighter not found for this user.");
+  }
+
+  let resolvedAgentVersionId: string;
+  if (requestedAgentVersionId) {
+    const selectedVersion = await getFighterAgentVersionByIdForOwnerAndFighter({
+      id: requestedAgentVersionId,
+      fighterId,
+      userId,
+    });
+    if (!selectedVersion) {
+      throw new Error("Selected agent version is invalid for this fighter.");
+    }
+    resolvedAgentVersionId = selectedVersion.id;
+  } else {
+    const latestVersion = await getLatestFighterAgentVersion(fighterId);
+    if (!latestVersion) {
+      throw new Error("Fighter has no agent version available for arena entry.");
+    }
+    resolvedAgentVersionId = latestVersion.id;
   }
 
   const stakeAmountNative = BigInt(pool.stakeAmountNative);
@@ -127,6 +152,7 @@ export const enterFighterInArenaPool = async ({
       fighterId,
       userId,
       lockCorrelationId: correlationId,
+      agentVersionId: resolvedAgentVersionId,
     });
   } catch (error) {
     await unlockFighterStake({

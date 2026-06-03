@@ -31,6 +31,7 @@ export type ArenaQueueEntryRecord = {
   status: "queued" | "matched" | "cancelled";
   simulationId: string | null;
   lockCorrelationId: string | null;
+  agentVersionId: string | null;
   queuedAt: Date;
   matchedAt: Date | null;
 };
@@ -114,6 +115,7 @@ export const getQueuedEntriesForPool = async (poolId: string): Promise<ArenaQueu
       status: arenaQueueEntries.status,
       simulationId: arenaQueueEntries.simulationId,
       lockCorrelationId: arenaQueueEntries.lockCorrelationId,
+      agentVersionId: arenaQueueEntries.agentVersionId,
       queuedAt: arenaQueueEntries.queuedAt,
       matchedAt: arenaQueueEntries.matchedAt,
     })
@@ -133,6 +135,7 @@ export const getActiveFighterQueueEntry = async (
       status: arenaQueueEntries.status,
       simulationId: arenaQueueEntries.simulationId,
       lockCorrelationId: arenaQueueEntries.lockCorrelationId,
+      agentVersionId: arenaQueueEntries.agentVersionId,
       queuedAt: arenaQueueEntries.queuedAt,
       matchedAt: arenaQueueEntries.matchedAt,
     })
@@ -164,11 +167,13 @@ export const enqueueFighter = async ({
   fighterId,
   userId,
   lockCorrelationId,
+  agentVersionId,
 }: {
   poolId: string;
   fighterId: number;
   userId: string;
   lockCorrelationId: string;
+  agentVersionId: string | null;
 }) =>
   db.transaction(async (tx) => {
     const fighterRows = await tx
@@ -191,6 +196,7 @@ export const enqueueFighter = async ({
         userId,
         status: "queued",
         lockCorrelationId,
+        agentVersionId,
       })
       .returning({
         id: arenaQueueEntries.id,
@@ -200,6 +206,7 @@ export const enqueueFighter = async ({
         status: arenaQueueEntries.status,
         simulationId: arenaQueueEntries.simulationId,
         lockCorrelationId: arenaQueueEntries.lockCorrelationId,
+        agentVersionId: arenaQueueEntries.agentVersionId,
         queuedAt: arenaQueueEntries.queuedAt,
         matchedAt: arenaQueueEntries.matchedAt,
       });
@@ -292,6 +299,7 @@ export const listUserQueueEntries = async (userId: string) =>
       status: arenaQueueEntries.status,
       simulationId: arenaQueueEntries.simulationId,
       lockCorrelationId: arenaQueueEntries.lockCorrelationId,
+      agentVersionId: arenaQueueEntries.agentVersionId,
       queuedAt: arenaQueueEntries.queuedAt,
       matchedAt: arenaQueueEntries.matchedAt,
       network: arenaPools.network,
@@ -345,6 +353,7 @@ export const getQueueEntriesBySimulationId = async (simulationId: string) =>
       status: arenaQueueEntries.status,
       simulationId: arenaQueueEntries.simulationId,
       lockCorrelationId: arenaQueueEntries.lockCorrelationId,
+      agentVersionId: arenaQueueEntries.agentVersionId,
       queuedAt: arenaQueueEntries.queuedAt,
       matchedAt: arenaQueueEntries.matchedAt,
     })

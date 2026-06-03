@@ -29,6 +29,7 @@ const serializeQueueEntry = (entry: {
   status: "queued" | "matched" | "cancelled";
   simulationId: string | null;
   lockCorrelationId: string | null;
+  agentVersionId: string | null;
   queuedAt: Date;
   matchedAt: Date | null;
 }) => ({
@@ -39,6 +40,7 @@ const serializeQueueEntry = (entry: {
   status: entry.status,
   simulationId: entry.simulationId,
   lockCorrelationId: entry.lockCorrelationId,
+  agentVersionId: entry.agentVersionId,
   queuedAt: entry.queuedAt.toISOString(),
   matchedAt: entry.matchedAt?.toISOString() ?? null,
 });
@@ -112,6 +114,7 @@ export const arenaRoutes = new Elysia({ prefix: "/arena" })
           poolId: params.poolId,
           fighterId: body.fighterId,
           userId: auth.userId,
+          agentVersionId: body.agentVersionId,
         });
         return {
           entry: serializeQueueEntry(result.entry),

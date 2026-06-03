@@ -413,6 +413,7 @@ type FighterPipelinePreview = {
   characterDescription: string | null;
   specsheetPrompt: string | null;
   specsheetImageUrl: string | null;
+  pfpUrl: string | null;
   status: SectionStatus;
 };
 
@@ -424,6 +425,10 @@ export const buildFighterPreviewFromSnapshot = (
   const specsheetImageUrl =
     snapshot.outputs["specsheet-image"]?.assetUrl ??
     snapshot.outputs["specsheet-image"]?.content ??
+    null;
+  const pfpUrl =
+    snapshot.outputs["character-pfp-image"]?.assetUrl ??
+    snapshot.outputs["character-pfp-image"]?.content ??
     null;
 
   const statuses = Object.values(snapshot.sectionStatuses);
@@ -444,6 +449,7 @@ export const buildFighterPreviewFromSnapshot = (
     characterDescription,
     specsheetPrompt,
     specsheetImageUrl,
+    pfpUrl,
     status,
   };
 };

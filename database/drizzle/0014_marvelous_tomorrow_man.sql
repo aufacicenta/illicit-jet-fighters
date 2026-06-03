@@ -1,0 +1,2 @@
+ALTER TABLE "arena_queue_entries" ADD COLUMN "agent_version_id" uuid;--> statement-breakpoint
+ALTER TABLE "arena_queue_entries" ADD CONSTRAINT "arena_queue_entries_agent_version_id_fighter_agent_versions_id_fk" FOREIGN KEY ("agent_version_id") REFERENCES "public"."fighter_agent_versions"("id") ON DELETE set null ON UPDATE no action;

@@ -17,6 +17,7 @@ import {
   listOwnedFighters,
   parseFighterIdParam,
 } from "../../lib/fighter-access";
+import { resolveOwnedFighterPfpUrl } from "../../lib/fighter-assets";
 import {
   bindPipelineTenant,
   buildFighterPreviewFromSnapshot,
@@ -78,8 +79,12 @@ export const fighterSessionRoutes = new Elysia({ prefix: "/fighters" })
                 characterDescription: null,
                 specsheetPrompt: null,
                 specsheetImageUrl: null,
+                pfpUrl: null,
                 status: "locked" as const,
               };
+
+          const pfpUrl =
+            preview.pfpUrl ?? (await resolveOwnedFighterPfpUrl(auth.userId, fighter.id));
 
           return {
             id: fighter.id,
@@ -92,6 +97,7 @@ export const fighterSessionRoutes = new Elysia({ prefix: "/fighters" })
             characterDescription: preview.characterDescription,
             specsheetPrompt: preview.specsheetPrompt,
             specsheetImageUrl: preview.specsheetImageUrl,
+            pfpUrl,
             status: preview.status,
           };
         }),

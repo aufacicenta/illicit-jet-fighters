@@ -24,6 +24,11 @@ import { useWizardContext } from "../../context/Wizard/useWizardContext";
 import type { SectionId, SectionStatus } from "../../context/Wizard/WizardContext.types";
 import { WizardContextController } from "../../context/Wizard/WizardContextController";
 import { routes } from "../../hooks/useRoutes";
+import {
+  isPhaseComplete,
+  PHASE_ONE_SECTION_IDS,
+  PHASE_TWO_SECTION_IDS,
+} from "../../lib/fighter-sections";
 import { FighterLedgerSummary } from "./FighterLedgerSummary";
 import { ProgressHud } from "./ProgressHud";
 import { AgentCodeSection } from "./sections/AgentCodeSection";
@@ -44,33 +49,19 @@ type SectionNavItem = {
   label: string;
 };
 
-const phaseSections: Record<WizardPhase, SectionId[]> = {
-  "phase-one": [
-    "character-description",
-    "character-pfp-prompt",
-    "character-pfp-image",
-    "specsheet-prompt",
-    "specsheet-image",
-  ],
-  "phase-two": [
-    "spritesheet-prompt",
-    "spritesheet-image",
-    "agent-code",
-    "strikecraft-specsheet-prompt",
-    "strikecraft-specsheet-image",
-    "strikecraft-sprite-prompt",
-    "strikecraft-sprite-image",
-  ],
+const phaseSectionIds: Record<WizardPhase, SectionId[]> = {
+  "phase-one": PHASE_ONE_SECTION_IDS,
+  "phase-two": PHASE_TWO_SECTION_IDS,
 };
 
 const getNextSectionForPhase = (
   phase: WizardPhase,
   sectionStatuses: Record<SectionId, SectionStatus>,
 ) => {
-  const candidate = phaseSections[phase].find(
+  const candidate = phaseSectionIds[phase].find(
     (sectionId) => sectionStatuses[sectionId] !== "locked",
   );
-  return candidate ?? phaseSections[phase][0];
+  return candidate ?? phaseSectionIds[phase][0];
 };
 
 const phaseOneNavItems: SectionNavItem[] = [
@@ -162,12 +153,8 @@ const WizardLayout = () => {
   const showConnectionHint = connectionStatus !== "open";
   const nextPhaseOneSection = getNextSectionForPhase("phase-one", sectionStatuses);
   const nextPhaseTwoSection = getNextSectionForPhase("phase-two", sectionStatuses);
-  const phaseOneComplete = phaseSections["phase-one"].every(
-    (sectionId) => sectionStatuses[sectionId] === "complete",
-  );
-  const phaseTwoComplete = phaseSections["phase-two"].every(
-    (sectionId) => sectionStatuses[sectionId] === "complete",
-  );
+  const phaseOneComplete = isPhaseComplete(PHASE_ONE_SECTION_IDS, sectionStatuses);
+  const phaseTwoComplete = isPhaseComplete(PHASE_TWO_SECTION_IDS, sectionStatuses);
   const continueLabel = isContinuingPipeline
     ? "Initializing…"
     : phaseOneComplete && phaseTwoComplete

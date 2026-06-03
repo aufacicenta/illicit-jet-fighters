@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from "../../components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import { ArenaPoolsContextController } from "../../context/ArenaPools/ArenaPoolsContextController";
 import { routes } from "../../hooks/useRoutes";
 import {
   deleteBattlefield,
@@ -36,6 +37,7 @@ import {
 } from "../../lib/api";
 import type { BattlefieldListItem, SimulationListItem } from "../../lib/api/types";
 import { cn } from "../../lib/utils";
+import { ArenaPoolsTab } from "./components/ArenaPoolsTab";
 import { BattlefieldCard, resolveBattlefieldName } from "./components/BattlefieldCard";
 import { FighterBadgeCard } from "./components/FighterBadgeCard";
 import { SimulationPreviewCard } from "./components/SimulationPreviewCard";
@@ -48,9 +50,10 @@ const tabTitles: Record<MyTab, string> = {
   "my-fighters": "Fighters",
   "my-battlefields": "Battlefields",
   "my-simulations": "Simulations",
+  arena: "Arena",
 };
 
-type MyTab = "my-fighters" | "my-battlefields" | "my-simulations";
+type MyTab = "my-fighters" | "my-battlefields" | "my-simulations" | "arena";
 type ArenaBounds = { width: number; height: number };
 type SimulationPreviewById = Record<
   string,
@@ -69,6 +72,7 @@ export const MyFightersPage = () => {
     "my-fighters": false,
     "my-battlefields": false,
     "my-simulations": false,
+    arena: false,
   });
 
   const [fighters, setFighters] = useState<MyFighter[]>([]);
@@ -355,7 +359,11 @@ export const MyFightersPage = () => {
       void loadBattlefields();
       return;
     }
-    void loadSimulations();
+    if (activeTab === "my-simulations") {
+      void loadSimulations();
+      return;
+    }
+    void loadFighters();
   }, [activeTab, hasFetchedTab, loadBattlefields, loadFighters, loadSimulations]);
 
   return (
@@ -438,6 +446,19 @@ export const MyFightersPage = () => {
                     </Button>
                   </>
                 ) : null}
+
+                {activeTab === "arena" ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      disabled={isLoadingFighters}
+                      onClick={() => void loadFighters()}
+                      type="button"
+                    >
+                      Refresh Fighters
+                    </Button>
+                  </>
+                ) : null}
               </div>
 
               <TabsList className="grid h-auto w-full grid-cols-1 gap-2 bg-background p-0">
@@ -449,6 +470,9 @@ export const MyFightersPage = () => {
                 </TabsTrigger>
                 <TabsTrigger className="w-full justify-start" value="my-simulations">
                   Simulations
+                </TabsTrigger>
+                <TabsTrigger className="w-full justify-start" value="arena">
+                  Arena
                 </TabsTrigger>
               </TabsList>
             </aside>
@@ -678,6 +702,12 @@ export const MyFightersPage = () => {
                     })}
                   </section>
                 ) : null}
+              </TabsContent>
+
+              <TabsContent className="space-y-6" value="arena">
+                <ArenaPoolsContextController fighters={fighters} onFightersRefresh={loadFighters}>
+                  <ArenaPoolsTab />
+                </ArenaPoolsContextController>
               </TabsContent>
             </div>
           </div>
