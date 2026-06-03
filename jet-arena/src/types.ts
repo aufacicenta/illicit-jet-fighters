@@ -1,2 +1,1 @@
-export * from "./types";
-export * from "./types/index";
+export * from "@ijf/shared/simulation";
