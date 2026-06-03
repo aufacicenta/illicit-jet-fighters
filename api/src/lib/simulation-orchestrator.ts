@@ -264,6 +264,7 @@ const finalizeEndedSimulation = async ({
   userId,
   broadcastId,
   winnerId,
+  winnerFighterId,
   replayHashHex,
   frames,
 }: {
@@ -271,6 +272,7 @@ const finalizeEndedSimulation = async ({
   userId: string;
   broadcastId: string;
   winnerId: string | null;
+  winnerFighterId: number | null;
   replayHashHex: string;
   frames: ReplayFrame[];
 }) => {
@@ -291,6 +293,7 @@ const finalizeEndedSimulation = async ({
     simulationId,
     broadcastId,
     winnerId,
+    winnerFighterId,
     replayHashHex,
     replayFrameCount: frames.length,
     replayObjectKey,
@@ -450,6 +453,7 @@ export const startSimulationForRoster = async ({
             type: "end",
             data: {
               winnerId: end.data.winnerId,
+              winnerFighterId: end.data.winnerFighterId,
               replayHashHex: end.data.replayHashHex,
             },
           });
@@ -458,6 +462,7 @@ export const startSimulationForRoster = async ({
             userId: initiatorUserId,
             broadcastId,
             winnerId: end.data.winnerId,
+            winnerFighterId: end.data.winnerFighterId,
             replayHashHex: end.data.replayHashHex,
             frames: end.data.frames,
           });
@@ -534,6 +539,7 @@ export const getSimulationStatusForBroadcast = async ({
     broadcastId: persisted.broadcastId,
     status: inMemory?.status ?? persisted.simulationStatus,
     winnerId: inMemory?.winnerId ?? persisted.winnerId,
+    winnerFighterId: inMemory?.winnerFighterId ?? persisted.winnerFighterId,
     startedAt: inMemory?.startedAt ?? persisted.simulationStartedAt?.getTime() ?? null,
     endedAt: inMemory?.endedAt ?? persisted.simulationEndedAt?.getTime() ?? null,
     replayHashHex: inMemory?.replayHashHex ?? persisted.replayHashHex,
@@ -618,6 +624,7 @@ export const getBroadcastDetails = async ({
       replayHashHex: persisted.replayHashHex,
       replayFrameCount: persisted.replayFrameCount,
       winnerId: persisted.winnerId,
+      winnerFighterId: persisted.winnerFighterId,
       errorMessage: persisted.errorMessage,
     },
   };
@@ -642,6 +649,7 @@ export const getSimulationDetails = async ({
     startedAt: persisted.simulationStartedAt?.toISOString() ?? null,
     endedAt: persisted.simulationEndedAt?.toISOString() ?? null,
     winnerId: persisted.winnerId,
+    winnerFighterId: persisted.winnerFighterId,
     replayHashHex: persisted.replayHashHex,
     replayFrameCount: persisted.replayFrameCount,
     broadcastEventsObjectKey: persisted.broadcastEventsObjectKey,

@@ -29,5 +29,12 @@ export type BroadcastInitData = {
 export type BroadcastMessage =
   | { type: "init"; data: BroadcastInitData }
   | { type: "frame"; data: ReplayFrame }
-  | { type: "end"; data: { winnerId: string | null; replayHashHex: string } }
+  | {
+      type: "end";
+      data: {
+        winnerId: string | null;
+        winnerFighterId: number | null;
+        replayHashHex: string;
+      };
+    }
   | { type: "error"; data: { message: string } };

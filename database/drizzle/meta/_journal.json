@@ -85,6 +85,13 @@
       "when": 1779763019674,
       "tag": "0011_glorious_excalibur",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1780449797688,
+      "tag": "0012_fixed_hex",
+      "breakpoints": true
     }
   ]
 }

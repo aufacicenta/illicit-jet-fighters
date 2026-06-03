@@ -29,6 +29,7 @@ export const simulationListItemSchema = z.object({
   startedAt: z.string().datetime().nullable(),
   endedAt: z.string().datetime().nullable(),
   winnerId: z.string().nullable(),
+  winnerFighterId: z.number().int().positive().nullable(),
   replayFrameCount: z.number().int().nonnegative(),
   errorMessage: z.string().nullable(),
 });
@@ -42,6 +43,7 @@ export const simulationStatusSnapshotSchema = z.object({
   broadcastId: z.string().min(1),
   status: simulationStatusSchema,
   winnerId: z.string().nullable(),
+  winnerFighterId: z.number().int().positive().nullable(),
   startedAt: z.number().int().nullable(),
   endedAt: z.number().int().nullable(),
   replayHashHex: z.string().nullable(),
@@ -118,6 +120,7 @@ export const simulationDetailsSchema = z.object({
   startedAt: z.string().datetime().nullable(),
   endedAt: z.string().datetime().nullable(),
   winnerId: z.string().nullable(),
+  winnerFighterId: z.number().int().positive().nullable(),
   replayHashHex: z.string().nullable(),
   replayFrameCount: z.number().int().nonnegative(),
   broadcastEventsObjectKey: z.string().nullable(),
@@ -147,6 +150,7 @@ export const broadcastDetailsSnapshotSchema = z.object({
     replayHashHex: z.string().nullable(),
     replayFrameCount: z.number().int().nonnegative(),
     winnerId: z.string().nullable(),
+    winnerFighterId: z.number().int().positive().nullable(),
     errorMessage: z.string().nullable(),
   }),
 });

@@ -45,6 +45,9 @@ export const simulations = pgTable(
     startedAt: timestamp("started_at", { withTimezone: true, mode: "date" }),
     endedAt: timestamp("ended_at", { withTimezone: true, mode: "date" }),
     winnerId: text("winner_id"),
+    winnerFighterId: integer("winner_fighter_id").references(() => fighters.id, {
+      onDelete: "set null",
+    }),
     errorMessage: text("error_message"),
     replayHashHex: text("replay_hash_hex"),
     replayFrameCount: integer("replay_frame_count").notNull().default(0),

@@ -48,7 +48,12 @@ export type SimulationWorkerResponseMessage =
   | {
       type: "END";
       broadcastId: string;
-      data: { winnerId: string | null; replayHashHex: string; frames: ReplayFrame[] };
+      data: {
+        winnerId: string | null;
+        winnerFighterId: number | null;
+        replayHashHex: string;
+        frames: ReplayFrame[];
+      };
     }
   | { type: "ERROR"; broadcastId: string; data: { message: string } };
 
@@ -58,6 +63,7 @@ export type SimulationSummary = {
   broadcastId: string;
   status: SimulationStatus;
   winnerId: string | null;
+  winnerFighterId: number | null;
   startedAt: number;
   endedAt: number | null;
   replayHashHex: string | null;

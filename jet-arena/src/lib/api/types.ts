@@ -87,6 +87,7 @@ export type SimulationListItem = {
   startedAt: string | null;
   endedAt: string | null;
   winnerId: string | null;
+  winnerFighterId: number | null;
   replayFrameCount: number;
   errorMessage: string | null;
 };
@@ -100,6 +101,7 @@ export type SimulationStatusResponse = {
   broadcastId: string;
   status: "queued" | "running" | "ended" | "error";
   winnerId: string | null;
+  winnerFighterId: number | null;
   startedAt: number | null;
   endedAt: number | null;
   replayHashHex: string | null;

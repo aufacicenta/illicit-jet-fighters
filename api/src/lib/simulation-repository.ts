@@ -109,6 +109,7 @@ export const markSimulationEnded = async ({
   simulationId,
   broadcastId,
   winnerId,
+  winnerFighterId,
   replayHashHex,
   replayFrameCount,
   replayObjectKey,
@@ -117,6 +118,7 @@ export const markSimulationEnded = async ({
   simulationId: string;
   broadcastId: string;
   winnerId: string | null;
+  winnerFighterId: number | null;
   replayHashHex: string;
   replayFrameCount: number;
   replayObjectKey: string;
@@ -128,6 +130,7 @@ export const markSimulationEnded = async ({
     .set({
       status: "ended",
       winnerId,
+      winnerFighterId,
       replayHashHex,
       replayFrameCount,
       replayObjectKey,
@@ -221,6 +224,7 @@ export type BroadcastWithSimulation = {
   replayObjectKey: string | null;
   broadcastEventsObjectKey: string | null;
   winnerId: string | null;
+  winnerFighterId: number | null;
   errorMessage: string | null;
 };
 
@@ -244,6 +248,7 @@ export const getBroadcastWithSimulationForUser = async (
       replayObjectKey: simulations.replayObjectKey,
       broadcastEventsObjectKey: simulations.broadcastEventsObjectKey,
       winnerId: simulations.winnerId,
+      winnerFighterId: simulations.winnerFighterId,
       errorMessage: simulations.errorMessage,
     })
     .from(broadcasts)
@@ -266,6 +271,7 @@ export type SimulationListItem = {
   startedAt: string | null;
   endedAt: string | null;
   winnerId: string | null;
+  winnerFighterId: number | null;
   replayFrameCount: number;
   errorMessage: string | null;
 };
@@ -283,6 +289,7 @@ export const listSimulationsForUser = async (
       startedAt: simulations.startedAt,
       endedAt: simulations.endedAt,
       winnerId: simulations.winnerId,
+      winnerFighterId: simulations.winnerFighterId,
       replayFrameCount: simulations.replayFrameCount,
       errorMessage: simulations.errorMessage,
     })
@@ -300,6 +307,7 @@ export const listSimulationsForUser = async (
     startedAt: row.startedAt?.toISOString() ?? null,
     endedAt: row.endedAt?.toISOString() ?? null,
     winnerId: row.winnerId,
+    winnerFighterId: row.winnerFighterId,
     replayFrameCount: row.replayFrameCount,
     errorMessage: row.errorMessage,
   }));
@@ -326,6 +334,7 @@ export const getSimulationWithBroadcastForUser = async (
       replayObjectKey: simulations.replayObjectKey,
       broadcastEventsObjectKey: simulations.broadcastEventsObjectKey,
       winnerId: simulations.winnerId,
+      winnerFighterId: simulations.winnerFighterId,
       errorMessage: simulations.errorMessage,
     })
     .from(simulations)

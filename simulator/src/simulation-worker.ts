@@ -179,6 +179,7 @@ class SimulationWorkerRuntime {
         broadcastId: this.broadcastId,
         data: {
           winnerId,
+          winnerFighterId: winnerId ? (this.fighterIdByPlayerId.get(winnerId) ?? null) : null,
           replayHashHex,
           frames: this.world.replayLog,
         },

@@ -185,7 +185,10 @@ export const SimulationPreviewCard = ({
 
           {simulation.status === "ended" ? (
             <p className="mb-1 text-xs tracking-[0.08em] uppercase">
-              Winner: {simulation.winnerId ?? "Draw"}
+              Winner:{" "}
+              {simulation.winnerFighterId != null
+                ? `Fighter #${simulation.winnerFighterId}`
+                : "Draw"}
             </p>
           ) : null}
 

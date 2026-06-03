@@ -100,6 +100,7 @@ class SimulationManager {
       broadcastId: args.broadcastId,
       status: "running",
       winnerId: null,
+      winnerFighterId: null,
       startedAt,
       endedAt: null,
       replayHashHex: null,
@@ -195,6 +196,7 @@ class SimulationManager {
       record.summary.status = "ended";
       record.summary.endedAt = Date.now();
       record.summary.winnerId = message.data.winnerId;
+      record.summary.winnerFighterId = message.data.winnerFighterId;
       record.summary.replayHashHex = message.data.replayHashHex;
       record.summary.replayLength = message.data.frames.length;
       record.frames = message.data.frames;
@@ -202,6 +204,7 @@ class SimulationManager {
         type: "end",
         data: {
           winnerId: message.data.winnerId,
+          winnerFighterId: message.data.winnerFighterId,
           replayHashHex: message.data.replayHashHex,
         },
       } satisfies BroadcastMessage);

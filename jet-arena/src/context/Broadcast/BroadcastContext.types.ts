@@ -10,6 +10,7 @@ export type BroadcastContextControllerProps = {
 
 export type EndSummary = {
   winnerId: string | null;
+  winnerFighterId: number | null;
   replayHashHex: string;
 } | null;
 

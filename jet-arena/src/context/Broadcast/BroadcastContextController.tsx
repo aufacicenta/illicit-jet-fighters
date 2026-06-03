@@ -168,6 +168,7 @@ export const BroadcastContextController = ({
       if (message.type === "end") {
         setEndSummary({
           winnerId: message.data.winnerId,
+          winnerFighterId: message.data.winnerFighterId,
           replayHashHex: message.data.replayHashHex,
         });
         setIsFollowingLive(false);
