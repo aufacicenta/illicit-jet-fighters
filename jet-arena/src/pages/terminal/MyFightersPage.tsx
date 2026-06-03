@@ -54,6 +54,20 @@ const tabTitles: Record<MyTab, string> = {
 };
 
 type MyTab = "my-fighters" | "my-battlefields" | "my-simulations" | "arena";
+
+const terminalNavItems: { value: MyTab; label: string }[] = [
+  { value: "my-fighters", label: "Fighters" },
+  { value: "my-battlefields", label: "Battlefields" },
+  { value: "my-simulations", label: "Simulations" },
+  { value: "arena", label: "Arena" },
+];
+
+const terminalAsideTabTriggerClassName = cn(
+  "group flex w-full items-center justify-start gap-2 rounded-sm border px-2.5 py-2 text-left text-xs font-normal tracking-wide uppercase transition-colors",
+  "border-border/70 bg-background hover:border-border hover:bg-muted/60",
+  "data-[state=active]:border-secondary data-[state=active]:bg-secondary/10 data-[state=active]:text-foreground data-[state=active]:shadow-none",
+);
+
 type ArenaBounds = { width: number; height: number };
 type SimulationPreviewById = Record<
   string,
@@ -461,20 +475,20 @@ export const MyFightersPage = () => {
                 ) : null}
               </div>
 
-              <TabsList className="grid h-auto w-full grid-cols-1 gap-2 bg-background p-0">
-                <TabsTrigger className="w-full justify-start" value="my-fighters">
-                  Fighters
-                </TabsTrigger>
-                <TabsTrigger className="w-full justify-start" value="my-battlefields">
-                  Battlefields
-                </TabsTrigger>
-                <TabsTrigger className="w-full justify-start" value="my-simulations">
-                  Simulations
-                </TabsTrigger>
-                <TabsTrigger className="w-full justify-start" value="arena">
-                  Arena
-                </TabsTrigger>
-              </TabsList>
+              <div className="border-border/80 bg-card/70">
+                <TabsList className="flex h-auto w-full flex-col gap-0 bg-transparent p-0">
+                  {terminalNavItems.map((item) => (
+                    <TabsTrigger
+                      className={terminalAsideTabTriggerClassName}
+                      key={item.value}
+                      value={item.value}
+                    >
+                      <span className="size-1.5 shrink-0 rounded-full bg-muted group-data-[state=active]:bg-secondary" />
+                      <span className="truncate">{item.label}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
             </aside>
 
             <div className="space-y-6 lg:order-1">

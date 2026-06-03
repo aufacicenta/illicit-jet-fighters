@@ -1,10 +1,27 @@
+import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
 
-export const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto">
+const tableWrapperVariants = cva("relative w-full overflow-auto", {
+  variants: {
+    size: {
+      default: "",
+      compact:
+        "[&_table]:text-xs [&_thead_tr]:border-border/40 [&_tbody_tr]:border-border/30 [&_th]:h-7 [&_th]:px-2 [&_th]:text-[10px] [&_th]:tracking-wide [&_td]:py-1.5 [&_td]:px-2 [&_tr]:border-border/30 [&_tr:hover]:bg-muted/30",
+    },
+  },
+  defaultVariants: {
+    size: "default",
+  },
+});
+
+export type TableProps = React.HTMLAttributes<HTMLTableElement> &
+  VariantProps<typeof tableWrapperVariants>;
+
+export const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, size, ...props }, ref) => (
+    <div className={tableWrapperVariants({ size })}>
       <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
     </div>
   ),
