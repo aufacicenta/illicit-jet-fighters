@@ -2,7 +2,7 @@ import "highlight.js/styles/github-dark.css";
 
 import hljs from "highlight.js/lib/core";
 import javascript from "highlight.js/lib/languages/javascript";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
@@ -33,7 +33,14 @@ export const AgentCodeSection = ({ showRegenerateButton = false }: AgentCodeSect
   const isRegenerateDisabled =
     status === "locked" || status === "generating" || !hasCharacterDescription;
   const codeContainerRef = useRef<HTMLPreElement | null>(null);
-  const codeElementRef = useRef<HTMLElement | null>(null);
+
+  const highlightedCode = useMemo(() => {
+    if (!code) {
+      return null;
+    }
+
+    return hljs.highlight(code, { language: "javascript" }).value;
+  }, [code]);
 
   useEffect(() => {
     if (!code) {
@@ -49,14 +56,6 @@ export const AgentCodeSection = ({ showRegenerateButton = false }: AgentCodeSect
     return () => {
       window.cancelAnimationFrame(animationFrameId);
     };
-  }, [code]);
-
-  useEffect(() => {
-    if (!code || !codeElementRef.current) {
-      return;
-    }
-
-    hljs.highlightElement(codeElementRef.current);
   }, [code]);
 
   return (
@@ -101,9 +100,10 @@ export const AgentCodeSection = ({ showRegenerateButton = false }: AgentCodeSect
               className="max-h-[420px] overflow-auto rounded-sm border border-border bg-background p-3 text-xs whitespace-pre-wrap"
               ref={codeContainerRef}
             >
-              <code className="language-javascript" ref={codeElementRef}>
-                {code}
-              </code>
+              <code
+                className="language-javascript"
+                dangerouslySetInnerHTML={highlightedCode ? { __html: highlightedCode } : undefined}
+              />
             </pre>
           ) : (
             <p className="p-3 text-sm text-muted-foreground">

@@ -10,6 +10,7 @@ import { AboutSection } from "./home/AboutSection";
 import { BroadcastsSection } from "./home/BroadcastsSection";
 import { FightersSection } from "./home/FightersSection";
 import { HomeAside } from "./home/HomeAside";
+import { StorySection } from "./home/StorySection";
 import type { HomeAsideSection } from "./home/types";
 
 export const HomePage = () => {
@@ -22,6 +23,10 @@ export const HomePage = () => {
 
     if (activeAsideSection === "broadcasts") {
       return <BroadcastsSection />;
+    }
+
+    if (activeAsideSection === "story") {
+      return <StorySection />;
     }
 
     return <AboutSection />;
