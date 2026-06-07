@@ -115,6 +115,8 @@ export const apiRoutes = {
     `${API_BASE}/wallet/me/fighters/${encodeURIComponent(fighterId)}/transfer-in`,
   walletFighterTransferOut: (fighterId: string) =>
     `${API_BASE}/wallet/me/fighters/${encodeURIComponent(fighterId)}/transfer-out`,
+  walletFighterArenaUnlock: (fighterId: string) =>
+    `${API_BASE}/wallet/me/fighters/${encodeURIComponent(fighterId)}/unlock`,
   walletFighterSettlement: `${API_BASE}/wallet/me/fighters/settlement`,
   walletWithdrawals: `${API_BASE}/wallet/me/withdrawals`,
   walletCancelWithdrawal: (groupId: string) =>

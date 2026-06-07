@@ -6,9 +6,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   fetchFighterLedgerSnapshot,
   fetchPipelineState,
+  postFighterArenaUnlock,
   postFighterTransferIn,
   postFighterTransferOut,
 } from "../../lib/api";
+import { computeAvailableBalanceNativeFromStrings } from "../../lib/fighterBalance";
 import { formatTokenAmountFromNative } from "../../lib/formatTokenAmountFromNative";
 import {
   isPositiveIntegerString,
@@ -34,10 +36,15 @@ export const FighterBalanceContextController = ({
   const [balanceNative, setBalanceNative] = useState("0");
   const [walletBalanceNative, setWalletBalanceNative] = useState("0");
   const [lockedBalanceNative, setLockedBalanceNative] = useState("0");
+  const [openArenaLocks, setOpenArenaLocks] = useState<FighterBalanceContextType["openArenaLocks"]>(
+    [],
+  );
   const [entries, setEntries] = useState<FighterBalanceContextType["entries"]>([]);
   const [isLoadingLedger, setIsLoadingLedger] = useState(false);
   const [isSubmittingTopUp, setIsSubmittingTopUp] = useState(false);
   const [isSubmittingWithdraw, setIsSubmittingWithdraw] = useState(false);
+  const [isSubmittingUnlock, setIsSubmittingUnlock] = useState(false);
+  const [unlockingCorrelationId, setUnlockingCorrelationId] = useState<string | null>(null);
   const [manualTopUpAmount, setManualTopUpAmount] = useState("");
   const [manualWithdrawAmount, setManualWithdrawAmount] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -53,8 +60,9 @@ export const FighterBalanceContextController = ({
       const snapshot = await fetchFighterLedgerSnapshot({ fighterId, limit: 50 });
       setBalanceNative(snapshot.fighterBalanceNative);
       setWalletBalanceNative(snapshot.walletBalanceNative);
+      setLockedBalanceNative(snapshot.lockedBalanceNative);
+      setOpenArenaLocks(snapshot.openArenaLocks);
       setEntries(snapshot.entries);
-      setLockedBalanceNative("0");
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Unable to load fighter ledger.");
@@ -81,7 +89,7 @@ export const FighterBalanceContextController = ({
 
   const submitTopUpNative = useCallback(
     async (amountNative: string) => {
-      if (isSubmittingTopUp || isSubmittingWithdraw) {
+      if (isSubmittingTopUp || isSubmittingWithdraw || isSubmittingUnlock) {
         return;
       }
       if (!isPositiveIntegerString(amountNative) || BigInt(amountNative) <= 0n) {
@@ -111,6 +119,7 @@ export const FighterBalanceContextController = ({
       fighterId,
       isSubmittingTopUp,
       isSubmittingWithdraw,
+      isSubmittingUnlock,
       refreshLedgerSnapshot,
       refreshWallet,
     ],
@@ -128,7 +137,7 @@ export const FighterBalanceContextController = ({
 
   const topUpByPercent = useCallback(
     async (percent: number) => {
-      if (isSubmittingTopUp || isSubmittingWithdraw) {
+      if (isSubmittingTopUp || isSubmittingWithdraw || isSubmittingUnlock) {
         return;
       }
       if (!Number.isFinite(percent) || percent <= 0) {
@@ -159,21 +168,22 @@ export const FighterBalanceContextController = ({
       );
       setErrorMessage(null);
     },
-    [isSubmittingTopUp, isSubmittingWithdraw, wallet, walletBalanceNative],
+    [isSubmittingTopUp, isSubmittingUnlock, isSubmittingWithdraw, wallet, walletBalanceNative],
   );
 
   const submitWithdrawNative = useCallback(
     async (amountNative: string) => {
-      if (isSubmittingTopUp || isSubmittingWithdraw) {
+      if (isSubmittingTopUp || isSubmittingWithdraw || isSubmittingUnlock) {
         return;
       }
       if (!isPositiveIntegerString(amountNative) || BigInt(amountNative) <= 0n) {
         throw new Error("Withdraw amount must be a positive integer.");
       }
-      const availableNative =
-        safeNativeBigInt(balanceNative) - safeNativeBigInt(lockedBalanceNative);
-      const clampedAvailableNative = availableNative > 0n ? availableNative : 0n;
-      if (BigInt(amountNative) > clampedAvailableNative) {
+      const availableNative = computeAvailableBalanceNativeFromStrings(
+        balanceNative,
+        lockedBalanceNative,
+      );
+      if (BigInt(amountNative) > BigInt(availableNative)) {
         throw new Error("Insufficient unlocked fighter balance.");
       }
 
@@ -200,6 +210,7 @@ export const FighterBalanceContextController = ({
       emitBalanceUpdate,
       fighterId,
       isSubmittingTopUp,
+      isSubmittingUnlock,
       isSubmittingWithdraw,
       lockedBalanceNative,
       refreshLedgerSnapshot,
@@ -219,26 +230,24 @@ export const FighterBalanceContextController = ({
 
   const withdrawByPercent = useCallback(
     async (percent: number) => {
-      if (isSubmittingTopUp || isSubmittingWithdraw) {
+      if (isSubmittingTopUp || isSubmittingWithdraw || isSubmittingUnlock) {
         return;
       }
       if (!Number.isFinite(percent) || percent <= 0) {
         setErrorMessage("Invalid withdraw percentage.");
         return;
       }
-      const availableNative =
-        safeNativeBigInt(balanceNative) - safeNativeBigInt(lockedBalanceNative);
-      const clampedAvailableNative = availableNative > 0n ? availableNative : 0n;
-      if (clampedAvailableNative <= 0n) {
+      const availableNative = BigInt(
+        computeAvailableBalanceNativeFromStrings(balanceNative, lockedBalanceNative),
+      );
+      if (availableNative <= 0n) {
         setErrorMessage("No unlocked fighter balance available for withdraw.");
         return;
       }
 
       const roundedPercent = Math.floor(percent);
       const amountNative =
-        roundedPercent >= 100
-          ? clampedAvailableNative
-          : (clampedAvailableNative * BigInt(roundedPercent)) / 100n;
+        roundedPercent >= 100 ? availableNative : (availableNative * BigInt(roundedPercent)) / 100n;
       if (amountNative <= 0n) {
         setErrorMessage("Withdraw amount is too small.");
         return;
@@ -254,7 +263,47 @@ export const FighterBalanceContextController = ({
       );
       setErrorMessage(null);
     },
-    [balanceNative, isSubmittingTopUp, isSubmittingWithdraw, lockedBalanceNative, wallet],
+    [
+      balanceNative,
+      isSubmittingTopUp,
+      isSubmittingUnlock,
+      isSubmittingWithdraw,
+      lockedBalanceNative,
+      wallet,
+    ],
+  );
+
+  const submitArenaUnlock = useCallback(
+    async (correlationId: string) => {
+      if (isSubmittingTopUp || isSubmittingWithdraw || isSubmittingUnlock) {
+        return;
+      }
+
+      setIsSubmittingUnlock(true);
+      setUnlockingCorrelationId(correlationId);
+      try {
+        const result = await postFighterArenaUnlock({ fighterId, correlationId });
+        setBalanceNative(result.fighterBalanceNative);
+        setLockedBalanceNative(result.lockedBalanceNative);
+        setErrorMessage(null);
+        emitBalanceUpdate(result.fighterBalanceNative);
+        await refreshLedgerSnapshot();
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "Unable to unlock arena stake.");
+        throw error;
+      } finally {
+        setIsSubmittingUnlock(false);
+        setUnlockingCorrelationId(null);
+      }
+    },
+    [
+      emitBalanceUpdate,
+      fighterId,
+      isSubmittingTopUp,
+      isSubmittingUnlock,
+      isSubmittingWithdraw,
+      refreshLedgerSnapshot,
+    ],
   );
 
   useEffect(() => {
@@ -262,6 +311,7 @@ export const FighterBalanceContextController = ({
     setFighterLedgerState({ isReady: false, balanceNative: "0" });
     setWalletBalanceNative("0");
     setLockedBalanceNative("0");
+    setOpenArenaLocks([]);
     setEntries([]);
     setErrorMessage(null);
 
@@ -314,12 +364,10 @@ export const FighterBalanceContextController = ({
     setWalletBalanceNative(wallet.balanceNative.toString());
   }, [wallet]);
 
-  const availableBalanceNative = useMemo(() => {
-    const fighterNative = safeNativeBigInt(balanceNative);
-    const lockedNative = safeNativeBigInt(lockedBalanceNative);
-    const availableNative = fighterNative - lockedNative;
-    return (availableNative > 0n ? availableNative : 0n).toString();
-  }, [balanceNative, lockedBalanceNative]);
+  const availableBalanceNative = useMemo(
+    () => computeAvailableBalanceNativeFromStrings(balanceNative, lockedBalanceNative),
+    [balanceNative, lockedBalanceNative],
+  );
 
   const props = useMemo<FighterBalanceContextType>(
     () => ({
@@ -329,10 +377,13 @@ export const FighterBalanceContextController = ({
       walletBalanceNative,
       lockedBalanceNative,
       availableBalanceNative,
+      openArenaLocks,
       entries,
       isLoadingLedger,
       isSubmittingTopUp,
       isSubmittingWithdraw,
+      isSubmittingUnlock,
+      unlockingCorrelationId,
       manualTopUpAmount,
       manualWithdrawAmount,
       errorMessage,
@@ -344,6 +395,7 @@ export const FighterBalanceContextController = ({
       topUpByPercent,
       submitWithdraw,
       withdrawByPercent,
+      submitArenaUnlock,
     }),
     [
       availableBalanceNative,
@@ -354,17 +406,21 @@ export const FighterBalanceContextController = ({
       isLoadingLedger,
       isReady,
       isSubmittingTopUp,
+      isSubmittingUnlock,
       isSubmittingWithdraw,
       lockedBalanceNative,
       manualTopUpAmount,
       manualWithdrawAmount,
+      openArenaLocks,
       refreshLedgerSnapshot,
       setManualWithdrawAmount,
       setFighterLedgerState,
+      submitArenaUnlock,
       submitWithdraw,
       submitTopUp,
       topUpByPercent,
       withdrawByPercent,
+      unlockingCorrelationId,
       walletBalanceNative,
     ],
   );

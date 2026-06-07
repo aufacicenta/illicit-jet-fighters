@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import type { FighterLedgerEntry } from "../../lib/api";
+import type { FighterLedgerEntry, FighterOpenArenaLock } from "../../lib/api";
 
 export type FighterBalanceContextControllerProps = {
   fighterId: string;
@@ -19,10 +19,13 @@ export type FighterBalanceContextType = {
   walletBalanceNative: string;
   lockedBalanceNative: string;
   availableBalanceNative: string;
+  openArenaLocks: FighterOpenArenaLock[];
   entries: FighterLedgerEntry[];
   isLoadingLedger: boolean;
   isSubmittingTopUp: boolean;
   isSubmittingWithdraw: boolean;
+  isSubmittingUnlock: boolean;
+  unlockingCorrelationId: string | null;
   manualTopUpAmount: string;
   manualWithdrawAmount: string;
   errorMessage: string | null;
@@ -34,6 +37,7 @@ export type FighterBalanceContextType = {
   topUpByPercent: (percent: number) => Promise<void>;
   submitWithdraw: () => Promise<void>;
   withdrawByPercent: (percent: number) => Promise<void>;
+  submitArenaUnlock: (correlationId: string) => Promise<void>;
 };
 
 export type FighterBalanceUpdateEventDetail = {

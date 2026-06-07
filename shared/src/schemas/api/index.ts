@@ -30,11 +30,20 @@ export type { BattlefieldIdResponse, MyBattlefield, MyBattlefieldsResponse } fro
 export { battlefieldCostSnapshotSchema, fighterCostSnapshotSchema } from "./costs";
 export type { BattlefieldCostSnapshot, FighterCostSnapshot } from "./costs";
 export {
+  fighterArenaUnlockRequestSchema,
+  fighterArenaUnlockResponseSchema,
   fighterLedgerEntryKindSchema,
   fighterLedgerEntrySchema,
   fighterLedgerSnapshotSchema,
+  fighterOpenArenaLockSchema,
 } from "./fighter-ledger";
-export type { FighterLedgerEntry, FighterLedgerSnapshot } from "./fighter-ledger";
+export type {
+  FighterArenaUnlockRequest,
+  FighterArenaUnlockResponse,
+  FighterLedgerEntry,
+  FighterLedgerSnapshot,
+  FighterOpenArenaLock,
+} from "./fighter-ledger";
 export {
   characterDescriptionRefineRequestSchema,
   characterDescriptionRequestSchema,

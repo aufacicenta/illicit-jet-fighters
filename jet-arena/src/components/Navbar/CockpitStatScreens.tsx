@@ -45,6 +45,8 @@ CockpitBottomRightSlot.displayName = "CockpitBottomRightSlot";
 export const CockpitBottomCenterSlot = ({ children }: CockpitSlotProps) => <>{children}</>;
 CockpitBottomCenterSlot.displayName = "CockpitBottomCenterSlot";
 
+export { CockpitError } from "./CockpitError";
+
 const resolveCockpitSlots = (children: ReactNode | undefined): CockpitStatScreenSlotChildren => {
   const slotChildren: CockpitStatScreenSlotChildren = {};
 

@@ -11,6 +11,7 @@ export type FighterAgentVersionOption = {
 
 export type FighterEnterState = {
   balanceNative: string;
+  availableBalanceNative: string;
   versions: FighterAgentVersionOption[];
   selectedVersionId: string | null;
 };

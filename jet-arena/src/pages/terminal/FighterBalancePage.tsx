@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { Navigate, useParams } from "react-router-dom";
 
 import {
+  CockpitBottomRightSlot,
+  CockpitError,
   CockpitStatScreens,
   CockpitTopCenterSlot,
   CockpitTopRightSlot,
@@ -38,23 +40,27 @@ const FighterBalancePageInner = () => {
     errorMessage,
     isLoadingLedger,
     isSubmittingTopUp,
+    isSubmittingUnlock,
     isSubmittingWithdraw,
     lockedBalanceNative,
     manualTopUpAmount,
     manualWithdrawAmount,
+    openArenaLocks,
     refreshLedgerSnapshot,
     setManualTopUpAmount,
     setManualWithdrawAmount,
+    submitArenaUnlock,
     submitWithdraw,
     submitTopUp,
     topUpByPercent,
+    unlockingCorrelationId,
     withdrawByPercent,
     walletBalanceNative,
   } = useFighterBalanceContext();
   const { wallet } = useWalletContext();
   const walletCurrency = wallet?.currency ?? getWalletCurrencyMetadata(wallet?.network ?? "sui");
   const { nativeDecimals, symbol } = walletCurrency;
-  const isSubmittingTransfer = isSubmittingTopUp || isSubmittingWithdraw;
+  const isSubmittingTransfer = isSubmittingTopUp || isSubmittingWithdraw || isSubmittingUnlock;
 
   useEffect(() => {
     void refreshLedgerSnapshot();
@@ -84,6 +90,11 @@ const FighterBalancePageInner = () => {
         <CockpitTopRightSlot>
           <NavbarWalletPill variant="cockpit" />
         </CockpitTopRightSlot>
+        {errorMessage ? (
+          <CockpitBottomRightSlot>
+            <CockpitError message={errorMessage} />
+          </CockpitBottomRightSlot>
+        ) : null}
       </CockpitStatScreens>
 
       <div className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-6">
@@ -165,8 +176,6 @@ const FighterBalancePageInner = () => {
                     </Button>
                   </div>
                 </div>
-
-                {errorMessage ? <p className="text-xs text-destructive">{errorMessage}</p> : null}
               </CardContent>
             </Card>
 
@@ -236,6 +245,60 @@ const FighterBalancePageInner = () => {
                     </Button>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className={`space-y-2 ${wizardCardHeaderClassName}`}>
+                <div>
+                  <WizardCardTitle>Unlock</WizardCardTitle>
+                  <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                    Release arena stake locks back into available fighter balance
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3 p-4">
+                {isLoadingLedger ? (
+                  <p className="rounded-sm border border-dashed border-border/70 px-3 py-4 text-center text-xs tracking-wide text-muted-foreground uppercase">
+                    Loading locks...
+                  </p>
+                ) : openArenaLocks.length === 0 ? (
+                  <p className="rounded-sm border border-dashed border-border/70 px-3 py-4 text-center text-xs tracking-wide text-muted-foreground uppercase">
+                    No arena stake locks
+                  </p>
+                ) : (
+                  openArenaLocks.map((lock) => {
+                    const isUnlocking =
+                      isSubmittingUnlock && unlockingCorrelationId === lock.correlationId;
+                    return (
+                      <div
+                        className="flex flex-wrap items-center gap-3 rounded-sm border border-border/70 px-3 py-3 text-xs"
+                        key={lock.correlationId}
+                      >
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <p className="font-semibold uppercase">Arena stake lock</p>
+                          <p className="font-mono tabular-nums">
+                            {renderNativeToken(lock.lockedAmountNative)}
+                          </p>
+                          <p className="text-muted-foreground">
+                            Pool {formatNullableCompactId(lock.poolId)}
+                          </p>
+                          <p className="font-mono text-[10px] text-muted-foreground">
+                            {formatNullableCompactId(lock.correlationId)}
+                          </p>
+                        </div>
+                        <Button
+                          disabled={isSubmittingTransfer}
+                          onClick={() => void submitArenaUnlock(lock.correlationId)}
+                          type="button"
+                          variant="outline"
+                        >
+                          {isUnlocking ? "Unlocking…" : "Unlock"}
+                        </Button>
+                      </div>
+                    );
+                  })
+                )}
               </CardContent>
             </Card>
 
@@ -325,10 +388,6 @@ const FighterBalancePageInner = () => {
                     {renderNativeToken(walletBalanceNative)}
                   </span>
                 </div>
-                <p className="pt-1 text-[10px] tracking-wide text-muted-foreground uppercase">
-                  Locked balance currently displays as 0 until backend lock accounting is
-                  introduced.
-                </p>
               </CardContent>
             </Card>
           </aside>

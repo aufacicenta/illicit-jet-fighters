@@ -1,13 +1,16 @@
 import type {
+  FighterArenaUnlockResponse,
   FighterLedgerEntry as SharedFighterLedgerEntry,
   FighterLedgerSnapshot,
+  FighterOpenArenaLock,
 } from "@ijf/shared";
-import { fighterLedgerSnapshotSchema } from "@ijf/shared";
+import { fighterArenaUnlockResponseSchema, fighterLedgerSnapshotSchema } from "@ijf/shared";
 
 import { apiRoutes } from "../../hooks/useRoutes";
 import { authHeadersJson, readErrorText } from "./client";
 
 export type FighterLedgerEntry = SharedFighterLedgerEntry;
+export type { FighterOpenArenaLock };
 
 export const fetchFighterLedgerSnapshot = async ({
   fighterId,
@@ -82,4 +85,25 @@ export const postFighterTransferOut = async ({
     walletBalanceNative: string;
     fighterBalanceNative: string;
   };
+};
+
+export const postFighterArenaUnlock = async ({
+  fighterId,
+  correlationId,
+}: {
+  fighterId: string;
+  correlationId: string;
+}): Promise<FighterArenaUnlockResponse> => {
+  const response = await fetch(apiRoutes.walletFighterArenaUnlock(fighterId), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeadersJson(),
+    },
+    body: JSON.stringify({ correlationId }),
+  });
+  if (!response.ok) {
+    throw new Error(await readErrorText(response));
+  }
+  return fighterArenaUnlockResponseSchema.parse(await response.json());
 };

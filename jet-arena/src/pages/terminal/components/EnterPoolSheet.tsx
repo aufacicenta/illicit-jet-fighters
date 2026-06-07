@@ -136,7 +136,9 @@ export const EnterPoolSheet = ({ open, onOpenChange }: EnterPoolSheetProps) => {
           {!isLoadingDetails && eligibleFighters.length > 0
             ? eligibleFighters.map((fighter) => {
                 const fighterState = fighterStateById[fighter.id];
-                const fighterBalanceNative = safeNativeBigInt(fighterState?.balanceNative ?? "0");
+                const fighterBalanceNative = safeNativeBigInt(
+                  fighterState?.availableBalanceNative ?? "0",
+                );
                 const sufficiency = getBalanceSufficiency({
                   fighterBalanceNative,
                   walletBalanceNative,
@@ -207,9 +209,9 @@ export const EnterPoolSheet = ({ open, onOpenChange }: EnterPoolSheetProps) => {
                       <div className="min-w-0 flex-1 space-y-1">
                         <p className="truncate text-sm font-semibold">{displayName}</p>
                         <p className="text-xs text-muted-foreground">
-                          Fighter balance:{" "}
+                          Available balance:{" "}
                           {formatTokenAmountFromNative(
-                            fighterState?.balanceNative ?? "0",
+                            fighterState?.availableBalanceNative ?? "0",
                             currency.nativeDecimals,
                             { fractionDigits: 4 },
                           )}{" "}

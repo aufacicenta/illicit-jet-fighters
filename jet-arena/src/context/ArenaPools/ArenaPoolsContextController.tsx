@@ -240,6 +240,7 @@ export const ArenaPoolsContextController = ({
               pipelineState,
               state: {
                 balanceNative: ledger.fighterBalanceNative,
+                availableBalanceNative: ledger.availableBalanceNative,
                 versions,
                 selectedVersionId: latestVersion?.id ?? null,
               },
@@ -347,7 +348,7 @@ export const ArenaPoolsContextController = ({
       for (let i = 0; i < fighterIdsToEnter.length; i++) {
         const fighterId = fighterIdsToEnter[i]!;
         const fighterState = fighterStateById[fighterId]!;
-        const fighterBalanceNative = safeNativeBigInt(fighterState.balanceNative);
+        const fighterBalanceNative = safeNativeBigInt(fighterState.availableBalanceNative);
         const sufficiency = getBalanceSufficiency({
           fighterBalanceNative,
           walletBalanceNative,

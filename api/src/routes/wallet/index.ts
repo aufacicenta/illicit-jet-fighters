@@ -1,5 +1,7 @@
 import { and, db, desc, eq, lt, not, sql, walletLedgerEntries } from "@ijf/database";
 import {
+  fighterArenaUnlockRequestSchema,
+  fighterArenaUnlockResponseSchema,
   fighterLedgerPathParamsSchema,
   fighterLedgerSnapshotSchema,
   getWalletCurrencyMetadata,
@@ -21,6 +23,11 @@ import {
 } from "@ijf/shared";
 import { Elysia, t } from "elysia";
 
+import {
+  buildFighterBalanceSnapshot,
+  getFighterAvailableBalanceNative,
+  manualUnlockFighterStake,
+} from "../../lib/arena/balance-lock";
 import { getOwnedFighter } from "../../lib/fighter-access";
 import { requireBearerAuth } from "../../lib/require-bearer-auth";
 import { buildWalletBalanceSnapshot } from "../../lib/wallet/charge";
@@ -30,7 +37,6 @@ import {
   appendUserToFighterTransfer,
   appendWithdrawalRefund,
   appendWithdrawalRequest,
-  getFighterBalanceNative,
   getWalletBalanceNative,
   listFighterLedgerEntries,
   listWithdrawals,
@@ -213,12 +219,19 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       }
       try {
         const entries = await listFighterLedgerEntries({ fighterId, limit });
-        const fighterBalanceNative = await getFighterBalanceNative(fighterId);
         const walletBalanceNative = await getWalletBalanceNative(wallet.id, networkEnv);
+        const balanceSnapshot = await buildFighterBalanceSnapshot(fighterId);
         return {
           fighterId,
-          fighterBalanceNative: fighterBalanceNative.toString(),
+          fighterBalanceNative: balanceSnapshot.fighterBalanceNative.toString(),
+          lockedBalanceNative: balanceSnapshot.lockedBalanceNative.toString(),
+          availableBalanceNative: balanceSnapshot.availableBalanceNative.toString(),
           walletBalanceNative: walletBalanceNative.toString(),
+          openArenaLocks: balanceSnapshot.openArenaLocks.map((lock) => ({
+            correlationId: lock.correlationId,
+            lockedAmountNative: lock.lockedAmountNative.toString(),
+            poolId: lock.poolId,
+          })),
           entries: entries.map((entry) => ({
             ...entry,
             createdAt: entry.createdAt.toISOString(),
@@ -316,6 +329,10 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       }
       const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
       try {
+        const availableBalanceNative = await getFighterAvailableBalanceNative(fighterId);
+        if (amountNative > availableBalanceNative) {
+          return status(400, "Insufficient unlocked fighter balance.");
+        }
         const transfer = await appendFighterToUserTransfer({
           walletId: wallet.id,
           userId: auth.userId,
@@ -347,6 +364,56 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       body: walletAmountNativeRequestSchema,
       response: {
         200: walletFighterTransferSnapshotSchema,
+        400: t.String(),
+        401: t.String(),
+        403: t.String(),
+        404: t.String(),
+        500: t.String(),
+      },
+    },
+  )
+  .post(
+    "/me/fighters/:fighterId/unlock",
+    async ({ params, body, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const fighterId = Number.parseInt(params.fighterId, 10);
+      if (!Number.isInteger(fighterId) || fighterId <= 0) {
+        return status(400, "Invalid fighterId.");
+      }
+      try {
+        const result = await manualUnlockFighterStake({
+          fighterId,
+          userId: auth.userId,
+          correlationId: body.correlationId,
+        });
+        return {
+          fighterId,
+          correlationId: result.correlationId,
+          unlockedAmountNative: result.unlockedAmountNative.toString(),
+          fighterBalanceNative: result.fighterBalanceNative.toString(),
+          lockedBalanceNative: result.lockedBalanceNative.toString(),
+          availableBalanceNative: result.availableBalanceNative.toString(),
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to unlock arena stake.";
+        if (message.includes("not found")) {
+          return status(404, message);
+        }
+        if (
+          message.includes("No open arena lock") ||
+          message.includes("must be idle") ||
+          message.includes("Leave the arena queue")
+        ) {
+          return status(400, message);
+        }
+        return status(500, message);
+      }
+    },
+    {
+      params: fighterLedgerPathParamsSchema,
+      body: fighterArenaUnlockRequestSchema,
+      response: {
+        200: fighterArenaUnlockResponseSchema,
         400: t.String(),
         401: t.String(),
         403: t.String(),
