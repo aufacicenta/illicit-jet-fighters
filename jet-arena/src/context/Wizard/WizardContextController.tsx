@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  FIGHTER_PIPELINE_SECTION_ORDER,
+  hasPersistedPromptContent,
+  inferMissingPromptOutputsFromAssets,
+} from "@ijf/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { routes, wsRoutes } from "../../hooks/useRoutes";
@@ -45,21 +50,7 @@ const baseStatuses = {
   "strikecraft-sprite-image": "locked",
 } as const;
 
-const sectionOrder: SectionId[] = [
-  "character-description",
-  "character-pfp-prompt",
-  "character-pfp-image",
-  "specsheet-prompt",
-  "specsheet-image",
-  "spritesheet-prompt",
-  "spritesheet-image",
-  "spritesheet-manifest",
-  "agent-code",
-  "strikecraft-specsheet-prompt",
-  "strikecraft-specsheet-image",
-  "strikecraft-sprite-prompt",
-  "strikecraft-sprite-image",
-];
+const sectionOrder: SectionId[] = FIGHTER_PIPELINE_SECTION_ORDER;
 
 const streamableSectionIds = new Set<SectionId>([
   "character-description",
@@ -138,10 +129,11 @@ const mergeSyncHistories = (
 const deriveStatusesFromOutputs = (
   outputs: WizardContextType["outputs"],
 ): WizardContextType["sectionStatuses"] => {
+  const inferredOutputs = inferMissingPromptOutputsFromAssets(outputs);
   const statuses: WizardContextType["sectionStatuses"] = { ...baseStatuses };
 
   for (const sectionId of sectionOrder) {
-    if (outputs[sectionId]) {
+    if (inferredOutputs[sectionId]) {
       statuses[sectionId] = "complete";
     }
   }
@@ -295,9 +287,10 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
               mappedOutputs[key as SectionId] = value as SectionOutput;
             }
           }
+          const inferredOutputs = inferMissingPromptOutputsFromAssets(mappedOutputs);
 
           setSectionStatuses(snapshot.sectionStatuses as WizardContextType["sectionStatuses"]);
-          setOutputs(mappedOutputs);
+          setOutputs(inferredOutputs);
           setSectionHistories(snapshot.histories ?? {});
           setOriginalBriefing(snapshot.briefing ?? null);
           setGateMessage(snapshot.gateMessage ?? null);
@@ -311,7 +304,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
             }),
           );
           setActiveSectionId(
-            bookmarkActive ?? resolveActiveSection(snapshot.sectionStatuses, mappedOutputs),
+            bookmarkActive ?? resolveActiveSection(snapshot.sectionStatuses, inferredOutputs),
           );
           return;
         }
@@ -404,7 +397,9 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     (message: ServerMessage) => {
       if (message.type === "pipeline:sync") {
         pendingStreamResetRef.current.clear();
-        const mergedOutputs = mergeSyncOutputs(message.outputs, outputsRef.current);
+        const mergedOutputs = inferMissingPromptOutputsFromAssets(
+          mergeSyncOutputs(message.outputs, outputsRef.current),
+        );
         const mergedHistories = mergeSyncHistories(
           message.histories,
           sectionHistoriesRef.current,
@@ -798,7 +793,9 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       return;
     }
 
-    const needsPrompt = !outputsRef.current["spritesheet-prompt"]?.content?.trim();
+    const needsPrompt = !hasPersistedPromptContent(
+      outputsRef.current["spritesheet-prompt"]?.content,
+    );
     setErrorMessage(null);
     setSectionStatuses((current) => ({
       ...current,
@@ -826,8 +823,12 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     }
 
     const snapshot = outputsRef.current;
-    const needsSpecsheetPrompt = !snapshot["strikecraft-specsheet-prompt"]?.content?.trim();
-    const needsSpritePrompt = !snapshot["strikecraft-sprite-prompt"]?.content?.trim();
+    const needsSpecsheetPrompt = !hasPersistedPromptContent(
+      snapshot["strikecraft-specsheet-prompt"]?.content,
+    );
+    const needsSpritePrompt = !hasPersistedPromptContent(
+      snapshot["strikecraft-sprite-prompt"]?.content,
+    );
     setErrorMessage(null);
     setSectionStatuses((current) => ({
       ...current,
@@ -857,8 +858,12 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     }
 
     const snapshot = outputsRef.current;
-    const needsSpecsheetPrompt = !snapshot["strikecraft-specsheet-prompt"]?.content?.trim();
-    const needsSpritePrompt = !snapshot["strikecraft-sprite-prompt"]?.content?.trim();
+    const needsSpecsheetPrompt = !hasPersistedPromptContent(
+      snapshot["strikecraft-specsheet-prompt"]?.content,
+    );
+    const needsSpritePrompt = !hasPersistedPromptContent(
+      snapshot["strikecraft-sprite-prompt"]?.content,
+    );
     setErrorMessage(null);
     setSectionStatuses((current) => ({
       ...current,

@@ -8,6 +8,8 @@ import {
   walletFighterTransferSnapshotSchema,
   walletLedgerQuerySchema,
   walletLedgerSnapshotSchema,
+  walletSectionPreflightQuerySchema,
+  walletSectionPreflightResponseSchema,
   walletSettlementRequestSchema,
   walletSettlementSnapshotSchema,
   walletSnapshotSchema,
@@ -33,6 +35,7 @@ import {
   listFighterLedgerEntries,
   listWithdrawals,
 } from "../../lib/wallet/ledger";
+import { getPreflightBalanceSnapshot } from "../../lib/wallet/preflight";
 import { resolveFxNativePerUsd } from "../../lib/wallet/resolve-fx";
 import { getWalletNetwork, getWalletNetworkEnv } from "../../lib/wallet/wallet-config";
 import { ensureUserWallet } from "../../lib/wallet/wallet-provision";
@@ -77,6 +80,32 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
     {
       response: {
         200: walletSnapshotSchema,
+        401: t.String(),
+        403: t.String(),
+      },
+    },
+  )
+  .get(
+    "/me/preflight",
+    async ({ query, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const parsed = walletSectionPreflightQuerySchema.safeParse(query);
+      if (!parsed.success) {
+        return status(400, "Invalid sectionId.");
+      }
+
+      const snapshot = await getPreflightBalanceSnapshot({
+        userId: auth.userId,
+        sectionId: parsed.data.sectionId,
+      });
+
+      return walletSectionPreflightResponseSchema.parse(snapshot);
+    },
+    {
+      query: walletSectionPreflightQuerySchema,
+      response: {
+        200: walletSectionPreflightResponseSchema,
+        400: t.String(),
         401: t.String(),
         403: t.String(),
       },

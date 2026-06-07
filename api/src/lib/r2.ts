@@ -106,6 +106,20 @@ export const fighterAgentVersionScriptObjectKey = (
     "agent.ts",
   );
 
+export const fighterCheckpointObjectKey = (
+  userId: string,
+  fighterId: number,
+  simulationId: string,
+) =>
+  path.posix.join(
+    `users/${userId}/fighters/${String(fighterId)}`,
+    "checkpoints",
+    `${simulationId}.json.gz`,
+  );
+
+export const fighterLatestCheckpointObjectKey = (userId: string, fighterId: number) =>
+  path.posix.join(`users/${userId}/fighters/${String(fighterId)}`, "checkpoints", "latest.json.gz");
+
 export const simulationReplayObjectKey = (userId: string, simulationId: string) =>
   path.posix.join(`users/${userId}/simulations/${simulationId}`, `replay.json.gz`);
 

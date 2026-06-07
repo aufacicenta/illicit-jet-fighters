@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { NETWORK_ENV_NAMES } from "../../sui-network";
+import { apiSectionIdSchema } from "./sections";
 
 export const walletSnapshotSchema = z.object({
   walletId: z.string(),
@@ -108,6 +109,16 @@ export const walletWithdrawalCancelResponseSchema = z.object({
   groupId: z.string(),
 });
 
+export const walletSectionPreflightQuerySchema = z.object({
+  sectionId: apiSectionIdSchema,
+});
+
+export const walletSectionPreflightResponseSchema = z.object({
+  sufficient: z.boolean(),
+  balanceNative: z.string(),
+  requiredNative: z.string(),
+});
+
 export type WalletSnapshot = z.infer<typeof walletSnapshotSchema>;
 export type WalletLedgerEntry = z.infer<typeof walletLedgerEntrySchema>;
 export type WalletLedgerSnapshot = z.infer<typeof walletLedgerSnapshotSchema>;
@@ -121,3 +132,5 @@ export type WalletWithdrawalsSnapshot = z.infer<typeof walletWithdrawalsSnapshot
 export type WalletWithdrawalRequest = z.infer<typeof walletWithdrawalRequestSchema>;
 export type WalletWithdrawalRequestResponse = z.infer<typeof walletWithdrawalRequestResponseSchema>;
 export type WalletWithdrawalCancelResponse = z.infer<typeof walletWithdrawalCancelResponseSchema>;
+export type WalletSectionPreflightQuery = z.infer<typeof walletSectionPreflightQuerySchema>;
+export type WalletSectionPreflightResponse = z.infer<typeof walletSectionPreflightResponseSchema>;

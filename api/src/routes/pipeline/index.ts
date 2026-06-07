@@ -28,6 +28,8 @@ import {
   startPipeline,
 } from "../../lib/pipeline-runner";
 import { requireBearerAuth } from "../../lib/require-bearer-auth";
+import { requirePreflightBalance } from "../../lib/wallet";
+import { isInsufficientBalanceError } from "../../lib/wallet/route-errors";
 import type { PipelineStartResponse } from "./types";
 
 const resolveFighterAccess = async (authUserId: string, rawId: string) => {
@@ -89,6 +91,18 @@ export const pipelineRoutes = new Elysia({ prefix: "/pipeline" })
 
       await saveFighterBriefing(resolution.fighterId, payload.prompt);
 
+      try {
+        await requirePreflightBalance({
+          userId: auth.userId,
+          sectionId: "character-description",
+        });
+      } catch (error) {
+        if (isInsufficientBalanceError(error)) {
+          return status(402, error.message);
+        }
+        throw error;
+      }
+
       const correlationId = createCorrelationId("pipeline-start");
       logger.info("pipeline start endpoint hit", {
         path: "/pipeline/start",
@@ -123,6 +137,7 @@ export const pipelineRoutes = new Elysia({ prefix: "/pipeline" })
       response: {
         200: pipelineStartResponseSchema,
         401: t.String(),
+        402: t.String(),
         403: t.String(),
         404: t.String(),
       },

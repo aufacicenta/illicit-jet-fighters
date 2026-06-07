@@ -19,5 +19,21 @@ export {
 } from "./wallet-currency";
 export type { NetworkEnvName } from "./sui-network";
 export type { WalletCurrencyMetadata, WalletNetworkName } from "./wallet-currency";
+export {
+  assetBackedPromptImagePairs,
+  didInferMissingPromptOutputs,
+  hasPersistedPromptContent,
+  inferMissingPromptOutputsFromAssets,
+  RECOVERED_PROMPT_MARKER,
+} from "./pipeline/prompt-recovery";
+export {
+  countCompletedFighterIntakeSections,
+  FIGHTER_INTAKE_REQUIRED_SECTION_IDS,
+  FIGHTER_PHASE_ONE_SECTION_IDS,
+  FIGHTER_PHASE_TWO_SECTION_IDS,
+  FIGHTER_PIPELINE_SECTION_ORDER,
+  isFighterPipelineFullyComplete,
+} from "./pipeline/fighter-sections";
+export type { FighterPipelineSectionStatus } from "./pipeline/fighter-sections";
 export * from "./simulation";
 export * from "./schemas";

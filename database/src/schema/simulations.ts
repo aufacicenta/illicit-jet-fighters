@@ -106,6 +106,7 @@ export const simulationParticipants = pgTable(
     agentVersionId: uuid("agent_version_id").references(() => fighterAgentVersions.id, {
       onDelete: "set null",
     }),
+    checkpointHash: text("checkpoint_hash"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
   },
   (table) => [

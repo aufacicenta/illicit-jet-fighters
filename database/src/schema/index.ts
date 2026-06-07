@@ -2,6 +2,7 @@ export * from "./arena-pools";
 export * from "./arena-queue-entries";
 export * from "./battlefields";
 export * from "./fighter-agent-versions";
+export * from "./fighter-checkpoints";
 export * from "./fighter-ledger-entries";
 export * from "./fighters";
 export * from "./llm-usage-events";

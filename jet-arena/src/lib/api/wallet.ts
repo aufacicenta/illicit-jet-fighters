@@ -1,5 +1,5 @@
-import type { WalletSnapshot } from "@ijf/shared";
-import { walletSnapshotSchema } from "@ijf/shared";
+import type { WalletSectionPreflightResponse, WalletSnapshot } from "@ijf/shared";
+import { walletSectionPreflightResponseSchema, walletSnapshotSchema } from "@ijf/shared";
 
 import { apiRoutes } from "../../hooks/useRoutes";
 import { authHeadersJson, readErrorText } from "./client";
@@ -49,6 +49,24 @@ export const fetchWalletSnapshot = async (): Promise<WalletSnapshot> => {
     throw new Error(await readErrorText(response));
   }
   return walletSnapshotSchema.parse(await response.json()) as WalletSnapshot;
+};
+
+export const fetchWalletSectionPreflight = async (
+  sectionId: "character-description",
+): Promise<WalletSectionPreflightResponse> => {
+  const response = await fetch(apiRoutes.walletPreflight(sectionId), {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      ...authHeadersJson(),
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorText(response));
+  }
+
+  return walletSectionPreflightResponseSchema.parse(await response.json());
 };
 
 export const fetchWalletLedger = async ({

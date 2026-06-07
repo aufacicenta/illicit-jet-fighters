@@ -1,5 +1,11 @@
 import { createHash } from "node:crypto";
 
+import {
+  didInferMissingPromptOutputs,
+  FIGHTER_PIPELINE_SECTION_ORDER,
+  hasPersistedPromptContent,
+  inferMissingPromptOutputsFromAssets,
+} from "@ijf/shared";
 import { parseFighterNameAndEpithet } from "@ijf/shared";
 
 import { clearPendingForFighter, sendToFighter, sendToUser } from "../ws/store";
@@ -75,21 +81,7 @@ type PersistedPipelineSnapshot = {
 };
 
 const PIPELINE_STORAGE_VERSION = 1 as const;
-const stepOrder: SectionId[] = [
-  "character-description",
-  "character-pfp-prompt",
-  "character-pfp-image",
-  "specsheet-prompt",
-  "specsheet-image",
-  "spritesheet-prompt",
-  "spritesheet-image",
-  "spritesheet-manifest",
-  "agent-code",
-  "strikecraft-specsheet-prompt",
-  "strikecraft-specsheet-image",
-  "strikecraft-sprite-prompt",
-  "strikecraft-sprite-image",
-];
+const stepOrder: SectionId[] = FIGHTER_PIPELINE_SECTION_ORDER;
 
 const imageSections = new Set<SectionId>([
   "character-pfp-image",
@@ -487,15 +479,20 @@ export const serializeClientPipelineState = async (
     outputs: state.outputs,
     tenant,
   });
-  state.outputs = reconciledOutputs;
+  const inferredOutputs = inferMissingPromptOutputsFromAssets(reconciledOutputs);
+  state.outputs = inferredOutputs;
+
+  if (didInferMissingPromptOutputs(reconciledOutputs, inferredOutputs)) {
+    await persistSnapshot(fighterKey, state, tenant);
+  }
 
   return {
     sectionStatuses: deriveSectionStatuses({
-      outputs: reconciledOutputs,
+      outputs: inferredOutputs,
       activeSectionIds: state.activeSectionIds,
       lastErrorSectionId: state.lastErrorSectionId,
     }),
-    outputs: await sanitizeOutputs(reconciledOutputs),
+    outputs: await sanitizeOutputs(inferredOutputs),
     histories: state.histories,
     gateMessage: state.gateMessage,
     fighterLedger: await resolveFighterLedgerSnapshot(fighterKey),
@@ -592,10 +589,12 @@ export const syncPipelineState = async (fighterKey: string) => {
   try {
     const tenant = tenantByFighter.get(fighterKey);
     if (tenant) {
-      state.outputs = await reconcileAssetBackedOutputs({
+      const reconciledOutputs = await reconcileAssetBackedOutputs({
         outputs: state.outputs,
         tenant,
       });
+      const inferredOutputs = inferMissingPromptOutputsFromAssets(reconciledOutputs);
+      state.outputs = inferredOutputs;
       await persistSnapshot(fighterKey, state, tenant);
     }
 
@@ -1475,10 +1474,8 @@ const ensureSpritesheetPrompt = async (
   fighterKey: string,
   correlationId?: string,
 ): Promise<string | null> => {
-  const existing = getState(fighterKey, correlationId).outputs[
-    "spritesheet-prompt"
-  ]?.content?.trim();
-  if (existing) {
+  const existing = getState(fighterKey, correlationId).outputs["spritesheet-prompt"]?.content;
+  if (hasPersistedPromptContent(existing)) {
     return existing;
   }
 
@@ -1509,10 +1506,9 @@ const ensureStrikecraftSpecsheetPrompt = async (
   fighterKey: string,
   correlationId?: string,
 ): Promise<string | null> => {
-  const existing = getState(fighterKey, correlationId).outputs[
-    "strikecraft-specsheet-prompt"
-  ]?.content?.trim();
-  if (existing) {
+  const existing = getState(fighterKey, correlationId).outputs["strikecraft-specsheet-prompt"]
+    ?.content;
+  if (hasPersistedPromptContent(existing)) {
     return existing;
   }
 
@@ -1543,10 +1539,9 @@ const ensureStrikecraftSpritePrompt = async (
   fighterKey: string,
   correlationId?: string,
 ): Promise<string | null> => {
-  const existing = getState(fighterKey, correlationId).outputs[
-    "strikecraft-sprite-prompt"
-  ]?.content?.trim();
-  if (existing) {
+  const existing = getState(fighterKey, correlationId).outputs["strikecraft-sprite-prompt"]
+    ?.content;
+  if (hasPersistedPromptContent(existing)) {
     return existing;
   }
 
@@ -1682,8 +1677,8 @@ export const generateStrikecraftSpriteImageFromPrompt = async (
   const tenant = tenantByFighter.get(fighterKey);
 
   try {
-    const hadSpritePrompt = Boolean(
-      getState(fighterKey, correlationId).outputs["strikecraft-sprite-prompt"]?.content?.trim(),
+    const hadSpritePrompt = hasPersistedPromptContent(
+      getState(fighterKey, correlationId).outputs["strikecraft-sprite-prompt"]?.content,
     );
     const prompt = await ensureStrikecraftSpritePrompt(fighterKey, correlationId);
     if (!prompt) {
@@ -1730,10 +1725,12 @@ export const generateStrikecraftSpecsheetImageFromPrompt = async (
 
   const startedAt = Date.now();
   const state = getState(fighterKey, correlationId);
-  const hadSpecsheetPrompt = Boolean(
-    state.outputs["strikecraft-specsheet-prompt"]?.content?.trim(),
+  const hadSpecsheetPrompt = hasPersistedPromptContent(
+    state.outputs["strikecraft-specsheet-prompt"]?.content,
   );
-  const hadSpritePrompt = Boolean(state.outputs["strikecraft-sprite-prompt"]?.content?.trim());
+  const hadSpritePrompt = hasPersistedPromptContent(
+    state.outputs["strikecraft-sprite-prompt"]?.content,
+  );
   logger.info("pipeline strikecraft-specsheet-image regeneration requested", {
     ...withContext(fighterKey, correlationId),
     promptLength: state.outputs["strikecraft-specsheet-prompt"]?.content?.length ?? 0,

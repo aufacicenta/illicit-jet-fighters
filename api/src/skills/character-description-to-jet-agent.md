@@ -28,6 +28,8 @@ Assume the evaluator behaves exactly like this:
 1. **Compile/load phase**
    - Evaluates the generated source text dynamically.
    - Expects code to assign `globalThis.__agentExport` to an object with `init`, `act`, and `learn` functions.
+   - Optionally supports `serialize()` for checkpoint export after arena matches.
+   - `init(config, checkpoint)` receives `CONFIG` and an optional checkpoint JSON string from prior arena matches.
    - If export is missing or shape is invalid, the agent is marked failed and does not produce active actions.
 
 2. **Per-tick phase**
@@ -165,6 +167,7 @@ Agent code runs inside a dedicated worker sandbox. Code is compiled from plain s
 - `globalThis`
 - Standard typed arrays: `Float64Array`, `Int32Array`, `Uint8Array`, etc.
 - `CONFIG` — injected read-only object with arena/game constants (tick rate, arena radius, bullet speed, etc.)
+- `tf` — TensorFlow.js library (injected automatically when code references `tf.`; use for learning agents only)
 
 ### NOT Available — Do NOT Use
 
@@ -174,7 +177,7 @@ Agent code runs inside a dedicated worker sandbox. Code is compiled from plain s
 - `require`, `import()` — no module loading
 - `Bun`, `process`, `Buffer` — no host runtime APIs
 - `window`, `document`, `navigator` — no browser globals
-- `tf` / TensorFlow.js — no external libraries of any kind
+- Any library other than injected `tf` and built-ins listed above
 - `eval()` and dynamic code generation
 
 ### Timing
@@ -220,7 +223,8 @@ When thresholding health/fuel, either:
 
 - Export with:
   - `globalThis.__agentExport = (() => ({ init(){}, act(){}, learn(){} }))();`
-- `init(config)` receives the `RuntimeConfig` object. Use it or ignore it.
+- `init(config, checkpoint)` receives the `RuntimeConfig` object and optional checkpoint JSON string (`null` on first arena entry). Restore learned state when `checkpoint` is provided.
+- Optional `serialize()` returns a JSON string of learned state for arena checkpoint persistence. Omit for pure heuristic agents.
 - `act(observation)` must always return:
   - `thrust: number` in `[-1, 1]`
   - `turn: number` in `[-1, 1]`
@@ -228,7 +232,7 @@ When thresholding health/fuel, either:
   - `shoot: boolean`
 - `learn(observation, reward)` is called after each tick with the current observation and shaped reward scalar.
 - All logic must be **pure synchronous JavaScript**. No async, no Promises, no callbacks.
-- No external dependencies. Everything must be self-contained.
+- For TF agents: wrap tensor work in `tf.tidy()` to avoid memory leaks; keep networks small (2-3 dense layers, <= 32 units).
 - Return finite movement every tick; never return `NaN`/`Infinity`.
 - Always keep non-zero movement intent in at least one normal state (`thrust` and/or `turn`) so the agent does not stall.
 
@@ -245,6 +249,12 @@ When thresholding health/fuel, either:
    - Fire doctrine: confidence threshold + alignment/range/cooldown checks
    - Resource doctrine: ammo/fuel conservation and late-game behavior
 
+2b. **Choose learning mode from temperament**
+
+- **Adaptive / patient / evolving / memory-driven** characters → DQN-style TF agent with replay buffer and `serialize()` checkpoint support.
+- **Instinctive / twitchy / reactive** characters → lightweight online learner (linear policy or small TF head) with `serialize()`.
+- **Dogmatic / ritualistic / mechanical** characters → heuristic finite-state agent (no `tf`, no `serialize()`).
+
 3. **Define finite behavior states**
    - Typical states: default, advantage, pressured, critical
    - State transition drivers: `health`, `fuel`, bullet pressure, enemy count
@@ -260,7 +270,7 @@ When thresholding health/fuel, either:
    - If overwhelmed: prioritize survival over shooting
    - If any intermediate math is non-finite, fall back to deterministic bounded defaults
 
-## Preferred Agent Skeleton
+## Preferred Agent Skeleton (Heuristic)
 
 ```ts
 globalThis.__agentExport = (() => {
@@ -286,6 +296,190 @@ globalThis.__agentExport = (() => {
 })();
 ```
 
+## DQN Skeleton (Adaptive Characters)
+
+Use when lore emphasizes growth, patience, or learning from mistakes. Must include `serialize()` for arena checkpoint carry-over.
+
+```ts
+globalThis.__agentExport = (() => {
+  let model;
+  let optimizer;
+  const replayBuffer = [];
+  const ACTIONS = [
+    { thrust: 1, turn: 0, climb: 0, shoot: false },
+    { thrust: 0, turn: -1, climb: 0, shoot: false },
+    { thrust: 0, turn: 1, climb: 0, shoot: false },
+    { thrust: 1, turn: 0, climb: 0, shoot: true },
+  ];
+  const MAX_REPLAY = 400;
+  const BATCH_SIZE = 16;
+  const GAMMA = 0.95;
+  let epsilon = 0.3;
+  let previousState = null;
+  let previousAction = 0;
+
+  const clamp = (v) => Math.max(-1, Math.min(1, v));
+  const vectorize = (observation) => {
+    const enemy = observation.enemies
+      .filter((e) => e.alive)
+      .sort((a, b) => a.distance - b.distance)[0];
+    return [
+      observation.self.speed / (CONFIG.MAX_SPEED || 7.5),
+      observation.self.health / (CONFIG.INITIAL_HEALTH || 100),
+      observation.self.fuel / (CONFIG.INITIAL_FUEL || 1000),
+      observation.distanceToWall / (CONFIG.ARENA_RADIUS || 420),
+      enemy ? enemy.distance / (CONFIG.SENSOR_RANGE || 300) : 1,
+      enemy ? clamp(enemy.bearingAngle / Math.PI) : 0,
+    ];
+  };
+
+  const createModel = () => {
+    model = tf.sequential({
+      layers: [
+        tf.layers.dense({ inputShape: [6], units: 24, activation: "relu" }),
+        tf.layers.dense({ units: 24, activation: "relu" }),
+        tf.layers.dense({ units: ACTIONS.length, activation: "linear" }),
+      ],
+    });
+    optimizer = tf.train.adam(0.001);
+  };
+
+  const train = () => {
+    if (replayBuffer.length < BATCH_SIZE * 2) return;
+    tf.tidy(() => {
+      const batch = [];
+      for (let i = 0; i < BATCH_SIZE; i += 1) {
+        batch.push(replayBuffer[Math.floor(Math.random() * replayBuffer.length)]);
+      }
+      const states = tf.tensor2d(batch.map((item) => item.state));
+      const nextStates = tf.tensor2d(batch.map((item) => item.nextState));
+      const currentQ = model.predict(states);
+      const nextQ = model.predict(nextStates);
+      const nextBest = nextQ.max(1);
+      const targetData = currentQ.arraySync();
+      const nextBestData = nextBest.arraySync();
+      for (let i = 0; i < batch.length; i += 1) {
+        targetData[i][batch[i].action] = batch[i].reward + GAMMA * nextBestData[i];
+      }
+      const targets = tf.tensor2d(targetData);
+      optimizer.minimize(() => model.predict(states).sub(targets).square().mean());
+    });
+  };
+
+  return {
+    init(config, checkpoint) {
+      createModel();
+      if (checkpoint) {
+        const parsed = JSON.parse(checkpoint);
+        model.setWeights(parsed.weights.map((w) => tf.tensor(w.data, w.shape)));
+        epsilon = parsed.epsilon ?? 0.1;
+      }
+    },
+    serialize() {
+      const weights = model.getWeights().map((w) => ({
+        data: Array.from(w.dataSync()),
+        shape: w.shape,
+      }));
+      return JSON.stringify({ weights, epsilon });
+    },
+    learn(observation, reward) {
+      if (!previousState || previousAction < 0) return;
+      replayBuffer.push({
+        state: previousState,
+        action: previousAction,
+        reward,
+        nextState: vectorize(observation),
+      });
+      if (replayBuffer.length > MAX_REPLAY) replayBuffer.shift();
+      train();
+    },
+    act(observation) {
+      const state = vectorize(observation);
+      let actionIndex = 0;
+      if (Math.random() < epsilon) {
+        actionIndex = Math.floor(Math.random() * ACTIONS.length);
+      } else {
+        const qValues = tf.tidy(() => model.predict(tf.tensor2d([state])));
+        actionIndex = Number(qValues.argMax(1).dataSync()[0]);
+        qValues.dispose();
+      }
+      epsilon = Math.max(0.07, epsilon * 0.9995);
+      previousState = state;
+      previousAction = actionIndex;
+      return ACTIONS[actionIndex];
+    },
+  };
+})();
+```
+
+## Lightweight Learner Skeleton (Instinctive Characters)
+
+Use for reactive/twitchy personalities. Small learnable weights, no replay buffer.
+
+```ts
+globalThis.__agentExport = (() => {
+  const ACTION_COUNT = 4;
+  let weights = null;
+
+  const clamp = (v) => Math.max(-1, Math.min(1, v));
+  const randomInit = () =>
+    Array.from({ length: ACTION_COUNT * 8 }, () => (Math.random() - 0.5) * 0.2);
+  const features = (observation) => {
+    const enemy = observation.enemies
+      .filter((e) => e.alive)
+      .sort((a, b) => a.distance - b.distance)[0];
+    return [
+      observation.self.speed / (CONFIG.MAX_SPEED || 7.5),
+      observation.self.health / (CONFIG.INITIAL_HEALTH || 100),
+      observation.distanceToWall / (CONFIG.ARENA_RADIUS || 420),
+      enemy ? enemy.distance / (CONFIG.SENSOR_RANGE || 300) : 1,
+      enemy ? clamp(enemy.bearingAngle / Math.PI) : 0,
+      observation.self.ammo / (CONFIG.INITIAL_AMMO || 50),
+      observation.self.fuel / (CONFIG.INITIAL_FUEL || 1000),
+      observation.self.cooldown <= 0 ? 1 : 0,
+    ];
+  };
+
+  return {
+    init(config, checkpoint) {
+      weights = checkpoint ? JSON.parse(checkpoint) : randomInit();
+    },
+    serialize() {
+      return JSON.stringify(weights);
+    },
+    learn(observation, reward) {
+      const x = features(observation);
+      const lr = 0.01;
+      for (let i = 0; i < weights.length; i += 1) {
+        weights[i] += lr * reward * x[i % x.length];
+      }
+    },
+    act(observation) {
+      const x = features(observation);
+      let best = 0;
+      let bestScore = -Infinity;
+      for (let a = 0; a < ACTION_COUNT; a += 1) {
+        let score = 0;
+        for (let i = 0; i < x.length; i += 1) {
+          score += weights[a * x.length + i] * x[i];
+        }
+        if (score > bestScore) {
+          bestScore = score;
+          best = a;
+        }
+      }
+      const presets = [
+        { thrust: 1, turn: 0, climb: 0, shoot: false },
+        { thrust: 0, turn: -1, climb: 0, shoot: false },
+        { thrust: 0, turn: 1, climb: 0, shoot: false },
+        { thrust: 0.8, turn: 0, climb: 0, shoot: true },
+      ];
+      return presets[best];
+    },
+  };
+})();
+```
+
 ## Output Expectations
 
 - Return only the final `agent.ts` source code as **plain text**.
@@ -306,3 +500,5 @@ globalThis.__agentExport = (() => {
 - Uses `observation.tick` for timing — never `Date.now()`
 - No `console`, `fetch`, `require`, `import`, or any host API calls
 - Purely synchronous — no `async`, no `await`, no `Promise`
+- Learning agents implement `serialize()` returning valid JSON; `init(config, checkpoint)` handles `checkpoint = null`
+- TF inference/training wrapped in `tf.tidy()` where applicable

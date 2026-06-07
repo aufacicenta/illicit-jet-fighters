@@ -15,11 +15,13 @@ import {
 } from "../components/Navbar/CockpitStatScreens";
 import { NavbarWalletTray } from "../components/Navbar/NavbarWalletTray";
 import { SettingStoryFrame } from "../components/SettingStory/SettingStoryFrame";
+import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import { Label } from "../components/ui/label";
 import { useAuth } from "../context/Auth/useAuth";
 import { routes } from "../hooks/useRoutes";
-import { fighterCreatePost, startPipeline } from "../lib/api";
+import { fighterIntakePost, startPipeline } from "../lib/api";
+import { fetchWalletSectionPreflight } from "../lib/api/wallet";
 import { PromptBar } from "./wizard/PromptBar";
 
 const SETTING_STORY_DISMISSED_STORAGE_KEY = "ijf:wizard-setting-story-dismissed";
@@ -45,13 +47,18 @@ const persistSettingStoryDismissed = (dismissed: boolean) => {
   }
 };
 
+type IntakeError = { kind: "insufficient-balance" } | { kind: "message"; message: string };
+
+const isInsufficientBalanceMessage = (message: string) =>
+  message.toLowerCase().includes("insufficient wallet balance");
+
 export const CreateFighterPage = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
   const [briefingPrompt, setBriefingPrompt] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [intakeError, setIntakeError] = useState<IntakeError | null>(null);
   const [settingStoryDismissed, setSettingStoryDismissed] = useState(readSettingStoryDismissed);
   const [storyFinished, setStoryFinished] = useState(readSettingStoryDismissed);
 
@@ -72,20 +79,34 @@ export const CreateFighterPage = () => {
     if (!token || isSubmittingRef.current) return;
     const prompt = briefingPrompt.trim();
     if (!prompt) {
-      setErrorMessage("Please enter a fighter briefing before starting intake.");
+      setIntakeError({
+        kind: "message",
+        message: "Please enter a fighter briefing before starting intake.",
+      });
       return;
     }
 
-    setErrorMessage(null);
+    setIntakeError(null);
     isSubmittingRef.current = true;
     setIsSubmitting(true);
     void (async () => {
       try {
-        const { id } = await fighterCreatePost();
+        const preflight = await fetchWalletSectionPreflight("character-description");
+        if (!preflight.sufficient) {
+          setIntakeError({ kind: "insufficient-balance" });
+          return;
+        }
+
+        const { id } = await fighterIntakePost();
         await startPipeline(id, prompt);
         navigate(routes.fighterWizard(String(id)), { replace: true });
       } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : "Could not start fighter intake.");
+        const message = error instanceof Error ? error.message : "Could not start fighter intake.";
+        setIntakeError(
+          isInsufficientBalanceMessage(message)
+            ? { kind: "insufficient-balance" }
+            : { kind: "message", message },
+        );
       } finally {
         isSubmittingRef.current = false;
         setIsSubmitting(false);
@@ -190,9 +211,20 @@ export const CreateFighterPage = () => {
           ) : null}
         </section>
 
-        {errorMessage ? (
-          <div className="mx-auto w-full max-w-2xl rounded-sm border border-destructive/40 bg-destructive/10 p-3 text-sm normal-case">
-            {errorMessage}
+        {intakeError ? (
+          <div className="mx-auto w-full max-w-2xl space-y-3 rounded-sm border border-destructive/40 bg-destructive/10 p-3 text-sm normal-case">
+            {intakeError.kind === "insufficient-balance" ? (
+              <>
+                <p>
+                  Insufficient wallet balance to start intake. Top up your wallet before continuing.
+                </p>
+                <Button asChild size="sm" type="button" variant="outline">
+                  <Link to={routes.terminalWallet()}>Open wallet</Link>
+                </Button>
+              </>
+            ) : (
+              <p>{intakeError.message}</p>
+            )}
           </div>
         ) : null}
       </div>

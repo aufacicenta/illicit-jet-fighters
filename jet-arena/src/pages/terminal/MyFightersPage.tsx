@@ -1,6 +1,6 @@
 import { type MyFighter, resolveFighterName } from "@ijf/shared";
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   CockpitBottomLeftSlot,
@@ -25,7 +25,12 @@ import {
 } from "../../components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { ArenaPoolsContextController } from "../../context/ArenaPools/ArenaPoolsContextController";
-import { routes } from "../../hooks/useRoutes";
+import {
+  isTerminalTab,
+  routes,
+  TERMINAL_TAB_QUERY_KEY,
+  type TerminalTab,
+} from "../../hooks/useRoutes";
 import {
   deleteBattlefield,
   deleteFighter,
@@ -46,16 +51,14 @@ const loadingSlots = Array.from({ length: 6 });
 const simulationLoadingSlots = Array.from({ length: 4 });
 const deleteSlideDurationMs = 300;
 
-const tabTitles: Record<MyTab, string> = {
+const tabTitles: Record<TerminalTab, string> = {
   "my-fighters": "Fighters",
   "my-battlefields": "Battlefields",
   "my-simulations": "Simulations",
   arena: "Arena",
 };
 
-type MyTab = "my-fighters" | "my-battlefields" | "my-simulations" | "arena";
-
-const terminalNavItems: { value: MyTab; label: string }[] = [
+const terminalNavItems: { value: TerminalTab; label: string }[] = [
   { value: "my-fighters", label: "Fighters" },
   { value: "my-battlefields", label: "Battlefields" },
   { value: "my-simulations", label: "Simulations" },
@@ -81,8 +84,10 @@ type SimulationPreviewById = Record<
 
 export const MyFightersPage = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<MyTab>("my-fighters");
-  const [hasFetchedTab, setHasFetchedTab] = useState<Record<MyTab, boolean>>({
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get(TERMINAL_TAB_QUERY_KEY);
+  const activeTab: TerminalTab = isTerminalTab(tabFromUrl) ? tabFromUrl : "my-fighters";
+  const [hasFetchedTab, setHasFetchedTab] = useState<Record<TerminalTab, boolean>>({
     "my-fighters": false,
     "my-battlefields": false,
     "my-simulations": false,
@@ -109,6 +114,22 @@ export const MyFightersPage = () => {
   const [simulationPreviewById, setSimulationPreviewById] = useState<SimulationPreviewById>({});
   const [isLoadingSimulations, setIsLoadingSimulations] = useState(false);
   const [simulationsError, setSimulationsError] = useState<string | null>(null);
+
+  const handleTabChange = (value: string) => {
+    const tab = value as TerminalTab;
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        if (tab === "my-fighters") {
+          next.delete(TERMINAL_TAB_QUERY_KEY);
+        } else {
+          next.set(TERMINAL_TAB_QUERY_KEY, tab);
+        }
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   const loadFighters = useCallback(async () => {
     setIsLoadingFighters(true);
@@ -409,7 +430,7 @@ export const MyFightersPage = () => {
         </CockpitBottomRightSlot>
       </CockpitStatScreens>
       <div className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 md:px-6">
-        <Tabs onValueChange={(value) => setActiveTab(value as MyTab)} value={activeTab}>
+        <Tabs onValueChange={handleTabChange} value={activeTab}>
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start lg:gap-8">
             <aside className="w-full lg:sticky lg:top-6 lg:order-2">
               <div className="mb-4 flex flex-col gap-2 pt-3">

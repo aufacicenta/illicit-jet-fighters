@@ -1,31 +1,38 @@
 import type { FighterAgentVersionsResponse, MyFightersResponse } from "@ijf/shared";
 import {
   fighterAgentVersionsResponseSchema,
+  fighterCheckpointResponseSchema,
   fighterIdPathParamsSchema,
   fighterIdResponseSchema,
+  fighterIntakeResponseSchema,
   myFightersResponseSchema,
 } from "@ijf/shared";
 import { Elysia, t } from "elysia";
 
 import { listFighterAgentVersionsForOwnerAndFighter } from "../../lib/agent-version-repository";
 import {
+  getFighterCheckpointForSimulation,
+  getLatestFighterCheckpointForOwner,
+} from "../../lib/checkpoint-repository";
+import {
   createFighterForUser,
   deleteOwnedFighter,
-  ensureFighterForUser,
   fighterKeyFromId,
   getOwnedFighter,
   listOwnedFighters,
   parseFighterIdParam,
 } from "../../lib/fighter-access";
 import { resolveOwnedFighterPfpUrl } from "../../lib/fighter-assets";
+import { resolveFighterForIntake } from "../../lib/fighter-intake";
 import {
   bindPipelineTenant,
   buildFighterPreviewFromSnapshot,
   clearPipelineStateForFighter,
   serializeClientPipelineState,
 } from "../../lib/pipeline-runner";
-import { deleteObjectsByPrefix } from "../../lib/r2";
+import { deleteObjectsByPrefix, getSignedReadUrl } from "../../lib/r2";
 import { requireBearerAuth } from "../../lib/require-bearer-auth";
+import { isInsufficientBalanceError } from "../../lib/wallet/route-errors";
 
 const fighterStoragePrefix = (userId: string, fighterId: number) =>
   `users/${userId}/fighters/${String(fighterId)}/`;
@@ -47,16 +54,25 @@ export const fighterSessionRoutes = new Elysia({ prefix: "/fighters" })
     },
   )
   .post(
-    "/session",
-    async ({ request, headers }) => {
+    "/intake",
+    async ({ request, headers, status }) => {
       const auth = await requireBearerAuth(request, headers);
-      const id = await ensureFighterForUser(auth.userId);
-      return { id };
+
+      try {
+        const result = await resolveFighterForIntake(auth.userId);
+        return fighterIntakeResponseSchema.parse(result);
+      } catch (error) {
+        if (isInsufficientBalanceError(error)) {
+          return status(402, error.message);
+        }
+        throw error;
+      }
     },
     {
       response: {
-        200: fighterIdResponseSchema,
+        200: fighterIntakeResponseSchema,
         401: t.String(),
+        402: t.String(),
         403: t.String(),
       },
     },
@@ -133,13 +149,23 @@ export const fighterSessionRoutes = new Elysia({ prefix: "/fighters" })
         fighterId,
         userId: auth.userId,
       });
+      const checkpointFlags = await Promise.all(
+        versions.map((version) =>
+          getLatestFighterCheckpointForOwner({
+            fighterId,
+            userId: auth.userId,
+            agentVersionId: version.id,
+          }),
+        ),
+      );
 
       return {
-        versions: versions.map((version) => ({
+        versions: versions.map((version, index) => ({
           id: version.id,
           fighterId: version.fighterId,
           versionNumber: version.versionNumber,
           model: version.model,
+          hasCheckpoint: checkpointFlags[index] !== null,
           createdAt: version.createdAt.toISOString(),
         })),
       } satisfies FighterAgentVersionsResponse;
@@ -148,6 +174,62 @@ export const fighterSessionRoutes = new Elysia({ prefix: "/fighters" })
       params: fighterIdPathParamsSchema,
       response: {
         200: fighterAgentVersionsResponseSchema,
+        400: t.String(),
+        401: t.String(),
+        403: t.String(),
+        404: t.String(),
+      },
+    },
+  )
+  .get(
+    "/:id/checkpoint",
+    async ({ params, query, request, headers, status }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const fighterId = parseFighterIdParam(params.id);
+      if (!fighterId) {
+        return status(400, "Invalid fighter id.");
+      }
+
+      const ownedFighter = await getOwnedFighter(fighterId, auth.userId);
+      if (!ownedFighter) {
+        return status(404, "Fighter not found.");
+      }
+
+      const simulationId =
+        typeof query.simulationId === "string" && query.simulationId.trim().length > 0
+          ? query.simulationId.trim()
+          : null;
+
+      const checkpoint = simulationId
+        ? await getFighterCheckpointForSimulation({
+            fighterId,
+            userId: auth.userId,
+            simulationId,
+          })
+        : await getLatestFighterCheckpointForOwner({
+            fighterId,
+            userId: auth.userId,
+          });
+
+      if (!checkpoint) {
+        return status(404, "Checkpoint not found.");
+      }
+
+      const signedUrl = await getSignedReadUrl(checkpoint.objectKey);
+      return {
+        signedUrl,
+        simulationId: checkpoint.simulationId,
+        sizeBytes: checkpoint.sizeBytes,
+        createdAt: checkpoint.createdAt.toISOString(),
+      };
+    },
+    {
+      params: fighterIdPathParamsSchema,
+      query: t.Object({
+        simulationId: t.Optional(t.String()),
+      }),
+      response: {
+        200: fighterCheckpointResponseSchema,
         400: t.String(),
         401: t.String(),
         403: t.String(),

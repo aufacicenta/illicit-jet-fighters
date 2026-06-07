@@ -1,22 +1,10 @@
+import { FIGHTER_PIPELINE_SECTION_ORDER } from "@ijf/shared";
+
 import type { FighterSectionId, SectionOutput } from "./types";
 
 export type SectionStatus = "locked" | "ready" | "generating" | "complete" | "error";
 
-const sectionOrder: FighterSectionId[] = [
-  "character-description",
-  "character-pfp-prompt",
-  "character-pfp-image",
-  "specsheet-prompt",
-  "specsheet-image",
-  "spritesheet-prompt",
-  "spritesheet-image",
-  "spritesheet-manifest",
-  "agent-code",
-  "strikecraft-specsheet-prompt",
-  "strikecraft-specsheet-image",
-  "strikecraft-sprite-prompt",
-  "strikecraft-sprite-image",
-];
+const sectionOrder: FighterSectionId[] = FIGHTER_PIPELINE_SECTION_ORDER;
 
 export type PipelineSnapshot = {
   outputs: Partial<Record<FighterSectionId, SectionOutput>>;

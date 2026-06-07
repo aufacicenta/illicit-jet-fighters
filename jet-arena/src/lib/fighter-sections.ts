@@ -1,3 +1,11 @@
+import {
+  countCompletedFighterIntakeSections,
+  FIGHTER_INTAKE_REQUIRED_SECTION_IDS,
+  FIGHTER_PHASE_ONE_SECTION_IDS,
+  FIGHTER_PHASE_TWO_SECTION_IDS,
+  isFighterPipelineFullyComplete,
+} from "@ijf/shared";
+
 import type { SectionId, SectionStatus } from "../context/Wizard/WizardContext.types";
 
 export type FighterSectionDef = { id: SectionId; label: string };
@@ -20,26 +28,19 @@ export const PHASE_TWO_SECTIONS: FighterSectionDef[] = [
   { id: "strikecraft-sprite-image", label: "craft top render" },
 ];
 
-export const PHASE_ONE_SECTION_IDS: SectionId[] = PHASE_ONE_SECTIONS.map((s) => s.id);
-export const PHASE_TWO_SECTION_IDS: SectionId[] = PHASE_TWO_SECTIONS.map((s) => s.id);
+export const PHASE_ONE_SECTION_IDS: SectionId[] = FIGHTER_PHASE_ONE_SECTION_IDS;
+export const PHASE_TWO_SECTION_IDS: SectionId[] = FIGHTER_PHASE_TWO_SECTION_IDS;
 
-export const ALL_REQUIRED_SECTION_IDS: SectionId[] = [
-  ...PHASE_ONE_SECTION_IDS,
-  ...PHASE_TWO_SECTION_IDS,
-];
+export const ALL_REQUIRED_SECTION_IDS: SectionId[] = FIGHTER_INTAKE_REQUIRED_SECTION_IDS;
 
 export const isPhaseComplete = (
   phaseSectionIds: SectionId[],
   sectionStatuses: Partial<Record<SectionId, SectionStatus>> | Record<string, string>,
 ) => phaseSectionIds.every((id) => sectionStatuses[id] === "complete");
 
-export const isFighterFullyComplete = (
-  sectionStatuses: Partial<Record<SectionId, SectionStatus>> | Record<string, string>,
-) => isPhaseComplete(ALL_REQUIRED_SECTION_IDS, sectionStatuses);
+export const isFighterFullyComplete = isFighterPipelineFullyComplete;
 
-export const countCompletedRequiredSections = (
-  sectionStatuses: Partial<Record<SectionId, SectionStatus>> | Record<string, string>,
-) => ALL_REQUIRED_SECTION_IDS.filter((id) => sectionStatuses[id] === "complete").length;
+export const countCompletedRequiredSections = countCompletedFighterIntakeSections;
 
 export type FighterIneligibilityReason =
   | { kind: "wizard-incomplete"; status: string }

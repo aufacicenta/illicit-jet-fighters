@@ -1,3 +1,5 @@
+import { hasPersistedPromptContent } from "@ijf/shared";
+
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
@@ -17,7 +19,9 @@ export const StrikecraftSpriteSection = () => {
   } = useWizardContext();
   const imageOutput = outputs["strikecraft-sprite-image"];
   const imageStatus = sectionStatuses["strikecraft-sprite-image"];
-  const hasStrikecraftSpritePrompt = Boolean(outputs["strikecraft-sprite-prompt"]?.content);
+  const hasStrikecraftSpritePrompt = hasPersistedPromptContent(
+    outputs["strikecraft-sprite-prompt"]?.content,
+  );
   const hasStrikecraftSpecsheetPrompt = Boolean(outputs["strikecraft-specsheet-prompt"]?.content);
   const hasCharacterDescription = Boolean(outputs["character-description"]?.content);
   const canRegenerate =

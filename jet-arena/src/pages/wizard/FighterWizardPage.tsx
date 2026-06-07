@@ -158,7 +158,7 @@ const WizardLayout = () => {
   const continueLabel = isContinuingPipeline
     ? "Initializing…"
     : phaseOneComplete && phaseTwoComplete
-      ? "Configure Simulation"
+      ? "Enter Arena"
       : phaseOneComplete
         ? "Continue Phase 2"
         : "Continue";
@@ -186,7 +186,7 @@ const WizardLayout = () => {
       return;
     }
 
-    navigate(routes.terminalSimulation());
+    navigate(routes.terminalFighters("arena"));
   };
   const phaseTwoNavItemIds = new Set(phaseTwoNavItems.map((item) => item.id));
   const sectionNavItems = [...phaseOneNavItems, ...phaseTwoNavItems];

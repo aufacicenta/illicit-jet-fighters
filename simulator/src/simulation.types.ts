@@ -12,6 +12,7 @@ export type SimulationPlayerConfig = {
   id: string;
   code: string;
   fighterId?: number | null;
+  checkpoint?: string | null;
 };
 
 export type StartSimulationInput = {
@@ -29,13 +30,15 @@ export type WorkerActionResponseMessage = {
 };
 
 export type AgentWorkerRequestMessage =
-  | { type: "LOAD_AGENT"; payload: { code: string } }
-  | { type: "TICK"; payload: { requestId: number; observation: Observation; reward: number } };
+  | { type: "LOAD_AGENT"; payload: { code: string; checkpoint?: string | null } }
+  | { type: "TICK"; payload: { requestId: number; observation: Observation; reward: number } }
+  | { type: "EXPORT_CHECKPOINT" };
 
 export type AgentWorkerResponseMessage =
   | { type: "AGENT_READY" }
   | { type: "AGENT_ERROR"; payload: { error: string } }
-  | WorkerActionResponseMessage;
+  | WorkerActionResponseMessage
+  | { type: "CHECKPOINT_DATA"; payload: { data: string | null } };
 
 export type SimulationWorkerRequestMessage = {
   type: "START";
@@ -53,6 +56,7 @@ export type SimulationWorkerResponseMessage =
         winnerFighterId: number | null;
         replayHashHex: string;
         frames: ReplayFrame[];
+        checkpoints: Record<string, string | null>;
       };
     }
   | { type: "ERROR"; broadcastId: string; data: { message: string } };

@@ -32,7 +32,15 @@ export const fighterAgentVersionSchema = z.object({
   fighterId: z.number().int().positive(),
   versionNumber: z.number().int().positive(),
   model: z.string().nullable(),
+  hasCheckpoint: z.boolean().optional(),
   createdAt: z.string().datetime(),
+});
+
+export const fighterCheckpointResponseSchema = z.object({
+  signedUrl: z.string().url(),
+  simulationId: z.string().uuid().nullable(),
+  sizeBytes: z.number().int().nonnegative().nullable(),
+  createdAt: z.string().datetime().nullable(),
 });
 
 export const fighterAgentVersionsResponseSchema = z.object({
@@ -41,6 +49,11 @@ export const fighterAgentVersionsResponseSchema = z.object({
 
 export const fighterIdResponseSchema = z.object({
   id: z.number().int().positive(),
+});
+
+export const fighterIntakeResponseSchema = z.object({
+  id: z.number().int().positive(),
+  resumed: z.boolean(),
 });
 
 export const publicFighterSchema = z.object({
@@ -76,7 +89,9 @@ export type MyFighter = z.infer<typeof myFighterSchema>;
 export type MyFightersResponse = z.infer<typeof myFightersResponseSchema>;
 export type FighterAgentVersion = z.infer<typeof fighterAgentVersionSchema>;
 export type FighterAgentVersionsResponse = z.infer<typeof fighterAgentVersionsResponseSchema>;
+export type FighterCheckpointResponse = z.infer<typeof fighterCheckpointResponseSchema>;
 export type FighterIdResponse = z.infer<typeof fighterIdResponseSchema>;
+export type FighterIntakeResponse = z.infer<typeof fighterIntakeResponseSchema>;
 export type PublicFighter = z.infer<typeof publicFighterSchema>;
 export type PublicFighterDetail = z.infer<typeof publicFighterDetailSchema>;
 export type PublicFightersQuery = z.infer<typeof publicFightersQuerySchema>;

@@ -8,7 +8,9 @@ export type {
 } from "./api/battlefield-pipeline";
 export {
   fighterAgentVersionsResponseSchema,
+  fighterCheckpointResponseSchema,
   fighterIdResponseSchema,
+  fighterIntakeResponseSchema,
   fighterSectionStatusSchema,
   myFightersResponseSchema,
   myFighterSchema,
@@ -20,7 +22,9 @@ export {
 export type {
   FighterAgentVersion,
   FighterAgentVersionsResponse,
+  FighterCheckpointResponse,
   FighterIdResponse,
+  FighterIntakeResponse,
   FighterSectionStatus,
   MyFighter,
   MyFightersResponse,

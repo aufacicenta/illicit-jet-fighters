@@ -82,7 +82,7 @@ export default defineConfig(({ mode }) => {
       port: 5174,
       proxy: {
         // Only proxy the REST handler; SPA route `/fighters/new` must not hit the API.
-        "/fighters/session": { target: apiTarget, changeOrigin: true },
+        "/fighters/intake": { target: apiTarget, changeOrigin: true },
         "/assets": { target: apiTarget, changeOrigin: true },
         // Do not proxy `/agents/*` broadly: Vite serves `jet-arena/agents/**` as module URLs (e.g. .../agent.ts?raw).
         // API only exposes POST /agents/:id/package (see api/src/routes/storage/index.ts).

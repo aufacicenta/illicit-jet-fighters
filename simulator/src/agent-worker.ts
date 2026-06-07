@@ -3,6 +3,8 @@ import { CONFIG, IDLE_ACTION, type Observation } from "@ijf/shared/simulation";
 
 import type { AgentWorkerRequestMessage, AgentWorkerResponseMessage } from "./simulation.types";
 
+const MAX_CHECKPOINT_BYTES = 2 * 1024 * 1024;
+
 let agent: AgentModule | null = null;
 
 const sanitizeAction = (action: Partial<AgentAction> | undefined): AgentAction => ({
@@ -35,18 +37,43 @@ const compileAgent = (code: string, tfLib: unknown): AgentModule => {
   return resolved;
 };
 
-const handleLoadAgent = async (code: string): Promise<void> => {
+const handleLoadAgent = async (
+  code: string,
+  checkpoint: string | null | undefined,
+): Promise<void> => {
   try {
     const needsTensorFlow = /\btf\./.test(code);
     const tfLib = needsTensorFlow ? await import("@tensorflow/tfjs") : undefined;
     agent = compileAgent(code, tfLib);
-    agent.init(CONFIG);
+    agent.init(CONFIG, checkpoint ?? null);
     postResponse({ type: "AGENT_READY" });
   } catch (error) {
     postResponse({
       type: "AGENT_ERROR",
       payload: { error: error instanceof Error ? error.message : String(error) },
     });
+  }
+};
+
+const handleExportCheckpoint = (): void => {
+  if (!agent || typeof agent.serialize !== "function") {
+    postResponse({ type: "CHECKPOINT_DATA", payload: { data: null } });
+    return;
+  }
+
+  try {
+    const serialized = agent.serialize();
+    if (typeof serialized !== "string" || serialized.length === 0) {
+      postResponse({ type: "CHECKPOINT_DATA", payload: { data: null } });
+      return;
+    }
+    if (serialized.length > MAX_CHECKPOINT_BYTES) {
+      postResponse({ type: "CHECKPOINT_DATA", payload: { data: null } });
+      return;
+    }
+    postResponse({ type: "CHECKPOINT_DATA", payload: { data: serialized } });
+  } catch {
+    postResponse({ type: "CHECKPOINT_DATA", payload: { data: null } });
   }
 };
 
@@ -76,10 +103,13 @@ const handleTick = (requestId: number, observation: Observation, reward: number)
 
 self.onmessage = (event: MessageEvent<AgentWorkerRequestMessage>) => {
   if (event.data.type === "LOAD_AGENT") {
-    void handleLoadAgent(event.data.payload.code);
+    void handleLoadAgent(event.data.payload.code, event.data.payload.checkpoint);
   }
   if (event.data.type === "TICK") {
     const { requestId, observation, reward } = event.data.payload;
     handleTick(requestId, observation, reward);
+  }
+  if (event.data.type === "EXPORT_CHECKPOINT") {
+    handleExportCheckpoint();
   }
 };

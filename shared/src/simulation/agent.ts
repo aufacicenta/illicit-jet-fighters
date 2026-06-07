@@ -82,7 +82,9 @@ export interface Observation {
 }
 
 export interface AgentModule {
-  init: (config: RuntimeConfig) => void;
+  init: (config: RuntimeConfig, checkpoint?: string | null) => void;
   act: (observation: Observation) => AgentAction;
   learn: (observation: Observation, reward: number) => void;
+  serialize?: () => string;
+  deserialize?: (data: string) => void;
 }

@@ -53,6 +53,7 @@ mock.module("@ijf/database", () => {
 
   return {
     and: (...args: unknown[]) => args,
+    desc: (value: unknown) => value,
     eq: (...args: unknown[]) => args,
     db,
     broadcasts,
@@ -96,6 +97,7 @@ describe("createSimulationAndBroadcast", () => {
         agentObjectKey: null,
         agentHash: "abc123",
         agentVersionId: "version-001",
+        checkpointHash: null,
       },
     ]);
   });

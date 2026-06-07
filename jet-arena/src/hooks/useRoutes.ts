@@ -24,6 +24,20 @@ const resolveWsBase = (): string => {
 
 const WS_BASE = resolveWsBase();
 
+export const TERMINAL_TAB_QUERY_KEY = "tab" as const;
+
+export const terminalTabValues = [
+  "my-fighters",
+  "my-battlefields",
+  "my-simulations",
+  "arena",
+] as const;
+
+export type TerminalTab = (typeof terminalTabValues)[number];
+
+export const isTerminalTab = (value: string | null): value is TerminalTab =>
+  value !== null && (terminalTabValues as readonly string[]).includes(value);
+
 export const routes = {
   home: () => "/",
   broadcast: (id: string) => `/broadcast/${id}`,
@@ -32,7 +46,10 @@ export const routes = {
   createBattlefield: () => `/battlefields/new`,
   fighterWizard: (id: string) => `/wizard/fighter/${id}`,
   battlefieldWizard: (id: string) => `/wizard/battlefield/${id}`,
-  terminalFighters: () => `/terminal/fighters`,
+  terminalFighters: (tab?: TerminalTab) => {
+    const path = `/terminal/fighters`;
+    return tab ? `${path}?${TERMINAL_TAB_QUERY_KEY}=${encodeURIComponent(tab)}` : path;
+  },
   terminalFighterBalance: (fighterId: string) => `/terminal/fighters/${fighterId}/balance`,
   terminalWallet: () => `/terminal/wallet`,
   /** Deprecated singular route kept only for backward-compatible redirects. */
@@ -51,7 +68,11 @@ export const apiRoutes = {
   battlefieldSession: `${API_BASE}/battlefields/session`,
   fighterAgentVersions: (id: number) =>
     `${API_BASE}/fighters/${encodeURIComponent(String(id))}/agent-versions`,
-  fighterSession: `${API_BASE}/fighters/session`,
+  fighterCheckpoint: (id: number, simulationId?: string) => {
+    const base = `${API_BASE}/fighters/${encodeURIComponent(String(id))}/checkpoint`;
+    return simulationId ? `${base}?simulationId=${encodeURIComponent(simulationId)}` : base;
+  },
+  fighterIntake: `${API_BASE}/fighters/intake`,
   arenaPools: `${API_BASE}/arena/pools`,
   arenaPool: (poolId: string) => `${API_BASE}/arena/pools/${encodeURIComponent(poolId)}`,
   arenaPoolEnter: (poolId: string) => `${API_BASE}/arena/pools/${encodeURIComponent(poolId)}/enter`,
@@ -85,6 +106,8 @@ export const apiRoutes = {
   generateSpecsheetImage: `${API_BASE}/generate/specsheet-image`,
   refineSpecsheetImage: `${API_BASE}/generate/specsheet-image/refine`,
   walletMe: `${API_BASE}/wallet/me`,
+  walletPreflight: (sectionId: string) =>
+    `${API_BASE}/wallet/me/preflight?sectionId=${encodeURIComponent(sectionId)}`,
   walletLedger: `${API_BASE}/wallet/me/ledger`,
   walletFighterLedger: (fighterId: string) =>
     `${API_BASE}/wallet/me/fighters/${encodeURIComponent(fighterId)}/ledger`,

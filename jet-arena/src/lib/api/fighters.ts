@@ -1,16 +1,32 @@
 import {
   type FighterAgentVersionsResponse,
   fighterAgentVersionsResponseSchema,
+  type FighterIntakeResponse,
+  fighterIntakeResponseSchema,
   type MyFightersResponse,
   myFightersResponseSchema,
 } from "@ijf/shared";
 
 import { apiRoutes } from "../../hooks/useRoutes";
-import { authHeadersJson, post, readErrorText } from "./client";
+import { authHeadersJson, readErrorText } from "./client";
 
-export const fighterSessionPost = async () => post<{ id: number }>(apiRoutes.fighterSession, {});
+export const fighterIntakePost = async (): Promise<FighterIntakeResponse> => {
+  const response = await fetch(apiRoutes.fighterIntake, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeadersJson(),
+    },
+    body: JSON.stringify({}),
+  });
 
-export const fighterCreatePost = async () => post<{ id: number }>(apiRoutes.fighters, {});
+  if (!response.ok) {
+    throw new Error(await readErrorText(response));
+  }
+
+  const payload = (await response.json()) as unknown;
+  return fighterIntakeResponseSchema.parse(payload);
+};
 
 export const fetchMyFighters = async (): Promise<MyFightersResponse> => {
   const response = await fetch(apiRoutes.fighters, {

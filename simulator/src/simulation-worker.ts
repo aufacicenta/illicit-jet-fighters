@@ -45,6 +45,8 @@ const hashReplay = async (frames: ReplayFrame[]): Promise<string> => {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 };
 
+const CHECKPOINT_EXPORT_TIMEOUT_MS = 3000;
+
 class SimulationWorkerRuntime {
   private world: GameWorld | null = null;
   private workers: Map<string, Worker> = new Map();
@@ -174,6 +176,7 @@ class SimulationWorkerRuntime {
     const winnerId = this.world.getWinnerId();
     if (this.world.isTerminalState()) {
       const replayHashHex = await hashReplay(this.world.replayLog);
+      const checkpoints = await this.exportCheckpoints();
       self.postMessage({
         type: "END",
         broadcastId: this.broadcastId,
@@ -182,6 +185,7 @@ class SimulationWorkerRuntime {
           winnerFighterId: winnerId ? (this.fighterIdByPlayerId.get(winnerId) ?? null) : null,
           replayHashHex,
           frames: this.world.replayLog,
+          checkpoints,
         },
       } satisfies SimulationWorkerResponseMessage);
       this.stop();
@@ -213,9 +217,42 @@ class SimulationWorkerRuntime {
 
     worker.postMessage({
       type: "LOAD_AGENT",
-      payload: { code: player.code },
+      payload: { code: player.code, checkpoint: player.checkpoint ?? null },
     });
     this.workers.set(player.id, worker);
+  }
+
+  private exportCheckpoints(): Promise<Record<string, string | null>> {
+    const entries = [...this.workers.entries()];
+    if (entries.length === 0) {
+      return Promise.resolve({});
+    }
+
+    return Promise.all(
+      entries.map(async ([playerId, worker]) => {
+        const data = await this.requestCheckpointExport(worker);
+        return [playerId, data] as const;
+      }),
+    ).then((results) => Object.fromEntries(results));
+  }
+
+  private requestCheckpointExport(worker: Worker): Promise<string | null> {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        worker.removeEventListener("message", onMessage);
+        resolve(null);
+      }, CHECKPOINT_EXPORT_TIMEOUT_MS);
+
+      const onMessage = (event: MessageEvent<AgentWorkerResponseMessage>) => {
+        if (event.data.type !== "CHECKPOINT_DATA") return;
+        clearTimeout(timeout);
+        worker.removeEventListener("message", onMessage);
+        resolve(event.data.payload.data);
+      };
+
+      worker.addEventListener("message", onMessage);
+      worker.postMessage({ type: "EXPORT_CHECKPOINT" });
+    });
   }
 
   private requestAction(

@@ -69,3 +69,23 @@ export const requirePreflightBalance = async ({
 
   return { ok: true as const, balanceNative, requiredNative, walletId: wallet.id };
 };
+
+export const getPreflightBalanceSnapshot = async ({
+  userId,
+  sectionId,
+}: {
+  userId: string;
+  sectionId: SectionId;
+}) => {
+  const network = getWalletNetwork();
+  const networkEnv = getWalletNetworkEnv();
+  const wallet = await ensureUserWallet({ userId, network });
+  const requiredNative = await estimateRequiredNative(sectionId);
+  const balanceNative = await getWalletBalanceNative(wallet.id, networkEnv);
+
+  return {
+    sufficient: balanceNative >= requiredNative,
+    balanceNative: balanceNative.toString(),
+    requiredNative: requiredNative.toString(),
+  };
+};

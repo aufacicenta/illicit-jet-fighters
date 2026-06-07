@@ -7,6 +7,7 @@ import {
   resolveFighterName,
   type SpritesheetManifest,
 } from "@ijf/shared";
+import { createLogger } from "@ijf/shared/logger";
 import { simulationManager } from "@ijf/simulator";
 
 import {
@@ -14,6 +15,11 @@ import {
   getLatestFighterAgentVersionForHash,
 } from "./agent-version-repository";
 import { releaseArenaSimulationOnError, settleArenaSimulation } from "./arena/arena-settlement";
+import { readCheckpointArtifact, writeCheckpointArtifacts } from "./checkpoint-artifacts";
+import {
+  createFighterCheckpoint,
+  getLatestFighterCheckpointForOwner,
+} from "./checkpoint-repository";
 import {
   bindPipelineTenant,
   type ClientPipelineStateSnapshot,
@@ -43,6 +49,8 @@ import {
   markSimulationStartFailed,
 } from "./simulation-repository";
 
+const logger = createLogger("simulation-orchestrator");
+
 type AgentSource = "r2" | "pipeline" | "fallback";
 
 type ResolvedSimulationPlayer = {
@@ -55,6 +63,8 @@ type ResolvedSimulationPlayer = {
   hash: string;
   agentVersionId: string | null;
   agentVersionNumber: number | null;
+  checkpoint: string | null;
+  checkpointHash: string | null;
 };
 
 type ActiveSimulation = {
@@ -86,6 +96,77 @@ self.__agentExport = {
 `;
 
 const hashContent = (value: string) => createHash("sha256").update(value).digest("hex");
+
+const loadLatestCheckpointForPlayer = async (
+  player: Pick<ResolvedSimulationPlayer, "fighterId" | "ownerUserId" | "agentVersionId">,
+): Promise<{ checkpoint: string | null; checkpointHash: string | null }> => {
+  const latest = await getLatestFighterCheckpointForOwner({
+    fighterId: player.fighterId,
+    userId: player.ownerUserId,
+    agentVersionId: player.agentVersionId,
+  });
+  if (!latest) {
+    return { checkpoint: null, checkpointHash: null };
+  }
+
+  const checkpoint = await readCheckpointArtifact(latest.objectKey);
+  if (!checkpoint) {
+    return { checkpoint: null, checkpointHash: null };
+  }
+
+  return {
+    checkpoint,
+    checkpointHash: hashContent(checkpoint),
+  };
+};
+
+const persistSimulationCheckpoints = async ({
+  simulationId,
+  checkpoints,
+  players,
+}: {
+  simulationId: string;
+  checkpoints: Record<string, string | null>;
+  players: Array<{
+    id: string;
+    fighterId: number;
+    ownerUserId: string;
+    agentVersionId: string | null;
+  }>;
+}) => {
+  await Promise.all(
+    players.map(async (player) => {
+      const checkpointData = checkpoints[player.id];
+      if (!checkpointData) {
+        return;
+      }
+
+      const artifact = await writeCheckpointArtifacts({
+        userId: player.ownerUserId,
+        fighterId: player.fighterId,
+        simulationId,
+        checkpointData,
+      });
+      if (!artifact) {
+        logger.warn("checkpoint artifact rejected", {
+          simulationId,
+          fighterId: player.fighterId,
+          playerId: player.id,
+        });
+        return;
+      }
+
+      await createFighterCheckpoint({
+        fighterId: player.fighterId,
+        userId: player.ownerUserId,
+        simulationId,
+        agentVersionId: player.agentVersionId,
+        objectKey: artifact.objectKey,
+        sizeBytes: artifact.sizeBytes,
+      });
+    }),
+  );
+};
 
 const resolvePlayerFromSources = async ({
   userId,
@@ -138,6 +219,8 @@ const resolvePlayerFromSources = async ({
       hash: hashContent(versionCode),
       agentVersionId: selectedVersion.id,
       agentVersionNumber: selectedVersion.versionNumber,
+      checkpoint: null,
+      checkpointHash: null,
     };
   }
 
@@ -156,6 +239,8 @@ const resolvePlayerFromSources = async ({
         hash: hashContent(code),
         agentVersionId: null,
         agentVersionNumber: null,
+        checkpoint: null,
+        checkpointHash: null,
       };
     }
   }
@@ -178,6 +263,8 @@ const resolvePlayerFromSources = async ({
       hash: contentHash,
       agentVersionId: latestVersion?.id ?? null,
       agentVersionNumber: latestVersion?.versionNumber ?? null,
+      checkpoint: null,
+      checkpointHash: null,
     };
   }
 
@@ -191,6 +278,8 @@ const resolvePlayerFromSources = async ({
     hash: hashContent(FALLBACK_AGENT_CODE),
     agentVersionId: null,
     agentVersionNumber: null,
+    checkpoint: null,
+    checkpointHash: null,
   };
 };
 
@@ -268,6 +357,9 @@ const finalizeEndedSimulation = async ({
   winnerFighterId,
   replayHashHex,
   frames,
+  checkpoints,
+  arenaPoolId,
+  players,
 }: {
   simulationId: string;
   userId: string;
@@ -276,6 +368,14 @@ const finalizeEndedSimulation = async ({
   winnerFighterId: number | null;
   replayHashHex: string;
   frames: ReplayFrame[];
+  checkpoints?: Record<string, string | null>;
+  arenaPoolId?: string | null;
+  players?: Array<{
+    id: string;
+    fighterId: number;
+    ownerUserId: string;
+    agentVersionId: string | null;
+  }>;
 }) => {
   const active = activeByBroadcastId.get(broadcastId);
   if (!active || active.isFinalized) {
@@ -300,6 +400,20 @@ const finalizeEndedSimulation = async ({
     replayObjectKey,
     broadcastEventsObjectKey,
   });
+
+  if (arenaPoolId && checkpoints && players && players.length > 0) {
+    void persistSimulationCheckpoints({
+      simulationId,
+      checkpoints,
+      players,
+    }).catch((error) => {
+      logger.warn("checkpoint persistence failed", {
+        simulationId,
+        broadcastId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
+  }
 
   await settleArenaSimulation({
     simulationId,
@@ -403,8 +517,22 @@ export const startSimulationForRoster = async ({
     ),
   );
 
+  const playersWithCheckpoints =
+    arenaPoolId === null || arenaPoolId === undefined
+      ? players
+      : await Promise.all(
+          players.map(async (player) => {
+            const loaded = await loadLatestCheckpointForPlayer(player);
+            return {
+              ...player,
+              checkpoint: loaded.checkpoint,
+              checkpointHash: loaded.checkpointHash,
+            };
+          }),
+        );
+
   const playerMetaEntries = await Promise.all(
-    players.map(async (player) => [
+    playersWithCheckpoints.map(async (player) => [
       player.id,
       await getPlayerSpritesheetMeta(
         player.ownerUserId,
@@ -421,7 +549,7 @@ export const startSimulationForRoster = async ({
     broadcastId,
     seed: resolvedSeed,
     arenaPoolId: arenaPoolId ?? null,
-    participants: players.map((player, index) => ({
+    participants: playersWithCheckpoints.map((player, index) => ({
       fighterId: player.fighterId,
       playerSlot: index,
       playerId: player.id,
@@ -429,6 +557,7 @@ export const startSimulationForRoster = async ({
       agentObjectKey: player.objectKey,
       agentHash: player.hash,
       agentVersionId: player.agentVersionId,
+      checkpointHash: player.checkpointHash,
     })),
   });
 
@@ -443,10 +572,11 @@ export const startSimulationForRoster = async ({
   try {
     simulationManager.startSimulation({
       broadcastId,
-      players: players.map((player) => ({
+      players: playersWithCheckpoints.map((player) => ({
         id: player.id,
         code: player.code,
         fighterId: player.fighterId,
+        checkpoint: player.checkpoint,
       })),
       playerMetaById,
       seed: resolvedSeed,
@@ -478,6 +608,14 @@ export const startSimulationForRoster = async ({
             winnerFighterId: end.data.winnerFighterId,
             replayHashHex: end.data.replayHashHex,
             frames: end.data.frames,
+            checkpoints: end.data.checkpoints,
+            arenaPoolId: arenaPoolId ?? null,
+            players: playersWithCheckpoints.map((player) => ({
+              id: player.id,
+              fighterId: player.fighterId,
+              ownerUserId: player.ownerUserId,
+              agentVersionId: player.agentVersionId,
+            })),
           });
         },
         onError: async (error) => {
