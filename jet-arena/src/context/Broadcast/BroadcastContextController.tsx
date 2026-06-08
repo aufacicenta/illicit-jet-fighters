@@ -359,11 +359,22 @@ export const BroadcastContextController = ({
     if (replayAutoplayInitializedRef.current) return;
     if (frames.length === 0) return;
 
+    const isRunning = statusSnapshot?.status === "running" && endSummary === null;
+    const isEnded =
+      endSummary !== null ||
+      statusSnapshot?.status === "ended" ||
+      statusSnapshot?.status === "error";
+
+    if (!isRunning && !isEnded) return;
+
     replayAutoplayInitializedRef.current = true;
+
+    if (isRunning) return;
+
     setIsFollowingLive(false);
     setFrameIndex(0);
     setIsPlayingReplay(true);
-  }, [frames.length]);
+  }, [endSummary, frames.length, statusSnapshot]);
 
   useEffect(() => {
     if (!isPlayingReplay) return;

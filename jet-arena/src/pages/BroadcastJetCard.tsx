@@ -216,16 +216,20 @@ export const BroadcastJetCard = ({
       className={`flex w-[220px] items-start gap-2 rounded-md border border-slate-700/80 bg-slate-950/75 p-2 font-mono text-[10px] text-slate-200 shadow-md backdrop-blur-[1px] ${cardJustifyClass}`}
       style={{ borderLeftColor: accent, borderLeftWidth: "3px" } as CSSProperties}
     >
-      <div className="h-11 w-11 overflow-hidden rounded border border-slate-700 bg-slate-900">
+      <div className="aspect-square h-11 w-11 shrink-0 overflow-hidden rounded border border-slate-700 bg-slate-900">
         {sheetStyle ? (
           <div
-            className="block bg-no-repeat [image-rendering:crisp-edges]"
+            className="block h-full w-full bg-no-repeat [image-rendering:crisp-edges]"
             style={sheetStyle}
             aria-label={`${roleLabel} ${pose}`}
             role="img"
           />
         ) : (
-          <img className="h-11 w-11 object-cover" src={poseSprite} alt={`${roleLabel} ${pose}`} />
+          <img
+            className="h-full w-full object-cover object-center"
+            src={poseSprite}
+            alt={`${roleLabel} ${pose}`}
+          />
         )}
       </div>
       <div className={`${infoAlignClass}`}>
