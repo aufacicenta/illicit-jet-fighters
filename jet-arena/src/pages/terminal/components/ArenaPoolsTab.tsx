@@ -1,7 +1,8 @@
 import { resolveFighterName } from "@ijf/shared";
+import { useState } from "react";
 
 import { Button } from "../../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import {
   Table,
   TableBody,
@@ -15,11 +16,11 @@ import { cn } from "../../../lib/utils";
 import { WizardCardTitle } from "../../wizard/sections/WizardCardTitle";
 import {
   arenaBattleModeLabels,
-  formatArenaFightersRange,
   getArenaQueueStatusClassName,
   groupArenaPoolsByStake,
 } from "./arena-utils";
 import { EnterPoolSheet } from "./EnterPoolSheet";
+import { TierPoolSection } from "./TierPoolSection";
 
 export const ArenaPoolsTab = () => {
   const {
@@ -41,6 +42,8 @@ export const ArenaPoolsTab = () => {
     setIsEnterSheetOpen,
     formatStake,
   } = useArenaPoolsContext();
+
+  const [expandedStake, setExpandedStake] = useState<string | null>(null);
 
   return (
     <div className="space-y-6">
@@ -70,65 +73,24 @@ export const ArenaPoolsTab = () => {
             Enter a completed fighter into a pool. Stakes lock at queue time.
           </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4">
           {isLoadingPools ? (
-            <p className="p-4 text-sm text-muted-foreground">Loading pools…</p>
+            <p className="text-sm text-muted-foreground">Loading pools…</p>
           ) : pools.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground">No active arena pools.</p>
+            <p className="text-sm text-muted-foreground">No active arena pools.</p>
           ) : (
-            <div className="divide-y divide-border/40">
-              {groupArenaPoolsByStake(pools).map(({ stakeAmountNative, pools: tierPools }) => {
-                const tierQueued = tierPools.reduce((sum, pool) => sum + pool.queuedCount, 0);
-
-                return (
-                  <section className="p-4" key={stakeAmountNative}>
-                    <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-                      <CardTitle className="font-mono text-sm text-secondary tabular-nums">
-                        {formatStake(stakeAmountNative)}
-                      </CardTitle>
-                      <p className="text-[10px] tracking-wide text-muted-foreground uppercase">
-                        {tierPools.length} pools · {tierQueued} queued
-                      </p>
-                    </div>
-                    <Table size="compact">
-                      <TableHeader>
-                        <TableRow className="border-border/40 hover:bg-transparent">
-                          <TableHead>Battle Mode</TableHead>
-                          <TableHead className="w-16 text-center">Queue</TableHead>
-                          <TableHead>Fighters</TableHead>
-                          <TableHead className="w-20 text-right">Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {tierPools.map((pool) => (
-                          <TableRow key={pool.id}>
-                            <TableCell className="font-medium">
-                              {arenaBattleModeLabels[pool.battleMode]}
-                            </TableCell>
-                            <TableCell className="text-center tabular-nums">
-                              {pool.queuedCount}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {formatArenaFightersRange(pool)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                disabled={!hasCompleteFighters}
-                                onClick={() => openEnterSheet(pool)}
-                                size="xs"
-                                type="button"
-                                variant="outline"
-                              >
-                                Enter
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </section>
-                );
-              })}
+            <div className="space-y-3">
+              {groupArenaPoolsByStake(pools).map((group) => (
+                <TierPoolSection
+                  key={group.stakeAmountNative}
+                  expandedStake={expandedStake}
+                  formatStake={formatStake}
+                  group={group}
+                  hasCompleteFighters={hasCompleteFighters}
+                  onExpand={setExpandedStake}
+                  openEnterSheet={openEnterSheet}
+                />
+              ))}
             </div>
           )}
         </CardContent>
@@ -186,9 +148,7 @@ export const ArenaPoolsTab = () => {
 
                   return (
                     <TableRow key={entry.id}>
-                      <TableCell className="max-w-[12rem] truncate font-medium">
-                        {displayName}
-                      </TableCell>
+                      <TableCell className="max-w-48 truncate font-medium">{displayName}</TableCell>
                       <TableCell>{arenaBattleModeLabels[entry.battleMode]}</TableCell>
                       <TableCell className="font-mono tabular-nums">
                         {formatStake(entry.stakeAmountNative)}
