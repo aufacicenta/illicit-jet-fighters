@@ -13,15 +13,18 @@ export const StrikecraftSpecsheetSection = () => {
     activeSectionId,
     setActiveSection,
     requestRegenerateStrikecraftSpecsheetImage,
+    errorMessage,
   } = useWizardContext();
   const imageOutput = outputs["strikecraft-specsheet-image"];
   const imageStatus = sectionStatuses["strikecraft-specsheet-image"];
+  const promptStatus = sectionStatuses["strikecraft-specsheet-prompt"];
+  const hasPromptError = promptStatus === "error";
   const hasStrikecraftSpecsheetPrompt = Boolean(outputs["strikecraft-specsheet-prompt"]?.content);
   const hasCharacterDescription = Boolean(outputs["character-description"]?.content);
   const canRegenerate = hasStrikecraftSpecsheetPrompt || hasCharacterDescription;
   const isRetryDisabled =
-    imageStatus === "locked" || imageStatus === "generating" || !canRegenerate;
-  const actionLabel = imageStatus === "error" ? "Retry" : "Regenerate";
+    (imageStatus === "locked" && !hasPromptError) || imageStatus === "generating" || !canRegenerate;
+  const actionLabel = imageStatus === "error" || hasPromptError ? "Retry" : "Regenerate";
 
   return (
     <Card
@@ -53,7 +56,7 @@ export const StrikecraftSpecsheetSection = () => {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {imageStatus === "generating" ? (
+        {imageStatus === "generating" || promptStatus === "generating" ? (
           <div className="space-y-2">
             <Skeleton className="h-[420px] w-full" />
             <Skeleton className="h-4 w-4/12" />
@@ -64,6 +67,10 @@ export const StrikecraftSpecsheetSection = () => {
             className="max-h-[700px] w-full rounded-sm border border-border bg-background object-contain"
             src={imageOutput.assetUrl ?? imageOutput.content}
           />
+        ) : imageStatus === "error" || hasPromptError ? (
+          <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
+            {errorMessage ?? "Strikecraft specsheet generation failed. Retry to generate again."}
+          </div>
         ) : (
           <p className="p-3 text-sm text-muted-foreground">
             Strikecraft specsheet image will appear here after continuation starts.

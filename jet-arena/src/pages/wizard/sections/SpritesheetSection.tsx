@@ -17,12 +17,14 @@ export const SpritesheetSection = () => {
   } = useWizardContext();
   const imageOutput = outputs["spritesheet-image"];
   const imageStatus = sectionStatuses["spritesheet-image"];
+  const promptStatus = sectionStatuses["spritesheet-prompt"];
+  const hasPromptError = promptStatus === "error";
   const hasSpritesheetPrompt = Boolean(outputs["spritesheet-prompt"]?.content);
   const hasCharacterDescription = Boolean(outputs["character-description"]?.content);
   const canRegenerate = hasSpritesheetPrompt || hasCharacterDescription;
   const isRetryDisabled =
-    imageStatus === "locked" || imageStatus === "generating" || !canRegenerate;
-  const actionLabel = imageStatus === "error" ? "Retry" : "Regenerate";
+    (imageStatus === "locked" && !hasPromptError) || imageStatus === "generating" || !canRegenerate;
+  const actionLabel = imageStatus === "error" || hasPromptError ? "Retry" : "Regenerate";
 
   return (
     <Card
@@ -54,7 +56,7 @@ export const SpritesheetSection = () => {
         </div>
       </CardHeader>
       <CardContent>
-        {imageStatus === "generating" ? (
+        {imageStatus === "generating" || promptStatus === "generating" ? (
           <div className="space-y-2">
             <Skeleton className="h-[280px] w-full" />
           </div>
@@ -67,7 +69,7 @@ export const SpritesheetSection = () => {
               backgroundImage: `url(${imageOutput.assetUrl ?? imageOutput.content})`,
             }}
           />
-        ) : imageStatus === "error" ? (
+        ) : imageStatus === "error" || hasPromptError ? (
           <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
             {errorMessage ?? "Character spritesheet generation failed. Retry to generate again."}
           </div>

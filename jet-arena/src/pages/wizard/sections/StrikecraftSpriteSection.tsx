@@ -19,6 +19,8 @@ export const StrikecraftSpriteSection = () => {
   } = useWizardContext();
   const imageOutput = outputs["strikecraft-sprite-image"];
   const imageStatus = sectionStatuses["strikecraft-sprite-image"];
+  const promptStatus = sectionStatuses["strikecraft-sprite-prompt"];
+  const hasPromptError = promptStatus === "error";
   const hasStrikecraftSpritePrompt = hasPersistedPromptContent(
     outputs["strikecraft-sprite-prompt"]?.content,
   );
@@ -27,8 +29,8 @@ export const StrikecraftSpriteSection = () => {
   const canRegenerate =
     hasStrikecraftSpritePrompt || hasStrikecraftSpecsheetPrompt || hasCharacterDescription;
   const isRetryDisabled =
-    imageStatus === "locked" || imageStatus === "generating" || !canRegenerate;
-  const actionLabel = imageStatus === "error" ? "Retry" : "Regenerate";
+    (imageStatus === "locked" && !hasPromptError) || imageStatus === "generating" || !canRegenerate;
+  const actionLabel = imageStatus === "error" || hasPromptError ? "Retry" : "Regenerate";
 
   return (
     <Card
@@ -60,7 +62,7 @@ export const StrikecraftSpriteSection = () => {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {imageStatus === "generating" ? (
+        {imageStatus === "generating" || promptStatus === "generating" ? (
           <div className="space-y-2">
             <Skeleton className="h-[220px] w-full" />
           </div>
@@ -70,7 +72,7 @@ export const StrikecraftSpriteSection = () => {
             className="max-h-[360px] w-full rounded-sm border border-border bg-background object-contain"
             src={imageOutput.assetUrl ?? imageOutput.content}
           />
-        ) : imageStatus === "error" ? (
+        ) : imageStatus === "error" || hasPromptError ? (
           <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
             {errorMessage ?? "Strikecraft sprite generation failed. Retry to generate again."}
           </div>

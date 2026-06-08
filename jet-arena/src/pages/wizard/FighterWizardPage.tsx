@@ -165,11 +165,12 @@ const WizardLayout = () => {
   const hasGeneratingSection = Object.values(sectionStatuses).some(
     (status) => status === "generating",
   );
+  const hasErrorSection = Object.values(sectionStatuses).some((status) => status === "error");
   const continueDisabled = hasGeneratingSection || isContinuingPipeline;
   const continueVariant = "cockpit" as const;
   const handleContinue = () => {
     if (!phaseOneComplete) {
-      if (gateMessage) {
+      if (gateMessage || hasErrorSection) {
         requestContinuePipeline();
         return;
       }
@@ -178,7 +179,7 @@ const WizardLayout = () => {
     }
 
     if (!phaseTwoComplete) {
-      if (gateMessage) {
+      if (gateMessage || hasErrorSection) {
         requestContinuePipeline();
         return;
       }
