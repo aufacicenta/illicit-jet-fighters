@@ -73,111 +73,119 @@ export const pollSuiTopups = async () => {
   for (const wallet of wallets) {
     try {
       let cursor = wallet.topupCursor ?? undefined;
-      let txBlocks;
+      let hasMore = true;
 
-      try {
-        txBlocks = await suiClient.queryTransactionBlocks({
-          filter: { ToAddress: wallet.address },
-          cursor,
-          options: {
-            showBalanceChanges: true,
-          },
-        });
-      } catch (error) {
-        // A cursor from a different SUI network env (e.g. testnet -> devnet) can be invalid.
-        if (!cursor || !isMissingCursorTransactionError(error)) {
-          throw error;
-        }
+      while (hasMore) {
+        let txBlocks;
 
-        log.warn("resetting invalid topup cursor", {
-          walletId: wallet.id,
-          address: truncateAddress(wallet.address),
-          previousCursor: cursor,
-        });
-
-        await db
-          .update(userWallets)
-          .set({
-            topupCursor: null,
-            topupCursorCheckpoint: null,
-            updatedAt: new Date(),
-          })
-          .where(eq(userWallets.id, wallet.id));
-
-        cursor = undefined;
-        txBlocks = await suiClient.queryTransactionBlocks({
-          filter: { ToAddress: wallet.address },
-          options: {
-            showBalanceChanges: true,
-          },
-        });
-      }
-
-      blocksScanned += txBlocks.data.length;
-
-      log.debug("queried wallet transactions", {
-        walletId: wallet.id,
-        address: truncateAddress(wallet.address),
-        cursor: cursor ?? null,
-        blockCount: txBlocks.data.length,
-        hasNextCursor: Boolean(txBlocks.nextCursor),
-      });
-
-      for (const block of txBlocks.data) {
-        const digest = block.digest;
-        if (!digest) {
-          continue;
-        }
-        const amountNative = parseIncomingNative(
-          (block.balanceChanges as BalanceChange[] | undefined) ?? [],
-          wallet.address,
-        );
-        if (amountNative <= 0n) {
-          continue;
-        }
-
-        log.info("incoming SUI topup detected", {
-          walletId: wallet.id,
-          address: truncateAddress(wallet.address),
-          amountNative: amountNative.toString(),
-          txHash: digest,
-        });
-
-        const recorded = await recordTopup({
-          walletId: wallet.id,
-          networkEnv: config.networkEnv,
-          amountNative,
-          txHash: digest,
-        });
-
-        if (recorded.inserted) {
-          topupsRecorded += 1;
-          await notifyTopupRecorded({
-            walletId: wallet.id,
-            txHash: digest,
-            amountNative,
-            amountUsd: recorded.amountUsdSnapshot,
+        try {
+          txBlocks = await suiClient.queryTransactionBlocks({
+            filter: { ToAddress: wallet.address },
+            cursor,
+            order: "ascending",
+            options: {
+              showBalanceChanges: true,
+            },
           });
-        } else {
-          topupsSkipped += 1;
+        } catch (error) {
+          if (!cursor || !isMissingCursorTransactionError(error)) {
+            throw error;
+          }
+
+          log.warn("resetting invalid topup cursor", {
+            walletId: wallet.id,
+            address: truncateAddress(wallet.address),
+            previousCursor: cursor,
+          });
+
+          await db
+            .update(userWallets)
+            .set({
+              topupCursor: null,
+              topupCursorCheckpoint: null,
+              updatedAt: new Date(),
+            })
+            .where(eq(userWallets.id, wallet.id));
+
+          cursor = undefined;
+          txBlocks = await suiClient.queryTransactionBlocks({
+            filter: { ToAddress: wallet.address },
+            order: "ascending",
+            options: {
+              showBalanceChanges: true,
+            },
+          });
         }
-      }
 
-      if (txBlocks.nextCursor) {
-        await db
-          .update(userWallets)
-          .set({
-            topupCursor: txBlocks.nextCursor,
-            topupCursorCheckpoint: wallet.topupCursorCheckpoint,
-            updatedAt: new Date(),
-          })
-          .where(eq(userWallets.id, wallet.id));
+        blocksScanned += txBlocks.data.length;
 
-        log.debug("advanced topup cursor", {
+        log.debug("queried wallet transactions", {
           walletId: wallet.id,
           address: truncateAddress(wallet.address),
-          nextCursor: txBlocks.nextCursor,
+          cursor: cursor ?? null,
+          blockCount: txBlocks.data.length,
+          hasNextPage: txBlocks.hasNextPage,
         });
+
+        for (const block of txBlocks.data) {
+          const digest = block.digest;
+          if (!digest) {
+            continue;
+          }
+          const amountNative = parseIncomingNative(
+            (block.balanceChanges as BalanceChange[] | undefined) ?? [],
+            wallet.address,
+          );
+          if (amountNative <= 0n) {
+            continue;
+          }
+
+          log.info("incoming SUI topup detected", {
+            walletId: wallet.id,
+            address: truncateAddress(wallet.address),
+            amountNative: amountNative.toString(),
+            txHash: digest,
+          });
+
+          const recorded = await recordTopup({
+            walletId: wallet.id,
+            networkEnv: config.networkEnv,
+            amountNative,
+            txHash: digest,
+          });
+
+          if (recorded.inserted) {
+            topupsRecorded += 1;
+            await notifyTopupRecorded({
+              walletId: wallet.id,
+              txHash: digest,
+              amountNative,
+              amountUsd: recorded.amountUsdSnapshot,
+            });
+          } else {
+            topupsSkipped += 1;
+          }
+        }
+
+        if (txBlocks.nextCursor) {
+          cursor = txBlocks.nextCursor;
+          await db
+            .update(userWallets)
+            .set({
+              topupCursor: txBlocks.nextCursor,
+              topupCursorCheckpoint: wallet.topupCursorCheckpoint,
+              updatedAt: new Date(),
+            })
+            .where(eq(userWallets.id, wallet.id));
+
+          log.debug("advanced topup cursor", {
+            walletId: wallet.id,
+            address: truncateAddress(wallet.address),
+            nextCursor: txBlocks.nextCursor,
+          });
+        }
+
+        hasMore = txBlocks.hasNextPage === true;
       }
     } catch (error) {
       const details = serializeUnknownError(error);

@@ -23,6 +23,7 @@ export const queryIncomingTransfers = async ({
   getSuiClient().queryTransactionBlocks({
     filter: { ToAddress: address },
     cursor: cursor ?? undefined,
+    order: "ascending",
     options: {
       showBalanceChanges: true,
       showEffects: true,
