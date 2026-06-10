@@ -2,6 +2,7 @@ import { cors } from "@elysiajs/cors";
 import { Elysia } from "elysia";
 
 import { env } from "./config/env";
+import { logger } from "./lib/logger";
 import { logServerStartup, withLogging } from "./plugins/logging";
 import { arenaRoutes } from "./routes/arena";
 import { battlefieldPipelineRoutes } from "./routes/battlefield-pipeline";
@@ -22,6 +23,8 @@ import { broadcastWsHandler } from "./ws/broadcast";
 const PORT = env.PORT;
 const HOST = env.HOST;
 
+logger.info("CORS allowed origin", { origin: env.CORS_ORIGIN });
+
 const guardedHttp = new Elysia({ name: "guarded-http" })
   .use(fighterSessionRoutes)
   .use(battlefieldSessionRoutes)
@@ -36,10 +39,15 @@ const guardedHttp = new Elysia({ name: "guarded-http" })
   .use(walletRoutes)
   .use(generateRoutes);
 
+const corsOrigin = env.CORS_ORIGIN;
+
 const app = withLogging(new Elysia())
   .use(
     cors({
-      origin: env.CORS_ORIGIN,
+      origin: (request) => {
+        const reqOrigin = request.headers.get("Origin") ?? "";
+        return reqOrigin.replace(/\/+$/, "") === corsOrigin;
+      },
       allowedHeaders: ["Content-Type", "Authorization"],
       methods: ["GET", "POST", "DELETE", "OPTIONS"],
     }),
