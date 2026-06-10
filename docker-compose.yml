@@ -1,0 +1,44 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env.local
+      - api/.env.local
+    restart: unless-stopped
+    networks:
+      - internal
+
+  jet-arena:
+    build:
+      context: .
+      dockerfile: jet-arena/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
+        VITE_NEON_AUTH_URL: ${VITE_NEON_AUTH_URL:-}
+        VITE_R2_ENDPOINT: ${VITE_R2_ENDPOINT:-}
+        VITE_IMAGE_CDN_URL: ${VITE_IMAGE_CDN_URL:-}
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  wallet-indexer:
+    build:
+      context: .
+      dockerfile: wallet-indexer/Dockerfile
+    env_file:
+      - .env.local
+      - api/.env.local
+    environment:
+      - API_BASE_URL=http://api:4000
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - internal
+
+networks:
+  internal:
