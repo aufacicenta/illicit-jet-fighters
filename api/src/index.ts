@@ -39,7 +39,7 @@ const guardedHttp = new Elysia({ name: "guarded-http" })
 const app = withLogging(new Elysia())
   .use(
     cors({
-      origin: "http://localhost:5174",
+      origin: env.CORS_ORIGIN,
       allowedHeaders: ["Content-Type", "Authorization"],
       methods: ["GET", "POST", "DELETE", "OPTIONS"],
     }),

@@ -59,6 +59,7 @@ const envSchema = z.object({
   R2_REGION: z.string().min(1).optional(),
   R2_ACCESS_KEY_ID: z.string().min(1).optional(),
   R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  CORS_ORIGIN: z.string().min(1).default("http://localhost:5174"),
 });
 
 const parsed = envSchema.safeParse(process.env);
