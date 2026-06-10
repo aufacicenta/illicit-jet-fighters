@@ -37,6 +37,23 @@ function extraImgSrcOrigins(env: Record<string, string>): string {
   return [cloudflareWildcard, ...uniqueOrigins].join(" ");
 }
 
+function apiConnectSrcOrigins(env: Record<string, string>, mode: string): string {
+  if (mode === "development") {
+    return "http://localhost:4000 ws://localhost:4000 http://127.0.0.1:4000 ws://127.0.0.1:4000";
+  }
+  const raw = env.VITE_API_URL?.trim();
+  if (!raw?.length) {
+    return "";
+  }
+  try {
+    const httpOrigin = new URL(raw).origin;
+    const wsOrigin = httpOrigin.replace(/^http/, "ws");
+    return `${httpOrigin} ${wsOrigin}`;
+  } catch {
+    return "";
+  }
+}
+
 function extraConnectSrcOrigins(env: Record<string, string>): string {
   const values = [env.VITE_R2_ENDPOINT, env.VITE_IMAGE_CDN_URL]
     .map((value) => value?.trim() ?? "")
@@ -59,11 +76,11 @@ export default defineConfig(({ mode }) => {
   const neonConnectSrc = neonAuthConnectSrcOrigins(env);
   const imgSrcSubstitution = extraImgSrcOrigins(env);
   const extraConnectSrc = extraConnectSrcOrigins(env);
-  const devApiConnectSrc =
-    mode === "development"
-      ? " http://localhost:4000 ws://localhost:4000 http://127.0.0.1:4000 ws://127.0.0.1:4000"
-      : "";
-  const connectSrcSubstitution = `${neonConnectSrc ? `${neonConnectSrc} ` : ""}${extraConnectSrc}${devApiConnectSrc}`;
+  const apiConnectSrc = apiConnectSrcOrigins(env, mode);
+  const connectSrcParts = [neonConnectSrc.trim(), extraConnectSrc, apiConnectSrc].filter(
+    (part) => part.length > 0,
+  );
+  const connectSrcSubstitution = connectSrcParts.join(" ");
 
   return {
     plugins: [

@@ -15,11 +15,7 @@ const resolveWsBase = (): string => {
   if (import.meta.env.DEV) {
     return "ws://localhost:4000";
   }
-  if (typeof window !== "undefined") {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    return `${protocol}//${window.location.host}`;
-  }
-  return "ws://localhost:4000";
+  return "";
 };
 
 const WS_BASE = resolveWsBase();
