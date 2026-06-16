@@ -29,6 +29,7 @@ import {
 } from "../../hooks/useRoutes";
 import { cn } from "../../lib/utils";
 import { ArenaPoolsTab } from "./components/ArenaPoolsTab";
+import { ArenaQueueTab } from "./components/ArenaQueueTab";
 import { MyBattlefieldsTab } from "./components/MyBattlefieldsTab";
 import { MyFightersTab } from "./components/MyFightersTab";
 import { MySimulationsTab } from "./components/MySimulationsTab";
@@ -38,6 +39,7 @@ const tabTitles: Record<TerminalTab, string> = {
   "my-battlefields": "Battlefields",
   "my-simulations": "Simulations",
   arena: "Arena",
+  queue: "Queue",
 };
 
 const terminalNavItems: { value: TerminalTab; label: string }[] = [
@@ -45,6 +47,7 @@ const terminalNavItems: { value: TerminalTab; label: string }[] = [
   { value: "my-battlefields", label: "Battlefields" },
   { value: "my-simulations", label: "Simulations" },
   { value: "arena", label: "Arena" },
+  { value: "queue", label: "Queue" },
 ];
 
 const terminalAsideTabTriggerClassName = cn(
@@ -63,6 +66,7 @@ const MyFightersPageInner = () => {
     "my-battlefields": false,
     "my-simulations": false,
     arena: false,
+    queue: false,
   });
 
   const {
@@ -113,7 +117,10 @@ const MyFightersPageInner = () => {
       void loadSimulations();
       return;
     }
-    void loadFighters();
+    if (activeTab === "arena" || activeTab === "queue") {
+      void loadFighters();
+      return;
+    }
   }, [activeTab, hasFetchedTab, loadBattlefields, loadFighters, loadSimulations]);
 
   return (
@@ -197,7 +204,7 @@ const MyFightersPageInner = () => {
                   </>
                 ) : null}
 
-                {activeTab === "arena" ? (
+                {activeTab === "arena" || activeTab === "queue" ? (
                   <>
                     <Button
                       variant="outline"
@@ -240,11 +247,16 @@ const MyFightersPageInner = () => {
                 <MySimulationsTab />
               </TabsContent>
 
-              <TabsContent className="space-y-6" value="arena">
+              {(activeTab === "arena" || activeTab === "queue") && (
                 <ArenaPoolsContextController fighters={fighters} onFightersRefresh={loadFighters}>
-                  <ArenaPoolsTab />
+                  <TabsContent className="space-y-6" value="arena">
+                    <ArenaPoolsTab />
+                  </TabsContent>
+                  <TabsContent className="space-y-6" value="queue">
+                    <ArenaQueueTab />
+                  </TabsContent>
                 </ArenaPoolsContextController>
-              </TabsContent>
+              )}
             </div>
           </div>
         </Tabs>

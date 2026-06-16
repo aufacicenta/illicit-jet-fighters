@@ -27,6 +27,7 @@ export const terminalTabValues = [
   "my-battlefields",
   "my-simulations",
   "arena",
+  "queue",
 ] as const;
 
 export type TerminalTab = (typeof terminalTabValues)[number];
