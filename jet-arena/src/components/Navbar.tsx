@@ -51,7 +51,7 @@ export const Navbar = () => {
         backgroundRepeat: "repeat",
       }}
     >
-      <div className="absolute bottom-[-23px] h-[23px] w-full bg-[url('/navbar-bottom-frame.png')] bg-cover bg-center bg-no-repeat" />
+      <div className="absolute bottom-[-23px] h-[23px] w-full bg-[url('/navbar-bottom-frame.png')] bg-auto bg-center bg-no-repeat" />
 
       <div>
         <div className="mx-auto flex w-full flex-col">

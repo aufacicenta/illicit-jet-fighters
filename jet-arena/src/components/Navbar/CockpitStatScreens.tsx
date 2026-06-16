@@ -276,7 +276,7 @@ export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
         {customSlots.topLeft !== undefined ? (
           <div
             aria-hidden
-            className="cockpit-panel-slide-down cockpit-panel-slide-start-delay flex h-[81px] w-[397px] items-center justify-center overflow-hidden bg-[url('/navbar-bottom-left-screen.png')] bg-center bg-no-repeat pt-2 pr-9 pb-2 pl-6 text-center"
+            className="cockpit-panel-slide-down cockpit-panel-slide-start-delay flex h-[81px] w-[397px] items-center justify-center overflow-hidden bg-[url('/navbar-bottom-left-screen.png')] bg-contain bg-center bg-no-repeat pt-2 pr-9 pb-2 pl-6 text-center"
             id="cockpit-stats-top-left-panel"
           >
             {customSlots.topLeft}
@@ -286,7 +286,7 @@ export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
         )}
         {customSlots.topCenter !== undefined ? (
           <div
-            className="cockpit-panel-slide-down flex h-[102px] w-[584px] items-center justify-center overflow-hidden bg-[url('/cockpit-top-center-box.png')] bg-center bg-no-repeat px-10 py-2 text-center"
+            className="cockpit-panel-slide-down flex h-[102px] w-[584px] items-center justify-center overflow-hidden bg-[url('/cockpit-top-center-box.png')] bg-contain bg-center bg-no-repeat px-10 py-2 text-center"
             id="cockpit-stats-top-center-panel"
           >
             {customSlots.topCenter}
@@ -297,7 +297,7 @@ export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
         {customSlots.topRight !== undefined ? (
           <div
             aria-hidden
-            className="cockpit-panel-slide-down cockpit-panel-slide-start-delay flex h-[81px] w-[397px] items-center justify-center overflow-hidden bg-[url('/navbar-bottom-right-screen.png')] bg-center bg-no-repeat pt-2 pr-6 pb-2 pl-9 text-center"
+            className="cockpit-panel-slide-down cockpit-panel-slide-start-delay flex h-[81px] w-[397px] items-center justify-center overflow-hidden bg-[url('/navbar-bottom-right-screen.png')] bg-contain bg-center bg-no-repeat pt-2 pr-6 pb-2 pl-9 text-center"
             id="cockpit-stats-top-right-panel"
           >
             {customSlots.topRight}
@@ -308,14 +308,14 @@ export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
       </section>
 
       <section
-        className="fixed right-0 bottom-0 left-0 z-10 flex w-screen justify-between bg-[url('/cockpit-bottom-frame.png')] bg-bottom bg-no-repeat"
+        className="fixed right-0 bottom-0 left-0 z-10 flex w-screen justify-between bg-[url('/cockpit-bottom-frame.png')] bg-auto bg-bottom bg-no-repeat"
         id="cockpit-bottom-screens"
       >
         {customSlots.bottomLeft !== undefined ? (
           <div className="flex flex-col justify-end">
             <div
               aria-hidden
-              className="cockpit-panel-slide-up cockpit-panel-slide-start-delay mb-[21px] flex h-[83px] w-[398px] items-center justify-center overflow-hidden bg-[url('/cockpit-bottom-left-box.png')] bg-center bg-no-repeat pt-2 pr-9 pb-2 pl-6 text-center"
+              className="cockpit-panel-slide-up cockpit-panel-slide-start-delay mb-[21px] flex h-[83px] w-[398px] items-center justify-center overflow-hidden bg-[url('/cockpit-bottom-left-box.png')] bg-contain bg-center bg-no-repeat pt-2 pr-9 pb-2 pl-6 text-center"
               id="cockpit-stats-bottom-left-panel"
             >
               {customSlots.bottomLeft}
@@ -360,7 +360,7 @@ export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
           <div className="flex flex-col justify-end">
             <div
               aria-hidden
-              className="cockpit-panel-slide-up cockpit-panel-slide-start-delay mb-[21px] flex h-[83px] w-[398px] items-center justify-center overflow-hidden bg-[url('/cockpit-bottom-right-box.png')] bg-center bg-no-repeat pt-2 pr-6 pb-2 pl-9 text-center"
+              className="cockpit-panel-slide-up cockpit-panel-slide-start-delay mb-[21px] flex h-[83px] w-[398px] items-center justify-center overflow-hidden bg-[url('/cockpit-bottom-right-box.png')] bg-contain bg-center bg-no-repeat pt-2 pr-6 pb-2 pl-9 text-center"
               id="cockpit-stats-bottom-right-panel"
             >
               {customSlots.bottomRight}
