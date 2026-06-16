@@ -311,9 +311,12 @@ export const listUserQueueEntries = async (userId: string) =>
       broadcastId: broadcasts.id,
       winnerFighterId: simulations.winnerFighterId,
       simulationStatus: simulations.status,
+      fighterSlug: fighters.slug,
+      fighterName: fighters.name,
     })
     .from(arenaQueueEntries)
     .innerJoin(arenaPools, eq(arenaQueueEntries.poolId, arenaPools.id))
+    .innerJoin(fighters, eq(arenaQueueEntries.fighterId, fighters.id))
     .leftJoin(simulations, eq(arenaQueueEntries.simulationId, simulations.id))
     .leftJoin(broadcasts, eq(simulations.id, broadcasts.simulationId))
     .where(

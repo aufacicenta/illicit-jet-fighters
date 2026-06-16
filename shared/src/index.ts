@@ -1,4 +1,4 @@
-export { formatDateTime, formatNullableDateTime } from "./datetime";
+export { formatCompactDateTime, formatDateTime, formatNullableDateTime } from "./datetime";
 export {
   formatCompactId,
   formatHighlightedId,

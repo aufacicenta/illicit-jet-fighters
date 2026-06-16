@@ -14,7 +14,6 @@ export const ArenaPoolsTab = () => {
     isLoadingPools,
     poolsError,
     actionError,
-    hasCompleteFighters,
     isEnterSheetOpen,
     loadPools,
     openEnterSheet,
@@ -65,7 +64,6 @@ export const ArenaPoolsTab = () => {
                   expandedStake={expandedStake}
                   formatStake={formatStake}
                   group={group}
-                  hasCompleteFighters={hasCompleteFighters}
                   onExpand={setExpandedStake}
                   openEnterSheet={openEnterSheet}
                 />

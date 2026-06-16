@@ -36,6 +36,29 @@ export const formatDateTime = (value: Date | string | number): string => {
   return `${date.getFullYear()} ${month} ${date.getDate()} - ${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
 };
 
+/**
+ * Compact datetime for tight UI columns: `Jun 25, 20:00`.
+ * Appends a 2-digit year when the date is not in the current calendar year.
+ */
+export const formatCompactDateTime = (value: Date | string | number): string => {
+  const date = toDate(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Invalid date";
+  }
+
+  const month = MONTH_LABELS[date.getMonth()];
+  if (!month) {
+    return "Invalid date";
+  }
+
+  const yearSuffix =
+    date.getFullYear() !== new Date().getFullYear()
+      ? ` '${String(date.getFullYear()).slice(-2)}`
+      : "";
+
+  return `${month} ${date.getDate()}${yearSuffix}, ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+};
+
 /** Formats nullable ISO datetime strings; returns `fallback` when value is missing. */
 export const formatNullableDateTime = (
   value: string | null | undefined,

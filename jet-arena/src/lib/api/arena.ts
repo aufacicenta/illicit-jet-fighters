@@ -71,6 +71,8 @@ export type ArenaMyQueueEntry = ArenaQueueEntry & {
   broadcastId: string | null;
   winnerFighterId: number | null;
   simulationStatus: "queued" | "running" | "ended" | "error" | null;
+  fighterSlug: string;
+  fighterName: string | null;
 };
 
 export const fetchArenaMyQueue = async () =>

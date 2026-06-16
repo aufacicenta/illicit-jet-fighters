@@ -92,7 +92,6 @@ export const ArenaPoolsContextController = ({
       })} ${currency.symbol}`
     : "";
 
-  const hasCompleteFighters = fighters.some((fighter) => fighter.status === "complete");
   const fighterById = new Map(fighters.map((fighter) => [fighter.id, fighter]));
   const eligibleFighters = fighters.filter((fighter) => fullyCompleteFighterIds.has(fighter.id));
   const ineligibleFighters = fighters.filter((fighter) => !fullyCompleteFighterIds.has(fighter.id));
@@ -157,15 +156,11 @@ export const ArenaPoolsContextController = ({
     await Promise.all([loadPools(), loadQueue(), onFightersRefresh()]);
   };
 
-  useEffect(() => {
-    void refreshAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const openEnterSheet = (pool: ArenaPool) => {
     setSelectedPool(pool);
     setIsEnterSheetOpen(true);
     setActionError(null);
+    void onFightersRefresh();
   };
 
   const handleLeaveQueue = async (entry: QueueEntryView) => {
@@ -272,8 +267,7 @@ export const ArenaPoolsContextController = ({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEnterSheetOpen, selectedPool]);
+  }, [fighters, isEnterSheetOpen, selectedPool]);
 
   const toggleFighterSelection = (fighterId: number) => {
     setSelectedFighterIds((current) => {
@@ -388,7 +382,6 @@ export const ArenaPoolsContextController = ({
     queueError,
     actionError,
     leavingEntryId,
-    hasCompleteFighters,
     fighterById,
     selectedPool,
     isEnterSheetOpen,

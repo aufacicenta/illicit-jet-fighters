@@ -1,4 +1,4 @@
-import { and, broadcasts, db, desc, eq, simulationParticipants, simulations } from "@ijf/database";
+import { and, broadcasts, db, eq, simulationParticipants, simulations } from "@ijf/database";
 
 type SimulationStatus = "queued" | "running" | "ended" | "error";
 type AgentSource = "r2" | "pipeline" | "fallback";

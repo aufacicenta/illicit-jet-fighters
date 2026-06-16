@@ -90,7 +90,10 @@ export const FighterAccordionRow = ({
   return (
     <Card className="border-border/80 bg-card/95 transition-all duration-300 hover:border-secondary/50">
       <CardHeader className="gap-0 border-b-0 p-0">
-        <div id="fighter-balance-row" className="flex items-center justify-between p-2">
+        <div
+          id="fighter-balance-row"
+          className="flex items-center justify-between border-b border-b-muted p-2"
+        >
           <div>
             <WizardCardTitle className="min-w-0 truncate">{displayName}</WizardCardTitle>
           </div>

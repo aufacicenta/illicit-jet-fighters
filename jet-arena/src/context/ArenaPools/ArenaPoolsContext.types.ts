@@ -26,10 +26,14 @@ export type QueueEntryView = {
   battleMode: ArenaPool["battleMode"];
   stakeAmountNative: string;
   status: string;
+  queuedAt: string;
+  matchedAt: string | null;
   versionNumber: number | null;
   broadcastId: string | null;
   winnerFighterId: number | null;
   simulationStatus: "queued" | "running" | "ended" | "error" | null;
+  fighterSlug: string;
+  fighterName: string | null;
 };
 
 export type ArenaPoolsContextControllerProps = {
@@ -47,7 +51,6 @@ export type ArenaPoolsContextType = {
   queueError: string | null;
   actionError: string | null;
   leavingEntryId: string | null;
-  hasCompleteFighters: boolean;
   fighterById: Map<number, MyFighter>;
 
   selectedPool: ArenaPool | null;

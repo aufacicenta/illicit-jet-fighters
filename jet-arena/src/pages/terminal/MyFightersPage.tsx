@@ -1,3 +1,4 @@
+import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -15,6 +16,7 @@ import { NavbarWalletTray } from "../../components/Navbar/NavbarWalletTray";
 import { Button } from "../../components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { ArenaPoolsContextController } from "../../context/ArenaPools/ArenaPoolsContextController";
+import { useArenaPoolsContext } from "../../context/ArenaPools/useArenaPoolsContext";
 import { MyBattlefieldsContextController } from "../../context/MyBattlefields/MyBattlefieldsContextController";
 import { useMyBattlefieldsContext } from "../../context/MyBattlefields/useMyBattlefieldsContext";
 import { MyFightersContextController } from "../../context/MyFighters/MyFightersContextController";
@@ -38,12 +40,10 @@ const tabTitles: Record<TerminalTab, string> = {
   queue: "Queue",
 };
 
-const terminalNavItems: { value: TerminalTab; label: string }[] = [
-  { value: "my-fighters", label: "Fighters" },
-  { value: "my-battlefields", label: "Battlefields" },
-  { value: "arena", label: "Arena" },
-  { value: "queue", label: "Queue" },
-];
+const terminalAsideTabRefreshClassName = cn(
+  "ml-auto shrink-0 rounded-sm p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground",
+  "aria-disabled:pointer-events-none aria-disabled:opacity-50",
+);
 
 const terminalAsideTabTriggerClassName = cn(
   "group flex w-full items-center justify-start gap-2 rounded-sm border px-2.5 py-2 text-left text-xs font-normal tracking-wide uppercase transition-colors",
@@ -63,7 +63,6 @@ const MyFightersPageInner = () => {
   });
 
   const {
-    fighters,
     isLoading: isLoadingFighters,
     deletingFighterId,
     load: loadFighters,
@@ -74,6 +73,9 @@ const MyFightersPageInner = () => {
     deletingBattlefieldId,
     load: loadBattlefields,
   } = useMyBattlefieldsContext();
+
+  const { isLoadingPools, isLoadingQueue, leavingEntryId, loadPools, loadQueue } =
+    useArenaPoolsContext();
 
   const handleTabChange = (value: string) => {
     const tab = value as TerminalTab;
@@ -104,11 +106,15 @@ const MyFightersPageInner = () => {
       void loadBattlefields();
       return;
     }
-    if (activeTab === "arena" || activeTab === "queue") {
-      void loadFighters();
+    if (activeTab === "arena") {
+      void Promise.all([loadPools(), loadFighters()]);
       return;
     }
-  }, [activeTab, hasFetchedTab, loadBattlefields, loadFighters]);
+    if (activeTab === "queue") {
+      void Promise.all([loadQueue(), loadFighters()]);
+      return;
+    }
+  }, [activeTab, hasFetchedTab, loadBattlefields, loadFighters, loadPools, loadQueue]);
 
   return (
     <>
@@ -142,69 +148,160 @@ const MyFightersPageInner = () => {
           </TypingEffect>
         </CockpitBottomRightSlot>
       </CockpitStatScreens>
+
       <div className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 md:px-6">
         <Tabs onValueChange={handleTabChange} value={activeTab}>
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start lg:gap-8">
             <aside className="w-full lg:sticky lg:top-6 lg:order-2">
-              <div className="mb-4 flex flex-col gap-2 pt-3">
+              <div className="pt-2">
                 {activeTab === "my-fighters" ? (
-                  <>
+                  <div className="mb-4 flex flex-col gap-2">
                     <Button asChild className="tracking-[0.12em]" type="button">
                       <Link to={routes.createFighter()}>Create Fighter</Link>
                     </Button>
-                    <Button
-                      variant="outline"
-                      disabled={isLoadingFighters || deletingFighterId !== null}
-                      onClick={() => void loadFighters()}
-                      type="button"
-                    >
-                      Refresh
-                    </Button>
-                  </>
+                  </div>
                 ) : null}
 
                 {activeTab === "my-battlefields" ? (
-                  <>
+                  <div className="mb-4 flex flex-col gap-2">
                     <Button asChild type="button">
                       <Link to={routes.createBattlefield()}>Create Battlefield</Link>
                     </Button>
-                    <Button
-                      variant="outline"
-                      disabled={isLoadingBattlefields || deletingBattlefieldId !== null}
-                      onClick={() => void loadBattlefields()}
-                      type="button"
-                    >
-                      Refresh
-                    </Button>
-                  </>
-                ) : null}
-
-                {activeTab === "arena" || activeTab === "queue" ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      disabled={isLoadingFighters}
-                      onClick={() => void loadFighters()}
-                      type="button"
-                    >
-                      Refresh Fighters
-                    </Button>
-                  </>
+                  </div>
                 ) : null}
               </div>
 
               <div className="border-border/80 bg-card/70">
                 <TabsList className="flex h-auto w-full flex-col gap-0 bg-transparent p-0">
-                  {terminalNavItems.map((item) => (
-                    <TabsTrigger
-                      className={terminalAsideTabTriggerClassName}
-                      key={item.value}
-                      value={item.value}
+                  <TabsTrigger className={terminalAsideTabTriggerClassName} value="my-fighters">
+                    <span className="size-1.5 shrink-0 rounded-full bg-muted group-data-[state=active]:bg-secondary" />
+                    <span className="min-w-0 flex-1 truncate">Fighters</span>
+                    <span
+                      aria-disabled={isLoadingFighters || deletingFighterId !== null}
+                      aria-label="Refresh fighters"
+                      className={terminalAsideTabRefreshClassName}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (isLoadingFighters || deletingFighterId !== null) {
+                          return;
+                        }
+                        void loadFighters();
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") {
+                          return;
+                        }
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (isLoadingFighters || deletingFighterId !== null) {
+                          return;
+                        }
+                        void loadFighters();
+                      }}
+                      role="button"
+                      tabIndex={0}
                     >
-                      <span className="size-1.5 shrink-0 rounded-full bg-muted group-data-[state=active]:bg-secondary" />
-                      <span className="truncate">{item.label}</span>
-                    </TabsTrigger>
-                  ))}
+                      <RefreshCw className={cn("size-3.5", isLoadingFighters && "animate-spin")} />
+                    </span>
+                  </TabsTrigger>
+
+                  <TabsTrigger className={terminalAsideTabTriggerClassName} value="my-battlefields">
+                    <span className="size-1.5 shrink-0 rounded-full bg-muted group-data-[state=active]:bg-secondary" />
+                    <span className="min-w-0 flex-1 truncate">Battlefields</span>
+                    <span
+                      aria-disabled={isLoadingBattlefields || deletingBattlefieldId !== null}
+                      aria-label="Refresh battlefields"
+                      className={terminalAsideTabRefreshClassName}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (isLoadingBattlefields || deletingBattlefieldId !== null) {
+                          return;
+                        }
+                        void loadBattlefields();
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") {
+                          return;
+                        }
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (isLoadingBattlefields || deletingBattlefieldId !== null) {
+                          return;
+                        }
+                        void loadBattlefields();
+                      }}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <RefreshCw
+                        className={cn("size-3.5", isLoadingBattlefields && "animate-spin")}
+                      />
+                    </span>
+                  </TabsTrigger>
+
+                  <TabsTrigger className={terminalAsideTabTriggerClassName} value="arena">
+                    <span className="size-1.5 shrink-0 rounded-full bg-muted group-data-[state=active]:bg-secondary" />
+                    <span className="min-w-0 flex-1 truncate">Arena</span>
+                    <span
+                      aria-disabled={isLoadingPools}
+                      aria-label="Refresh arena pools"
+                      className={terminalAsideTabRefreshClassName}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (isLoadingPools) {
+                          return;
+                        }
+                        void loadPools();
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") {
+                          return;
+                        }
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (isLoadingPools) {
+                          return;
+                        }
+                        void loadPools();
+                      }}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <RefreshCw className={cn("size-3.5", isLoadingPools && "animate-spin")} />
+                    </span>
+                  </TabsTrigger>
+
+                  <TabsTrigger className={terminalAsideTabTriggerClassName} value="queue">
+                    <span className="size-1.5 shrink-0 rounded-full bg-muted group-data-[state=active]:bg-secondary" />
+                    <span className="min-w-0 flex-1 truncate">Queue</span>
+                    <span
+                      aria-disabled={isLoadingQueue || leavingEntryId !== null}
+                      aria-label="Refresh queue"
+                      className={terminalAsideTabRefreshClassName}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (isLoadingQueue || leavingEntryId !== null) {
+                          return;
+                        }
+                        void loadQueue();
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") {
+                          return;
+                        }
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (isLoadingQueue || leavingEntryId !== null) {
+                          return;
+                        }
+                        void loadQueue();
+                      }}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <RefreshCw className={cn("size-3.5", isLoadingQueue && "animate-spin")} />
+                    </span>
+                  </TabsTrigger>
                 </TabsList>
               </div>
             </aside>
@@ -218,16 +315,13 @@ const MyFightersPageInner = () => {
                 <MyBattlefieldsTab />
               </TabsContent>
 
-              {(activeTab === "arena" || activeTab === "queue") && (
-                <ArenaPoolsContextController fighters={fighters} onFightersRefresh={loadFighters}>
-                  <TabsContent className="space-y-6" value="arena">
-                    <ArenaPoolsTab />
-                  </TabsContent>
-                  <TabsContent className="space-y-6" value="queue">
-                    <ArenaQueueTab />
-                  </TabsContent>
-                </ArenaPoolsContextController>
-              )}
+              <TabsContent className="space-y-6" value="arena">
+                <ArenaPoolsTab />
+              </TabsContent>
+
+              <TabsContent className="space-y-6" value="queue">
+                <ArenaQueueTab />
+              </TabsContent>
             </div>
           </div>
         </Tabs>
@@ -236,11 +330,21 @@ const MyFightersPageInner = () => {
   );
 };
 
+const MyFightersPageWithArena = () => {
+  const { fighters, load: loadFighters } = useMyFightersContext();
+
+  return (
+    <ArenaPoolsContextController fighters={fighters} onFightersRefresh={loadFighters}>
+      <MyFightersPageInner />
+    </ArenaPoolsContextController>
+  );
+};
+
 export const MyFightersPage = () => {
   return (
     <MyFightersContextController>
       <MyBattlefieldsContextController>
-        <MyFightersPageInner />
+        <MyFightersPageWithArena />
       </MyBattlefieldsContextController>
     </MyFightersContextController>
   );

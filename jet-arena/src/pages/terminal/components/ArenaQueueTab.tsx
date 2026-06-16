@@ -1,4 +1,4 @@
-import { resolveFighterName } from "@ijf/shared";
+import { formatCompactDateTime, resolveFighterName } from "@ijf/shared";
 import { Play } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -32,6 +32,15 @@ const outcomeClassNames: Record<"won" | "lost" | "draw", string> = {
   lost: "text-red-400",
   draw: "text-amber-300",
 };
+
+const getQueueEntryUpdatedAt = (entry: QueueEntryView) => entry.matchedAt ?? entry.queuedAt;
+
+const sortQueueEntriesByUpdatedAtDesc = (entries: QueueEntryView[]) =>
+  [...entries].sort(
+    (left, right) =>
+      new Date(getQueueEntryUpdatedAt(right)).getTime() -
+      new Date(getQueueEntryUpdatedAt(left)).getTime(),
+  );
 
 export const ArenaQueueTab = () => {
   const {
@@ -88,6 +97,7 @@ export const ArenaQueueTab = () => {
               <TableHeader>
                 <TableRow className="border-border/40 hover:bg-transparent">
                   <TableHead>Fighter</TableHead>
+                  <TableHead>Updated</TableHead>
                   <TableHead>Battle Mode</TableHead>
                   <TableHead>Stake</TableHead>
                   <TableHead className="w-16">Agent</TableHead>
@@ -97,21 +107,22 @@ export const ArenaQueueTab = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {queueEntries.map((entry) => {
+                {sortQueueEntriesByUpdatedAtDesc(queueEntries).map((entry) => {
                   const fighter = fighterById.get(entry.fighterId);
-                  const displayName = fighter
-                    ? resolveFighterName({
-                        storedName: fighter.name,
-                        characterDescription: fighter.characterDescription,
-                        slug: fighter.slug,
-                      })
-                    : `Fighter #${entry.fighterId}`;
+                  const displayName = resolveFighterName({
+                    storedName: fighter?.name ?? entry.fighterName,
+                    characterDescription: fighter?.characterDescription ?? null,
+                    slug: fighter?.slug ?? entry.fighterSlug,
+                  });
 
                   const outcome = getMatchOutcome(entry);
 
                   return (
                     <TableRow key={entry.id}>
                       <TableCell className="max-w-48 truncate font-medium">{displayName}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+                        {formatCompactDateTime(getQueueEntryUpdatedAt(entry))}
+                      </TableCell>
                       <TableCell>{arenaBattleModeLabels[entry.battleMode]}</TableCell>
                       <TableCell className="font-mono tabular-nums">
                         {formatStake(entry.stakeAmountNative)}

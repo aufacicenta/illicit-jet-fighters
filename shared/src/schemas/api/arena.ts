@@ -76,6 +76,8 @@ export const arenaMyQueueEntrySchema = arenaQueueEntrySchema.extend({
   broadcastId: z.string().nullable(),
   winnerFighterId: z.number().int().positive().nullable(),
   simulationStatus: simulationStatusSchema.nullable(),
+  fighterSlug: z.string().min(1),
+  fighterName: z.string().nullable(),
 });
 
 export const arenaMyQueueResponseSchema = z.object({

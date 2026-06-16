@@ -22,12 +22,7 @@ const WS_BASE = resolveWsBase();
 
 export const TERMINAL_TAB_QUERY_KEY = "tab" as const;
 
-export const terminalTabValues = [
-  "my-fighters",
-  "my-battlefields",
-  "arena",
-  "queue",
-] as const;
+export const terminalTabValues = ["my-fighters", "my-battlefields", "arena", "queue"] as const;
 
 export type TerminalTab = (typeof terminalTabValues)[number];
 

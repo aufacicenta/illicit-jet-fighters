@@ -12,7 +12,6 @@ import {
 type TierPoolSectionProps = {
   group: ArenaPoolsByStake;
   formatStake: (stakeAmountNative: string) => string;
-  hasCompleteFighters: boolean;
   openEnterSheet: (pool: ArenaPool) => void;
   expandedStake: string | null;
   onExpand: (stakeAmountNative: string | null) => void;
@@ -27,14 +26,12 @@ const battleModeIcons: Record<ArenaPool["battleMode"], string> = {
 
 const QueuePoolCard = ({
   pool,
-  hasCompleteFighters,
   openEnterSheet,
   formatStake,
   index,
   visible,
 }: {
   pool: ArenaPool;
-  hasCompleteFighters: boolean;
   openEnterSheet: (pool: ArenaPool) => void;
   formatStake: (stakeAmountNative: string) => string;
   index: number;
@@ -79,7 +76,6 @@ const QueuePoolCard = ({
 
     <Button
       className="w-full"
-      disabled={!hasCompleteFighters}
       onClick={(e) => {
         e.stopPropagation();
         openEnterSheet(pool);
@@ -96,7 +92,6 @@ const QueuePoolCard = ({
 export const TierPoolSection = ({
   group,
   formatStake,
-  hasCompleteFighters,
   openEnterSheet,
   expandedStake,
   onExpand,
@@ -197,7 +192,6 @@ export const TierPoolSection = ({
               <QueuePoolCard
                 key={pool.id}
                 formatStake={formatStake}
-                hasCompleteFighters={hasCompleteFighters}
                 index={index}
                 openEnterSheet={openEnterSheet}
                 pool={pool}
