@@ -4,6 +4,7 @@ import {
   arenaPools,
   arenaQueueEntries,
   asc,
+  broadcasts,
   db,
   eq,
   fighters,
@@ -307,9 +308,14 @@ export const listUserQueueEntries = async (userId: string) =>
       stakeAmountNative: arenaPools.stakeAmountNative,
       minFighters: arenaPools.minFighters,
       maxFighters: arenaPools.maxFighters,
+      broadcastId: broadcasts.id,
+      winnerFighterId: simulations.winnerFighterId,
+      simulationStatus: simulations.status,
     })
     .from(arenaQueueEntries)
     .innerJoin(arenaPools, eq(arenaQueueEntries.poolId, arenaPools.id))
+    .leftJoin(simulations, eq(arenaQueueEntries.simulationId, simulations.id))
+    .leftJoin(broadcasts, eq(simulations.id, broadcasts.simulationId))
     .where(
       and(
         eq(arenaQueueEntries.userId, userId),

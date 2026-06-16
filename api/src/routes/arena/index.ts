@@ -183,6 +183,9 @@ export const arenaRoutes = new Elysia({ prefix: "/arena" })
           stakeAmountNative: entry.stakeAmountNative,
           minFighters: entry.minFighters,
           maxFighters: entry.maxFighters,
+          broadcastId: entry.broadcastId ?? null,
+          winnerFighterId: entry.winnerFighterId ?? null,
+          simulationStatus: entry.simulationStatus ?? null,
         })),
       };
     },

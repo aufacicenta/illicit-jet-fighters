@@ -1,4 +1,6 @@
 import { resolveFighterName } from "@ijf/shared";
+import { Play } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
@@ -10,10 +12,26 @@ import {
   TableHeader,
   TableRow,
 } from "../../../components/ui/table";
+import type { QueueEntryView } from "../../../context/ArenaPools/ArenaPoolsContext.types";
 import { useArenaPoolsContext } from "../../../context/ArenaPools/useArenaPoolsContext";
+import { routes } from "../../../hooks/useRoutes";
 import { cn } from "../../../lib/utils";
 import { WizardCardTitle } from "../../wizard/sections/WizardCardTitle";
 import { arenaBattleModeLabels, getArenaQueueStatusClassName } from "./arena-utils";
+
+type MatchOutcome = "won" | "lost" | "draw" | null;
+
+const getMatchOutcome = (entry: QueueEntryView): MatchOutcome => {
+  if (entry.simulationStatus !== "ended") return null;
+  if (entry.winnerFighterId === null) return "draw";
+  return entry.winnerFighterId === entry.fighterId ? "won" : "lost";
+};
+
+const outcomeClassNames: Record<"won" | "lost" | "draw", string> = {
+  won: "text-emerald-400",
+  lost: "text-red-400",
+  draw: "text-amber-300",
+};
 
 export const ArenaQueueTab = () => {
   const {
@@ -74,6 +92,7 @@ export const ArenaQueueTab = () => {
                   <TableHead>Stake</TableHead>
                   <TableHead className="w-16">Agent</TableHead>
                   <TableHead className="w-20">Status</TableHead>
+                  <TableHead className="w-16">Result</TableHead>
                   <TableHead className="w-20 text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -87,6 +106,8 @@ export const ArenaQueueTab = () => {
                         slug: fighter.slug,
                       })
                     : `Fighter #${entry.fighterId}`;
+
+                  const outcome = getMatchOutcome(entry);
 
                   return (
                     <TableRow key={entry.id}>
@@ -106,6 +127,20 @@ export const ArenaQueueTab = () => {
                       >
                         {entry.status}
                       </TableCell>
+                      <TableCell>
+                        {outcome ? (
+                          <span
+                            className={cn(
+                              "text-xs font-semibold uppercase",
+                              outcomeClassNames[outcome],
+                            )}
+                          >
+                            {outcome}
+                          </span>
+                        ) : entry.status === "matched" ? (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        ) : null}
+                      </TableCell>
                       <TableCell className="text-right">
                         {entry.status === "queued" ? (
                           <Button
@@ -116,6 +151,14 @@ export const ArenaQueueTab = () => {
                             variant="outline"
                           >
                             Leave
+                          </Button>
+                        ) : null}
+                        {entry.status === "matched" && entry.broadcastId ? (
+                          <Button asChild size="xs" type="button" variant="outline">
+                            <Link to={routes.broadcast(entry.broadcastId)}>
+                              <Play className="size-3" />
+                              Watch
+                            </Link>
                           </Button>
                         ) : null}
                       </TableCell>

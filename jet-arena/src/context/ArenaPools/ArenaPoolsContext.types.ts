@@ -27,6 +27,9 @@ export type QueueEntryView = {
   stakeAmountNative: string;
   status: string;
   versionNumber: number | null;
+  broadcastId: string | null;
+  winnerFighterId: number | null;
+  simulationStatus: "queued" | "running" | "ended" | "error" | null;
 };
 
 export type ArenaPoolsContextControllerProps = {

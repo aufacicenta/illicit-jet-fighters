@@ -65,12 +65,17 @@ export const arenaLeavePoolResponseSchema = z.object({
   cancelled: z.boolean(),
 });
 
+export const simulationStatusSchema = z.enum(["queued", "running", "ended", "error"]);
+
 export const arenaMyQueueEntrySchema = arenaQueueEntrySchema.extend({
   network: z.enum(WALLET_NETWORK_NAMES),
   battleMode: arenaBattleModeSchema,
   stakeAmountNative: z.string(),
   minFighters: z.number().int().positive(),
   maxFighters: z.number().int().positive(),
+  broadcastId: z.string().nullable(),
+  winnerFighterId: z.number().int().positive().nullable(),
+  simulationStatus: simulationStatusSchema.nullable(),
 });
 
 export const arenaMyQueueResponseSchema = z.object({

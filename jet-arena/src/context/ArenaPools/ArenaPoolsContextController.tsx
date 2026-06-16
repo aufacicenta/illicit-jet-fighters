@@ -140,6 +140,9 @@ export const ArenaPoolsContextController = ({
         response.entries.map((entry) => ({
           ...entry,
           versionNumber: versionByEntryId.get(entry.id) ?? null,
+          broadcastId: entry.broadcastId ?? null,
+          winnerFighterId: entry.winnerFighterId ?? null,
+          simulationStatus: entry.simulationStatus ?? null,
         })),
       );
     } catch (error) {

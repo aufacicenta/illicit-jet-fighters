@@ -1,11 +1,11 @@
-import type { ArenaFighterEligibilityResponse } from "@ijf/shared";
+import type { ArenaFighterEligibilityResponse, WalletNetworkName } from "@ijf/shared";
 
 import { apiRoutes } from "../../hooks/useRoutes";
 import { get, post } from "./client";
 
 export type ArenaPool = {
   id: string;
-  network: "sui";
+  network: WalletNetworkName;
   battleMode: "1v1" | "squad_4" | "squad_8" | "world_war";
   stakeAmountNative: string;
   minFighters: number;
@@ -62,18 +62,19 @@ export const postArenaPoolEnter = async (
 export const postArenaPoolLeave = async (poolId: string, fighterId: number) =>
   post<{ cancelled: boolean }>(apiRoutes.arenaPoolLeave(poolId), { fighterId });
 
+export type ArenaMyQueueEntry = ArenaQueueEntry & {
+  network: WalletNetworkName;
+  battleMode: ArenaPool["battleMode"];
+  stakeAmountNative: string;
+  minFighters: number;
+  maxFighters: number;
+  broadcastId: string | null;
+  winnerFighterId: number | null;
+  simulationStatus: "queued" | "running" | "ended" | "error" | null;
+};
+
 export const fetchArenaMyQueue = async () =>
-  get<{
-    entries: Array<
-      ArenaQueueEntry & {
-        network: "sui";
-        battleMode: ArenaPool["battleMode"];
-        stakeAmountNative: string;
-        minFighters: number;
-        maxFighters: number;
-      }
-    >;
-  }>(apiRoutes.arenaMyQueue);
+  get<{ entries: ArenaMyQueueEntry[] }>(apiRoutes.arenaMyQueue);
 
 export const fetchArenaMyActive = async () =>
   get<{
