@@ -5,19 +5,17 @@ import {
 } from "@ijf/shared";
 import { Elysia, t } from "elysia";
 
-import { requireBearerAuth } from "../../lib/require-bearer-auth";
 import {
   getReplayForBroadcast,
   getSimulationStatusForBroadcast,
 } from "../../lib/simulation-orchestrator";
 
+// Broadcasts are public spectator content, so these read endpoints intentionally require no auth.
 export const simulationRoutes = new Elysia({ prefix: "/simulations" })
   .get(
     "/:id/status",
-    async ({ params, request, headers, status }) => {
-      const auth = await requireBearerAuth(request, headers);
+    async ({ params, status }) => {
       const summary = await getSimulationStatusForBroadcast({
-        userId: auth.userId,
         broadcastId: params.id ?? "",
       });
       if (!summary) {
@@ -29,18 +27,14 @@ export const simulationRoutes = new Elysia({ prefix: "/simulations" })
       params: simulationIdPathParamsSchema,
       response: {
         200: simulationStatusSnapshotSchema,
-        401: t.String(),
-        403: t.String(),
         404: t.String(),
       },
     },
   )
   .get(
     "/:id/replay",
-    async ({ params, request, headers, status }) => {
-      const auth = await requireBearerAuth(request, headers);
+    async ({ params, status }) => {
       const replay = await getReplayForBroadcast({
-        userId: auth.userId,
         broadcastId: params.id ?? "",
       });
       if (!replay) {
@@ -52,8 +46,6 @@ export const simulationRoutes = new Elysia({ prefix: "/simulations" })
       params: simulationIdPathParamsSchema,
       response: {
         200: simulationReplaySnapshotSchema,
-        401: t.String(),
-        403: t.String(),
         404: t.String(),
       },
     },

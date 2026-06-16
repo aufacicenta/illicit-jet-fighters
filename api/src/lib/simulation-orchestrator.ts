@@ -40,7 +40,7 @@ import {
 } from "./simulation-artifacts";
 import {
   createSimulationAndBroadcast,
-  getBroadcastWithSimulationForUser,
+  getBroadcastWithSimulation,
   getSimulationWithBroadcastForUser,
   listSimulationParticipants,
   markSimulationEnded,
@@ -672,14 +672,8 @@ export const startSimulationForFighter = async ({
     seed,
   });
 
-export const getSimulationStatusForBroadcast = async ({
-  userId,
-  broadcastId,
-}: {
-  userId: string;
-  broadcastId: string;
-}) => {
-  const persisted = await getBroadcastWithSimulationForUser(userId, broadcastId);
+export const getSimulationStatusForBroadcast = async ({ broadcastId }: { broadcastId: string }) => {
+  const persisted = await getBroadcastWithSimulation(broadcastId);
   if (!persisted) {
     return null;
   }
@@ -699,14 +693,8 @@ export const getSimulationStatusForBroadcast = async ({
   };
 };
 
-export const getReplayForBroadcast = async ({
-  userId,
-  broadcastId,
-}: {
-  userId: string;
-  broadcastId: string;
-}) => {
-  const persisted = await getBroadcastWithSimulationForUser(userId, broadcastId);
+export const getReplayForBroadcast = async ({ broadcastId }: { broadcastId: string }) => {
+  const persisted = await getBroadcastWithSimulation(broadcastId);
   if (!persisted) {
     return null;
   }
@@ -716,7 +704,7 @@ export const getReplayForBroadcast = async ({
     await Promise.all(
       participants.map(async (participant) => [
         participant.playerId,
-        await getPlayerSpritesheetMeta(userId, participant.fighterId, null, null),
+        await getPlayerSpritesheetMeta(participant.ownerUserId, participant.fighterId, null, null),
       ]),
     ),
   );
@@ -749,14 +737,8 @@ export const getReplayForBroadcast = async ({
   return { frames, playerMetaById, initData };
 };
 
-export const getBroadcastDetails = async ({
-  userId,
-  broadcastId,
-}: {
-  userId: string;
-  broadcastId: string;
-}) => {
-  const persisted = await getBroadcastWithSimulationForUser(userId, broadcastId);
+export const getBroadcastDetails = async ({ broadcastId }: { broadcastId: string }) => {
+  const persisted = await getBroadcastWithSimulation(broadcastId);
   if (!persisted) {
     return null;
   }

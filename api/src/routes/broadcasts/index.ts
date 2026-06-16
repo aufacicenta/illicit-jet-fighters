@@ -1,15 +1,13 @@
 import { broadcastDetailsSnapshotSchema, broadcastIdPathParamsSchema } from "@ijf/shared";
 import { Elysia, t } from "elysia";
 
-import { requireBearerAuth } from "../../lib/require-bearer-auth";
 import { getBroadcastDetails } from "../../lib/simulation-orchestrator";
 
+// Broadcasts are public spectator content, so this read endpoint intentionally requires no auth.
 export const broadcastRoutes = new Elysia({ prefix: "/broadcasts" }).get(
   "/:id",
-  async ({ params, request, headers, status }) => {
-    const auth = await requireBearerAuth(request, headers);
+  async ({ params, status }) => {
     const broadcast = await getBroadcastDetails({
-      userId: auth.userId,
       broadcastId: params.id,
     });
     if (!broadcast) {
@@ -21,8 +19,6 @@ export const broadcastRoutes = new Elysia({ prefix: "/broadcasts" }).get(
     params: broadcastIdPathParamsSchema,
     response: {
       200: broadcastDetailsSnapshotSchema,
-      401: t.String(),
-      403: t.String(),
       404: t.String(),
     },
   },

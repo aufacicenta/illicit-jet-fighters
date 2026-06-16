@@ -1,4 +1,12 @@
-import { and, broadcasts, db, eq, simulationParticipants, simulations } from "@ijf/database";
+import {
+  and,
+  broadcasts,
+  db,
+  eq,
+  fighters,
+  simulationParticipants,
+  simulations,
+} from "@ijf/database";
 
 type SimulationStatus = "queued" | "running" | "ended" | "error";
 type AgentSource = "r2" | "pipeline" | "fallback";
@@ -233,8 +241,10 @@ export type BroadcastWithSimulation = {
   errorMessage: string | null;
 };
 
-export const getBroadcastWithSimulationForUser = async (
-  userId: string,
+// Broadcasts are public spectator content: any participating owner (or anyone with the
+// broadcast id) can watch. Intentionally NOT scoped to broadcasts.userId, which only stores
+// the single arena match initiator and would 404 every other participant in multi-owner matches.
+export const getBroadcastWithSimulation = async (
   broadcastId: string,
 ): Promise<BroadcastWithSimulation | null> => {
   const rows = await db
@@ -258,7 +268,7 @@ export const getBroadcastWithSimulationForUser = async (
     })
     .from(broadcasts)
     .innerJoin(simulations, eq(broadcasts.simulationId, simulations.id))
-    .where(and(eq(broadcasts.userId, userId), eq(broadcasts.id, broadcastId)))
+    .where(eq(broadcasts.id, broadcastId))
     .limit(1);
 
   return rows[0] ?? null;
@@ -304,6 +314,7 @@ export const listSimulationParticipants = async (simulationId: string) =>
   db
     .select({
       fighterId: simulationParticipants.fighterId,
+      ownerUserId: fighters.userId,
       playerSlot: simulationParticipants.playerSlot,
       playerId: simulationParticipants.playerId,
       agentSource: simulationParticipants.agentSource,
@@ -313,4 +324,5 @@ export const listSimulationParticipants = async (simulationId: string) =>
       checkpointHash: simulationParticipants.checkpointHash,
     })
     .from(simulationParticipants)
+    .innerJoin(fighters, eq(fighters.id, simulationParticipants.fighterId))
     .where(eq(simulationParticipants.simulationId, simulationId));
