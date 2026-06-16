@@ -180,6 +180,15 @@ export const saveFighterBriefing = async (fighterId: number, briefing: string) =
     .where(eq(fighters.id, fighterId));
 };
 
+export const getFighterBriefing = async (fighterId: number): Promise<string | null> => {
+  const rows = await db
+    .select({ briefing: fighters.briefing })
+    .from(fighters)
+    .where(eq(fighters.id, fighterId))
+    .limit(1);
+  return rows[0]?.briefing ?? null;
+};
+
 export const saveFighterName = async (fighterId: number, name: string | null) => {
   await db.update(fighters).set({ name, updatedAt: new Date() }).where(eq(fighters.id, fighterId));
 };

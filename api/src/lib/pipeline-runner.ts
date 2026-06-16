@@ -13,7 +13,7 @@ import {
   createFighterAgentVersion,
   getNextFighterAgentVersionNumber,
 } from "./agent-version-repository";
-import { saveFighterName, touchFighterUpdatedAt } from "./fighter-access";
+import { getFighterBriefing, saveFighterName, touchFighterUpdatedAt } from "./fighter-access";
 import type { LlmCallContext } from "./generate";
 import {
   generateAgentCode,
@@ -497,6 +497,27 @@ export const serializeClientPipelineState = async (
     gateMessage: state.gateMessage,
     fighterLedger: await resolveFighterLedgerSnapshot(fighterKey),
   };
+};
+
+export const deriveSectionStatusesOnly = async (
+  fighterKey: string,
+): Promise<Record<string, string> | null> => {
+  const tenant = tenantByFighter.get(fighterKey);
+  if (!tenant) {
+    return null;
+  }
+
+  let state = stateByFighter.get(fighterKey);
+  if (!state) {
+    await hydratePipelineFromBucket(fighterKey, tenant);
+    state = stateByFighter.get(fighterKey);
+  }
+
+  return deriveSectionStatuses({
+    outputs: state?.outputs ?? {},
+    activeSectionIds: state?.activeSectionIds ?? [],
+    lastErrorSectionId: state?.lastErrorSectionId ?? null,
+  });
 };
 
 const nowIso = () => new Date().toISOString();
@@ -1781,6 +1802,93 @@ export const generateStrikecraftSpecsheetImageFromPrompt = async (
   });
 };
 
+const isPhaseOneComplete = (state: FighterPipelineState): boolean => {
+  const phaseOneSectionIds: SectionId[] = stepOrder.slice(0, 5);
+  return phaseOneSectionIds.every((id) => !!state.outputs[id]?.content);
+};
+
+const resumePhaseOne = async (fighterKey: string, correlationId?: string) => {
+  const state = getState(fighterKey, correlationId);
+  const tenant = tenantByFighter.get(fighterKey);
+  let characterDescription = state.outputs["character-description"]?.content;
+
+  if (!characterDescription) {
+    if (!tenant) {
+      throw new Error(
+        "Character description has not been generated yet. Submit an intake prompt to begin.",
+      );
+    }
+
+    const briefing = await getFighterBriefing(tenant.fighterId);
+    if (!briefing) {
+      throw new Error(
+        "Character description has not been generated yet. Submit an intake prompt to begin.",
+      );
+    }
+
+    logger.info("pipeline resuming phase 1 from stored briefing", {
+      ...withContext(fighterKey, correlationId),
+      briefingLength: briefing.length,
+    });
+
+    const character = await runTextSectionStep({
+      fighterKey,
+      sectionId: "character-description",
+      input: briefing,
+      correlationId,
+      generator: async (input, onDelta, context) => {
+        const generated = await generateCharacterDescription(input, onDelta, context);
+        return { content: generated.markdown, model: generated.model };
+      },
+    });
+
+    characterDescription = character.content;
+  }
+
+  state.lastErrorSectionId = null;
+
+  const needsSpecsheet =
+    !state.outputs["specsheet-prompt"]?.content || !state.outputs["specsheet-image"]?.content;
+  const needsPfp =
+    !state.outputs["character-pfp-prompt"]?.content ||
+    !state.outputs["character-pfp-image"]?.content;
+
+  const tasks: Promise<unknown>[] = [];
+
+  if (needsSpecsheet) {
+    tasks.push(
+      (async () => {
+        const specPrompt = await runTextSectionStep({
+          fighterKey,
+          sectionId: "specsheet-prompt",
+          input: characterDescription,
+          correlationId,
+          generator: async (input, onDelta, context) => {
+            const generated = await generateSpecsheetPrompt(input, onDelta, context);
+            return { content: generated.prompt, model: generated.model };
+          },
+        });
+        await runSpecsheetImageStep(fighterKey, specPrompt.content, correlationId);
+      })(),
+    );
+  }
+
+  if (needsPfp) {
+    tasks.push(
+      runCharacterPfpFromCharacterDescription(fighterKey, characterDescription, correlationId),
+    );
+  }
+
+  if (tasks.length === 0) {
+    return;
+  }
+
+  await Promise.all(tasks);
+  if (tenant) {
+    await syncPipelineState(fighterKey);
+  }
+};
+
 export const continuePipeline = async (fighterKey: string, correlationId?: string) => {
   logger.info("pipeline continue requested", withContext(fighterKey, correlationId));
   requireTenant(fighterKey);
@@ -1792,11 +1900,19 @@ export const continuePipeline = async (fighterKey: string, correlationId?: strin
   }
 
   try {
+    if (!isPhaseOneComplete(state)) {
+      await resumePhaseOne(fighterKey, correlationId);
+      if (tenant) {
+        await syncPipelineState(fighterKey);
+      }
+      return;
+    }
+
     await runPhase2Pipeline(fighterKey, correlationId);
     sendToFighter(fighterKey, { type: "pipeline:complete" });
     logger.info("pipeline marked complete", withContext(fighterKey, correlationId));
   } catch (error) {
-    logger.error("phase 2 pipeline failed", {
+    logger.error("pipeline continue failed", {
       ...withContext(fighterKey, correlationId),
       error: getErrorMessage(error),
     });
