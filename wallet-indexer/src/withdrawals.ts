@@ -184,6 +184,9 @@ export const processPendingWithdrawals = async () => {
 
       const confirmedTx = await suiClient.waitForTransaction({
         digest: txHash,
+        options: {
+          showEffects: true,
+        },
       });
       const status = confirmedTx.effects?.status?.status;
       if (status === "success") {
