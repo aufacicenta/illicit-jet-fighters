@@ -1,4 +1,9 @@
-import { characterPfpObjectKey, getSignedReadUrl, objectExists } from "./r2";
+import {
+  characterPfpObjectKey,
+  getSignedReadUrl,
+  objectExists,
+  strikecraftSpriteObjectKey,
+} from "./r2";
 
 const PUBLIC_ASSET_URL_TTL_SECONDS = 3600;
 const IMAGE_EXTENSIONS = ["png", "jpeg", "jpg", "webp"] as const;
@@ -33,3 +38,9 @@ export const resolveOwnedFighterPfpUrl = async (
   fighterId: number,
 ): Promise<string | null> =>
   resolveSignedAssetUrl(extensionKeys(characterPfpObjectKey, userId, fighterId));
+
+export const resolveOwnedFighterSpriteUrl = async (
+  userId: string,
+  fighterId: number,
+): Promise<string | null> =>
+  resolveSignedAssetUrl(extensionKeys(strikecraftSpriteObjectKey, userId, fighterId));

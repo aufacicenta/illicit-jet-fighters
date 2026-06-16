@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { Button } from "../../../components/ui/button";
@@ -13,7 +14,7 @@ import {
 import { useMyFightersContext } from "../../../context/MyFighters/useMyFightersContext";
 import { routes } from "../../../hooks/useRoutes";
 import { cn } from "../../../lib/utils";
-import { FighterBadgeCard } from "./FighterBadgeCard";
+import { FighterAccordionRow } from "./FighterAccordionRow";
 
 const loadingSlots = Array.from({ length: 6 });
 
@@ -33,6 +34,12 @@ export const MyFightersTab = () => {
     cancelDelete,
     openWizard,
   } = useMyFightersContext();
+
+  const [expandedFighterId, setExpandedFighterId] = useState<number | null>(null);
+
+  const handleToggleExpand = useCallback((fighterId: number) => {
+    setExpandedFighterId((current) => (current === fighterId ? null : fighterId));
+  }, []);
 
   return (
     <>
@@ -56,18 +63,18 @@ export const MyFightersTab = () => {
       ) : null}
 
       {isLoading ? (
-        <section className="space-y-3">
+        <section className="space-y-2">
           {loadingSlots.map((_, index) => (
-            <Card className="animate-pulse overflow-hidden" key={index}>
-              <CardContent className="p-0">
-                <div className="aspect-4/5 w-full border-b border-border bg-muted/30" />
-                <div className="space-y-2 p-3">
-                  <div className="h-3 w-2/3 rounded-sm bg-muted/30" />
-                  <div className="h-3 w-full rounded-sm bg-muted/20" />
-                  <div className="h-3 w-4/5 rounded-sm bg-muted/20" />
-                </div>
-              </CardContent>
-            </Card>
+            <div
+              className="animate-pulse rounded-sm border border-border/60 px-3 py-2.5"
+              key={index}
+            >
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-full bg-muted/30" />
+                <div className="h-3.5 flex-1 rounded-sm bg-muted/30" />
+                <div className="h-5 w-12 rounded-sm bg-muted/20" />
+              </div>
+            </div>
           ))}
         </section>
       ) : null}
@@ -88,23 +95,24 @@ export const MyFightersTab = () => {
       ) : null}
 
       {!isLoading && fighters.length > 0 ? (
-        <section className="space-y-3">
+        <section className="space-y-2">
           {fighters.map((fighter) => (
-            <section
+            <div
               className={cn(
                 "scroll-mt-6 transition-all duration-300 ease-out",
                 exitingFighterIds.includes(fighter.id) && "translate-x-[-110%] opacity-0",
               )}
               key={fighter.id}
             >
-              <FighterBadgeCard
+              <FighterAccordionRow
                 fighter={fighter}
                 isDeleting={deletingFighterId === fighter.id}
-                isSelected={false}
+                isExpanded={expandedFighterId === fighter.id}
                 onDelete={promptDelete}
                 onOpenWizard={openWizard}
+                onToggleExpand={handleToggleExpand}
               />
-            </section>
+            </div>
           ))}
         </section>
       ) : null}
