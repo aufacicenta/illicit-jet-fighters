@@ -16,8 +16,8 @@ export const walletSnapshotSchema = z.object({
     .optional(),
   networkEnv: z.enum(NETWORK_ENV_NAMES),
   balanceNative: z.string(),
-  balanceUsd: z.string(),
-  fxNativePerUsd: z.string(),
+  balanceUsd: z.string().nullable(),
+  fxNativePerUsd: z.string().nullable(),
 });
 
 export const walletLedgerEntrySchema = z.object({

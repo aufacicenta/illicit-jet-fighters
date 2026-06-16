@@ -23,6 +23,9 @@ export const pushWalletTopupNotifications = async ({
   amountUsd: number;
 }) => {
   const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
+  if (fxNativePerUsd === null) {
+    return;
+  }
   const balance = await buildWalletBalanceSnapshot({ walletId, networkEnv, fxNativePerUsd });
   const at = new Date().toISOString();
 

@@ -66,6 +66,21 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       const networkEnv = getWalletNetworkEnv();
       const wallet = await ensureUserWallet({ userId: auth.userId, network });
       const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
+
+      if (fxNativePerUsd === null) {
+        const balance = await getWalletBalanceNative(wallet.id, networkEnv);
+        return {
+          walletId: wallet.id,
+          address: wallet.address,
+          network: wallet.network,
+          currency: getWalletCurrencyMetadata(wallet.network),
+          networkEnv,
+          balanceNative: balance.toString(),
+          balanceUsd: null,
+          fxNativePerUsd: null,
+        };
+      }
+
       const snapshot = await buildWalletBalanceSnapshot({
         walletId: wallet.id,
         networkEnv,
@@ -272,6 +287,9 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
         return status(400, "amountNative must be a positive integer string.");
       }
       const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
+      if (fxNativePerUsd === null) {
+        return status(503, "Price feed temporarily unavailable. Try again shortly.");
+      }
       try {
         const transfer = await appendUserToFighterTransfer({
           walletId: wallet.id,
@@ -309,6 +327,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
         403: t.String(),
         404: t.String(),
         500: t.String(),
+        503: t.String(),
       },
     },
   )
@@ -328,6 +347,9 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
         return status(400, "amountNative must be a positive integer string.");
       }
       const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
+      if (fxNativePerUsd === null) {
+        return status(503, "Price feed temporarily unavailable. Try again shortly.");
+      }
       try {
         const availableBalanceNative = await getFighterAvailableBalanceNative(fighterId);
         if (amountNative > availableBalanceNative) {
@@ -369,6 +391,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
         403: t.String(),
         404: t.String(),
         500: t.String(),
+        503: t.String(),
       },
     },
   )
@@ -434,6 +457,9 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
         return status(400, "amountNative must be a positive integer string.");
       }
       const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
+      if (fxNativePerUsd === null) {
+        return status(503, "Price feed temporarily unavailable. Try again shortly.");
+      }
       try {
         const settlement = await appendSimulationSettlement({
           losingOwnerUserId: auth.userId,
@@ -470,6 +496,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
         403: t.String(),
         404: t.String(),
         500: t.String(),
+        503: t.String(),
       },
     },
   )
@@ -521,6 +548,9 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       }
 
       const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
+      if (fxNativePerUsd === null) {
+        return status(503, "Price feed temporarily unavailable. Try again shortly.");
+      }
       const amountUsdSnapshot = Number(amountNative) / fxNativePerUsd;
       const groupId = await appendWithdrawalRequest({
         walletId: wallet.id,
@@ -567,6 +597,7 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
         400: t.String(),
         401: t.String(),
         403: t.String(),
+        503: t.String(),
       },
     },
   )
@@ -594,20 +625,22 @@ export const walletRoutes = new Elysia({ prefix: "/wallet" })
       });
 
       const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
-      const balance = await buildWalletBalanceSnapshot({
-        walletId: wallet.id,
-        networkEnv,
-        fxNativePerUsd,
-      });
-      sendToUser(auth.userId, {
-        type: "wallet:balance-update",
-        walletId: wallet.id,
-        networkEnv,
-        balanceNative: balance.balanceNative.toString(),
-        balanceUsd: balance.balanceUsd.toFixed(8),
-        fxNativePerUsd: balance.fxNativePerUsd.toFixed(12),
-        at: new Date().toISOString(),
-      });
+      if (fxNativePerUsd !== null) {
+        const balance = await buildWalletBalanceSnapshot({
+          walletId: wallet.id,
+          networkEnv,
+          fxNativePerUsd,
+        });
+        sendToUser(auth.userId, {
+          type: "wallet:balance-update",
+          walletId: wallet.id,
+          networkEnv,
+          balanceNative: balance.balanceNative.toString(),
+          balanceUsd: balance.balanceUsd.toFixed(8),
+          fxNativePerUsd: balance.fxNativePerUsd.toFixed(12),
+          at: new Date().toISOString(),
+        });
+      }
       sendToUser(auth.userId, {
         type: "wallet:withdrawal-update",
         groupId: params.groupId,

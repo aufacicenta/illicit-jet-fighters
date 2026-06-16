@@ -16,7 +16,9 @@ export const FighterLedgerSummary = () => {
   const { nativeDecimals, nativeSymbol, symbol } = walletCurrency;
   const normalizedNative = safeNativeBigInt(balanceNative);
   const balanceUsdEquivalent =
-    wallet && wallet.fxNativePerUsd > 0 ? Number(normalizedNative) / wallet.fxNativePerUsd : 0;
+    wallet && wallet.fxNativePerUsd && wallet.fxNativePerUsd > 0
+      ? Number(normalizedNative) / wallet.fxNativePerUsd
+      : null;
   const tokenDisplay = formatTokenAmountFromNative(normalizedNative, nativeDecimals, {
     fractionDigits: 4,
   });

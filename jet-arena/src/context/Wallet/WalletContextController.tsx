@@ -35,8 +35,8 @@ const parseWalletSnapshot = (snapshot: {
   };
   networkEnv: NetworkEnvName;
   balanceNative: string;
-  balanceUsd: string;
-  fxNativePerUsd: string;
+  balanceUsd?: string | null;
+  fxNativePerUsd?: string | null;
 }): WalletSnapshotState => ({
   walletId: snapshot.walletId,
   address: snapshot.address,
@@ -44,8 +44,9 @@ const parseWalletSnapshot = (snapshot: {
   currency: snapshot.currency ?? getWalletCurrencyMetadata(snapshot.network),
   networkEnv: snapshot.networkEnv,
   balanceNative: safeNativeBigInt(snapshot.balanceNative),
-  balanceUsd: Number.parseFloat(snapshot.balanceUsd),
-  fxNativePerUsd: Number.parseFloat(snapshot.fxNativePerUsd),
+  balanceUsd: snapshot.balanceUsd !== null ? Number.parseFloat(snapshot.balanceUsd) : null,
+  fxNativePerUsd:
+    snapshot.fxNativePerUsd !== null ? Number.parseFloat(snapshot.fxNativePerUsd) : null,
 });
 
 export const WalletContextController = ({ children }: WalletContextControllerProps) => {

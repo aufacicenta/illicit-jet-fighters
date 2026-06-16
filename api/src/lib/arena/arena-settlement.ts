@@ -40,7 +40,7 @@ export const settleArenaSimulation = async ({
 
   const network = parseWalletNetworkName(pool.network);
   const networkEnv = getWalletNetworkEnv();
-  const fxNativePerUsd = await resolveFxNativePerUsd(network, { networkEnv });
+  const fxNativePerUsd = (await resolveFxNativePerUsd(network, { networkEnv })) ?? 0;
 
   try {
     await Promise.all(participants.map((p) => setFighterArenaStatus(p.fighterId, "settling")));

@@ -21,8 +21,8 @@ export type WalletSnapshotState = {
   currency: WalletCurrencyMetadata;
   networkEnv: NetworkEnvName;
   balanceNative: bigint;
-  balanceUsd: number;
-  fxNativePerUsd: number;
+  balanceUsd: number | null;
+  fxNativePerUsd: number | null;
 };
 
 export type WalletServerMessage =
