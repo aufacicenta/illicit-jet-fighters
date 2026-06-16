@@ -21,7 +21,9 @@ import {
   generateSpecsheetImage,
   refineCharacterDescription,
   refineSpecsheetPrompt,
+  startPipeline,
 } from "../../lib/api";
+import { fetchWalletSectionPreflight } from "../../lib/api/wallet";
 import { useAuth } from "../Auth/useAuth";
 import { getWizardCostUpdateEventName } from "../Costs/CostsContext.types";
 import { getFighterBalanceUpdateEventName } from "../FighterBalance/FighterBalanceContext.types";
@@ -851,6 +853,42 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
     }
   }, [fighterNumericId]);
 
+  const resubmitBriefing = useCallback(
+    async (prompt: string) => {
+      const trimmed = prompt.trim();
+      if (!trimmed) {
+        return;
+      }
+
+      if (!Number.isInteger(fighterNumericId) || fighterNumericId <= 0) {
+        setErrorMessage("Invalid fighter id for briefing resubmission.");
+        return;
+      }
+
+      setErrorMessage(null);
+
+      try {
+        const preflight = await fetchWalletSectionPreflight("character-description");
+        if (!preflight.sufficient) {
+          setErrorMessage("Insufficient wallet balance to resubmit briefing.");
+          return;
+        }
+
+        setOriginalBriefing(trimmed);
+        setSectionStatuses({ ...baseStatuses, "character-description": "generating" });
+        setOutputs({});
+        setSectionHistories({});
+        setGateMessage(null);
+        setActiveSectionId("character-description");
+
+        await startPipeline(fighterNumericId, trimmed);
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "Unable to resubmit briefing.");
+      }
+    },
+    [fighterNumericId],
+  );
+
   const requestRegenerateStrikecraftSpriteImage = useCallback(async () => {
     if (!Number.isInteger(fighterNumericId) || fighterNumericId <= 0) {
       setErrorMessage("Invalid fighter id for strikecraft sprite regeneration.");
@@ -911,6 +949,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       requestRegenerateSpritesheetImage,
       requestRegenerateStrikecraftSpriteImage,
       saveEditedSection,
+      resubmitBriefing,
     }),
     [
       fighterId,
@@ -934,6 +973,7 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
       requestRegenerateSpritesheetImage,
       requestRegenerateStrikecraftSpriteImage,
       saveEditedSection,
+      resubmitBriefing,
     ],
   );
 

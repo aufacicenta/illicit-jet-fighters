@@ -15,7 +15,6 @@ import {
 } from "../../components/Navbar/CockpitStatScreens";
 import { NavbarWalletTray } from "../../components/Navbar/NavbarWalletTray";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader } from "../../components/ui/card";
 import { useCockpitAlert } from "../../context/CockpitAlert/useCockpitAlert";
 import { CostsContextController } from "../../context/Costs/CostsContextController";
 import { FighterBalanceContextController } from "../../context/FighterBalance/FighterBalanceContextController";
@@ -34,13 +33,12 @@ import { FighterLedgerSummary } from "./FighterLedgerSummary";
 import { ProgressHud } from "./ProgressHud";
 import { AgentCodeSection } from "./sections/AgentCodeSection";
 import { DescriptionSection } from "./sections/DescriptionSection";
+import { OriginalBriefingCard } from "./sections/OriginalBriefingCard";
 import { ProfilePictureSection } from "./sections/ProfilePictureSection";
-import { wizardCardHeaderClassName } from "./sections/SectionStatusBadge";
 import { SpecsheetSection } from "./sections/SpecsheetSection";
 import { SpritesheetSection } from "./sections/SpritesheetSection";
 import { StrikecraftSpecsheetSection } from "./sections/StrikecraftSpecsheetSection";
 import { StrikecraftSpriteSection } from "./sections/StrikecraftSpriteSection";
-import { WizardCardTitle } from "./sections/WizardCardTitle";
 import { WizardCostSummary } from "./WizardCostSummary";
 
 type WizardPhase = "phase-one" | "phase-two";
@@ -119,19 +117,6 @@ const getSectionStatusClassName = (status: SectionStatus | null) => {
 
 const isSectionId = (sectionId: SectionAnchorId): sectionId is SectionId =>
   sectionId !== "original-briefing";
-
-const OriginalBriefingCard = ({ originalBriefing }: { originalBriefing: string | null }) => (
-  <Card>
-    <CardHeader className={wizardCardHeaderClassName}>
-      <WizardCardTitle>Original Briefing</WizardCardTitle>
-    </CardHeader>
-    <CardContent>
-      <pre className="max-h-[260px] overflow-auto rounded-sm border border-primary/40 bg-primary/5 p-4 text-base leading-relaxed whitespace-pre-wrap">
-        {originalBriefing?.trim() || "No original briefing yet. Submit intake to create one."}
-      </pre>
-    </CardContent>
-  </Card>
-);
 
 const WizardLayout = () => {
   const {

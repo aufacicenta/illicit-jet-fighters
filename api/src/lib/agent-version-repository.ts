@@ -1,4 +1,8 @@
+import { createHash } from "node:crypto";
+
 import { and, db, desc, eq, fighterAgentVersions } from "@ijf/database";
+
+import { fighterAgentVersionScriptObjectKey, putObject } from "./r2";
 
 export type FighterAgentVersion = {
   id: string;
@@ -66,6 +70,33 @@ export const createFighterAgentVersion = async ({
   }
 
   return row;
+};
+
+export const persistFighterAgentVersion = async ({
+  fighterId,
+  userId,
+  code,
+  model,
+}: {
+  fighterId: number;
+  userId: string;
+  code: string;
+  model?: string | null;
+}): Promise<FighterAgentVersion> => {
+  const contentHash = createHash("sha256").update(code).digest("hex");
+  const versionNumber = await getNextFighterAgentVersionNumber(fighterId);
+  const objectKey = fighterAgentVersionScriptObjectKey(userId, fighterId, versionNumber);
+
+  await putObject(objectKey, Buffer.from(code), "application/typescript");
+
+  return createFighterAgentVersion({
+    fighterId,
+    userId,
+    versionNumber,
+    contentHash,
+    objectKey,
+    model,
+  });
 };
 
 export const getLatestFighterAgentVersion = async (

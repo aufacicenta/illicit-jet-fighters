@@ -98,4 +98,5 @@ export type WizardContextType = {
   requestRegenerateSpritesheetImage: () => Promise<void>;
   requestRegenerateStrikecraftSpriteImage: () => Promise<void>;
   saveEditedSection: (sectionId: SectionId, content: string) => void;
+  resubmitBriefing: (prompt: string) => Promise<void>;
 };
