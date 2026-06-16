@@ -1,3 +1,5 @@
+import type { ArenaFighterEligibilityResponse } from "@ijf/shared";
+
 import { apiRoutes } from "../../hooks/useRoutes";
 import { get, post } from "./client";
 
@@ -86,3 +88,10 @@ export const fetchArenaMyActive = async () =>
       stakeAmountNative: string | null;
     }>;
   }>(apiRoutes.arenaMyActive);
+
+export const fetchArenaFighterEligibility = async (
+  fighterIds: number[],
+): Promise<ArenaFighterEligibilityResponse> =>
+  post<ArenaFighterEligibilityResponse>(apiRoutes.arenaFighterEligibility, {
+    fighterIds,
+  });

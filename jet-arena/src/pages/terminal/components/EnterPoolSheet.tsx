@@ -111,7 +111,7 @@ export const EnterPoolSheet = ({ open, onOpenChange }: EnterPoolSheetProps) => {
             </div>
           ) : null}
 
-          {isLoadingDetails ? (
+          {isLoadingDetails && eligibleFighters.length === 0 && ineligibleFighters.length === 0 ? (
             <p className="text-sm text-muted-foreground">Loading fighter details…</p>
           ) : null}
 
@@ -127,13 +127,13 @@ export const EnterPoolSheet = ({ open, onOpenChange }: EnterPoolSheetProps) => {
             </p>
           ) : null}
 
-          {!isLoadingDetails && eligibleFighters.length > 0 ? (
+          {eligibleFighters.length > 0 ? (
             <p className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
               Ready to enter
             </p>
           ) : null}
 
-          {!isLoadingDetails && eligibleFighters.length > 0
+          {eligibleFighters.length > 0
             ? eligibleFighters.map((fighter) => {
                 const fighterState = fighterStateById[fighter.id];
                 const fighterBalanceNative = safeNativeBigInt(
@@ -286,7 +286,7 @@ export const EnterPoolSheet = ({ open, onOpenChange }: EnterPoolSheetProps) => {
               })
             : null}
 
-          {!isLoadingDetails && ineligibleFighters.length > 0 ? (
+          {ineligibleFighters.length > 0 ? (
             <div className="space-y-3 border-t border-border/70 pt-4">
               <p className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
                 Not eligible
@@ -346,6 +346,12 @@ export const EnterPoolSheet = ({ open, onOpenChange }: EnterPoolSheetProps) => {
                 );
               })}
             </div>
+          ) : null}
+
+          {isLoadingDetails && (eligibleFighters.length > 0 || ineligibleFighters.length > 0) ? (
+            <p className="animate-pulse text-xs text-muted-foreground">
+              Loading remaining fighters…
+            </p>
           ) : null}
         </div>
 

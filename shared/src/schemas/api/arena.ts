@@ -92,7 +92,31 @@ export const arenaMyActiveResponseSchema = z.object({
   fighters: z.array(arenaMyActiveFighterSchema),
 });
 
+export const arenaFighterEligibilityRequestSchema = z.object({
+  fighterIds: z.array(z.number().int().positive()).min(1).max(50),
+});
+
+export const arenaFighterEligibilityItemSchema = z.object({
+  fighterId: z.number().int().positive(),
+  sectionStatuses: z.record(z.string(), z.string()),
+  fighterBalanceNative: z.string(),
+  availableBalanceNative: z.string(),
+  versions: z.array(
+    z.object({
+      id: z.string().uuid(),
+      versionNumber: z.number().int().positive(),
+    }),
+  ),
+});
+
+export const arenaFighterEligibilityResponseSchema = z.object({
+  fighters: z.array(arenaFighterEligibilityItemSchema),
+});
+
 export type ArenaPool = z.infer<typeof arenaPoolSchema>;
 export type ArenaPoolListResponse = z.infer<typeof arenaPoolListResponseSchema>;
 export type ArenaEnterPoolRequest = z.infer<typeof arenaEnterPoolRequestSchema>;
 export type ArenaLeavePoolRequest = z.infer<typeof arenaLeavePoolRequestSchema>;
+export type ArenaFighterEligibilityRequest = z.infer<typeof arenaFighterEligibilityRequestSchema>;
+export type ArenaFighterEligibilityResponse = z.infer<typeof arenaFighterEligibilityResponseSchema>;
+export type ArenaFighterEligibilityItem = z.infer<typeof arenaFighterEligibilityItemSchema>;

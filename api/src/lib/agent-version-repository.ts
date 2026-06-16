@@ -177,3 +177,21 @@ export const listFighterAgentVersionsForOwnerAndFighter = async ({
       and(eq(fighterAgentVersions.fighterId, fighterId), eq(fighterAgentVersions.userId, userId)),
     )
     .orderBy(desc(fighterAgentVersions.versionNumber));
+
+export const listFighterAgentVersionSummaries = async ({
+  fighterId,
+  userId,
+}: {
+  fighterId: number;
+  userId: string;
+}): Promise<{ id: string; versionNumber: number }[]> =>
+  db
+    .select({
+      id: fighterAgentVersions.id,
+      versionNumber: fighterAgentVersions.versionNumber,
+    })
+    .from(fighterAgentVersions)
+    .where(
+      and(eq(fighterAgentVersions.fighterId, fighterId), eq(fighterAgentVersions.userId, userId)),
+    )
+    .orderBy(desc(fighterAgentVersions.versionNumber));

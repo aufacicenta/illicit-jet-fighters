@@ -1,6 +1,8 @@
 import {
   arenaEnterPoolRequestSchema,
   arenaEnterPoolResponseSchema,
+  arenaFighterEligibilityRequestSchema,
+  arenaFighterEligibilityResponseSchema,
   arenaLeavePoolRequestSchema,
   arenaLeavePoolResponseSchema,
   arenaMyActiveResponseSchema,
@@ -11,6 +13,8 @@ import {
 } from "@ijf/shared";
 import { Elysia, t } from "elysia";
 
+import { listFighterAgentVersionSummaries } from "../../lib/agent-version-repository";
+import { getFighterAvailableBalanceNative } from "../../lib/arena/balance-lock";
 import { enterFighterInArenaPool, leaveArenaPool } from "../../lib/arena/matchmaker";
 import {
   getPoolById,
@@ -19,7 +23,10 @@ import {
   listUserActiveArenaFighters,
   listUserQueueEntries,
 } from "../../lib/arena/pool-repository";
+import { fighterKeyFromId, getOwnedFighter } from "../../lib/fighter-access";
+import { bindPipelineTenant, deriveSectionStatusesOnly } from "../../lib/pipeline-runner";
 import { requireBearerAuth } from "../../lib/require-bearer-auth";
+import { getFighterBalanceNative } from "../../lib/wallet/ledger";
 
 const serializeQueueEntry = (entry: {
   id: string;
@@ -208,6 +215,49 @@ export const arenaRoutes = new Elysia({ prefix: "/arena" })
     {
       response: {
         200: arenaMyActiveResponseSchema,
+        401: t.String(),
+        403: t.String(),
+      },
+    },
+  )
+  .post(
+    "/fighters/eligibility",
+    async ({ body, request, headers }) => {
+      const auth = await requireBearerAuth(request, headers);
+      const { fighterIds } = body;
+
+      const results = await Promise.all(
+        fighterIds.map(async (fighterId) => {
+          const owned = await getOwnedFighter(fighterId, auth.userId);
+          if (!owned) return null;
+
+          const fighterKey = fighterKeyFromId(fighterId);
+          bindPipelineTenant(fighterKey, { userId: auth.userId, fighterId });
+
+          const [sectionStatuses, balanceNative, availableBalanceNative, versions] =
+            await Promise.all([
+              deriveSectionStatusesOnly(fighterKey),
+              getFighterBalanceNative(fighterId),
+              getFighterAvailableBalanceNative(fighterId),
+              listFighterAgentVersionSummaries({ fighterId, userId: auth.userId }),
+            ]);
+
+          return {
+            fighterId,
+            sectionStatuses: sectionStatuses ?? {},
+            fighterBalanceNative: balanceNative.toString(),
+            availableBalanceNative: availableBalanceNative.toString(),
+            versions: versions.map((v) => ({ id: v.id, versionNumber: v.versionNumber })),
+          };
+        }),
+      );
+
+      return { fighters: results.filter((r): r is NonNullable<typeof r> => r !== null) };
+    },
+    {
+      body: arenaFighterEligibilityRequestSchema,
+      response: {
+        200: arenaFighterEligibilityResponseSchema,
         401: t.String(),
         403: t.String(),
       },

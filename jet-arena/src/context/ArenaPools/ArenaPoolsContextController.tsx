@@ -5,14 +5,14 @@ import { useEffect, useState } from "react";
 
 import {
   type ArenaPool,
+  fetchArenaFighterEligibility,
   fetchArenaMyQueue,
   fetchArenaPools,
   postArenaPoolEnter,
   postArenaPoolLeave,
 } from "../../lib/api/arena";
-import { fetchFighterLedgerSnapshot, postFighterTransferIn } from "../../lib/api/fighter-ledger";
+import { postFighterTransferIn } from "../../lib/api/fighter-ledger";
 import { fetchFighterAgentVersions } from "../../lib/api/fighters";
-import { fetchPipelineState } from "../../lib/api/pipeline";
 import {
   ALL_REQUIRED_SECTION_IDS,
   countCompletedRequiredSections,
@@ -217,65 +217,42 @@ export const ArenaPoolsContextController = ({
       setLoadError(null);
 
       try {
-        const results = await Promise.all(
-          candidateFighters.map(async (fighter) => {
-            const [ledger, versionsResponse, pipelineState] = await Promise.all([
-              fetchFighterLedgerSnapshot({ fighterId: String(fighter.id) }),
-              fetchFighterAgentVersions(fighter.id),
-              fetchPipelineState(String(fighter.id)),
-            ]);
+        const response = await fetchArenaFighterEligibility(candidateFighters.map((f) => f.id));
 
-            const isFullyComplete =
-              pipelineState !== null && isFighterFullyComplete(pipelineState.sectionStatuses);
+        if (cancelled) return;
 
-            const versions = versionsResponse.versions.map((version) => ({
-              id: version.id,
-              versionNumber: version.versionNumber,
-            }));
-            const latestVersion = versions[0] ?? null;
+        const stateEntries: Record<number, FighterEnterState> = {};
+        const completeIds = new Set<number>();
+        const ineligibilityUpdates: Record<number, FighterIneligibilityReason> = {
+          ...initialIneligibility,
+        };
 
-            return {
-              fighterId: fighter.id,
-              isFullyComplete,
-              pipelineState,
-              state: {
-                balanceNative: ledger.fighterBalanceNative,
-                availableBalanceNative: ledger.availableBalanceNative,
-                versions,
-                selectedVersionId: latestVersion?.id ?? null,
-              },
-            };
-          }),
-        );
-
-        if (!cancelled) {
-          const stateEntries: [number, FighterEnterState][] = [];
-          const completeIds = new Set<number>();
-          const ineligibilityUpdates: Record<number, FighterIneligibilityReason> = {
-            ...initialIneligibility,
+        for (const item of response.fighters) {
+          const latestVersion = item.versions[0] ?? null;
+          stateEntries[item.fighterId] = {
+            balanceNative: item.fighterBalanceNative,
+            availableBalanceNative: item.availableBalanceNative,
+            versions: item.versions,
+            selectedVersionId: latestVersion?.id ?? null,
           };
 
-          for (const result of results) {
-            stateEntries.push([result.fighterId, result.state]);
-            if (result.isFullyComplete) {
-              completeIds.add(result.fighterId);
-            } else if (result.pipelineState === null) {
-              ineligibilityUpdates[result.fighterId] = { kind: "no-pipeline" };
-            } else {
-              ineligibilityUpdates[result.fighterId] = {
-                kind: "sections-incomplete",
-                completedCount: countCompletedRequiredSections(
-                  result.pipelineState.sectionStatuses,
-                ),
-                totalCount: ALL_REQUIRED_SECTION_IDS.length,
-              };
-            }
+          const isComplete = isFighterFullyComplete(item.sectionStatuses);
+          if (isComplete) {
+            completeIds.add(item.fighterId);
+          } else if (Object.keys(item.sectionStatuses).length === 0) {
+            ineligibilityUpdates[item.fighterId] = { kind: "no-pipeline" };
+          } else {
+            ineligibilityUpdates[item.fighterId] = {
+              kind: "sections-incomplete",
+              completedCount: countCompletedRequiredSections(item.sectionStatuses),
+              totalCount: ALL_REQUIRED_SECTION_IDS.length,
+            };
           }
-
-          setFighterStateById(Object.fromEntries(stateEntries));
-          setFullyCompleteFighterIds(completeIds);
-          setFighterIneligibilityById(ineligibilityUpdates);
         }
+
+        setFighterStateById(stateEntries);
+        setFullyCompleteFighterIds(completeIds);
+        setFighterIneligibilityById(ineligibilityUpdates);
       } catch (error) {
         if (!cancelled) {
           setLoadError(error instanceof Error ? error.message : "Unable to load fighter details.");

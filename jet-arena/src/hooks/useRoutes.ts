@@ -75,6 +75,7 @@ export const apiRoutes = {
   arenaPoolEnter: (poolId: string) => `${API_BASE}/arena/pools/${encodeURIComponent(poolId)}/enter`,
   arenaPoolLeave: (poolId: string) => `${API_BASE}/arena/pools/${encodeURIComponent(poolId)}/leave`,
   arenaMyQueue: `${API_BASE}/arena/me/queue`,
+  arenaFighterEligibility: `${API_BASE}/arena/fighters/eligibility`,
   arenaMyActive: `${API_BASE}/arena/me/active`,
   simulations: `${API_BASE}/simulations`,
   simulationStatus: (id: string) => `${API_BASE}/simulations/${encodeURIComponent(id)}/status`,

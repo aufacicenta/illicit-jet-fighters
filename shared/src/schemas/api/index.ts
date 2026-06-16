@@ -2,6 +2,9 @@ export {
   arenaBattleModeSchema,
   arenaEnterPoolRequestSchema,
   arenaEnterPoolResponseSchema,
+  arenaFighterEligibilityItemSchema,
+  arenaFighterEligibilityRequestSchema,
+  arenaFighterEligibilityResponseSchema,
   arenaLeavePoolRequestSchema,
   arenaLeavePoolResponseSchema,
   arenaMyActiveFighterSchema,
@@ -17,6 +20,9 @@ export {
 } from "./arena";
 export type {
   ArenaEnterPoolRequest,
+  ArenaFighterEligibilityItem,
+  ArenaFighterEligibilityRequest,
+  ArenaFighterEligibilityResponse,
   ArenaLeavePoolRequest,
   ArenaPool,
   ArenaPoolListResponse,
