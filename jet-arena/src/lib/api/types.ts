@@ -73,29 +73,6 @@ export type BattlefieldListResponse = {
   battlefields: BattlefieldListItem[];
 };
 
-export type SimulationStartResponse = {
-  simulationId: string;
-  broadcastId: string;
-  status: "queued" | "running" | "ended" | "error";
-};
-
-export type SimulationListItem = {
-  simulationId: string;
-  broadcastId: string;
-  status: "queued" | "running" | "ended" | "error";
-  createdAt: string;
-  startedAt: string | null;
-  endedAt: string | null;
-  winnerId: string | null;
-  winnerFighterId: number | null;
-  replayFrameCount: number;
-  errorMessage: string | null;
-};
-
-export type SimulationListResponse = {
-  simulations: SimulationListItem[];
-};
-
 export type SimulationStatusResponse = {
   simulationId: string;
   broadcastId: string;
@@ -107,20 +84,6 @@ export type SimulationStatusResponse = {
   replayHashHex: string | null;
   replayLength: number;
   errorMessage: string | null;
-};
-
-export type SimulationParticipantInput = {
-  fighterId: number;
-  /**
-   * Reserved for phase 2 per-slot agent version selection.
-   * Null/undefined means "latest resolved agent".
-   */
-  agentVersionId?: string | null;
-};
-
-export type SimulationStartRequest = {
-  participants: SimulationParticipantInput[];
-  seed?: number;
 };
 
 export type BroadcastSocketMessage = BroadcastMessage;

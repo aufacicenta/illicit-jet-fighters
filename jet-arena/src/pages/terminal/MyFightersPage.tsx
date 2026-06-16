@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import {
   CockpitBottomLeftSlot,
@@ -19,8 +19,6 @@ import { MyBattlefieldsContextController } from "../../context/MyBattlefields/My
 import { useMyBattlefieldsContext } from "../../context/MyBattlefields/useMyBattlefieldsContext";
 import { MyFightersContextController } from "../../context/MyFighters/MyFightersContextController";
 import { useMyFightersContext } from "../../context/MyFighters/useMyFightersContext";
-import { MySimulationsContextController } from "../../context/MySimulations/MySimulationsContextController";
-import { useMySimulationsContext } from "../../context/MySimulations/useMySimulationsContext";
 import {
   isTerminalTab,
   routes,
@@ -32,12 +30,10 @@ import { ArenaPoolsTab } from "./components/ArenaPoolsTab";
 import { ArenaQueueTab } from "./components/ArenaQueueTab";
 import { MyBattlefieldsTab } from "./components/MyBattlefieldsTab";
 import { MyFightersTab } from "./components/MyFightersTab";
-import { MySimulationsTab } from "./components/MySimulationsTab";
 
 const tabTitles: Record<TerminalTab, string> = {
   "my-fighters": "Fighters",
   "my-battlefields": "Battlefields",
-  "my-simulations": "Simulations",
   arena: "Arena",
   queue: "Queue",
 };
@@ -45,7 +41,6 @@ const tabTitles: Record<TerminalTab, string> = {
 const terminalNavItems: { value: TerminalTab; label: string }[] = [
   { value: "my-fighters", label: "Fighters" },
   { value: "my-battlefields", label: "Battlefields" },
-  { value: "my-simulations", label: "Simulations" },
   { value: "arena", label: "Arena" },
   { value: "queue", label: "Queue" },
 ];
@@ -57,14 +52,12 @@ const terminalAsideTabTriggerClassName = cn(
 );
 
 const MyFightersPageInner = () => {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get(TERMINAL_TAB_QUERY_KEY);
   const activeTab: TerminalTab = isTerminalTab(tabFromUrl) ? tabFromUrl : "my-fighters";
   const [hasFetchedTab, setHasFetchedTab] = useState<Record<TerminalTab, boolean>>({
     "my-fighters": false,
     "my-battlefields": false,
-    "my-simulations": false,
     arena: false,
     queue: false,
   });
@@ -81,8 +74,6 @@ const MyFightersPageInner = () => {
     deletingBattlefieldId,
     load: loadBattlefields,
   } = useMyBattlefieldsContext();
-
-  const { isLoading: isLoadingSimulations, load: loadSimulations } = useMySimulationsContext();
 
   const handleTabChange = (value: string) => {
     const tab = value as TerminalTab;
@@ -113,15 +104,11 @@ const MyFightersPageInner = () => {
       void loadBattlefields();
       return;
     }
-    if (activeTab === "my-simulations") {
-      void loadSimulations();
-      return;
-    }
     if (activeTab === "arena" || activeTab === "queue") {
       void loadFighters();
       return;
     }
-  }, [activeTab, hasFetchedTab, loadBattlefields, loadFighters, loadSimulations]);
+  }, [activeTab, hasFetchedTab, loadBattlefields, loadFighters]);
 
   return (
     <>
@@ -147,7 +134,11 @@ const MyFightersPageInner = () => {
         </CockpitBottomLeftSlot>
         <CockpitBottomRightSlot>
           <TypingEffect>
-            <p className="text-xs text-highlight">Illicit Jet Fighters, 2026.</p>
+            <span className="text-right text-xs text-highlight">
+              Illicit Jet Fighters, 2026.
+              <br />
+              Agentic E-Sports.
+            </span>
           </TypingEffect>
         </CockpitBottomRightSlot>
       </CockpitStatScreens>
@@ -181,22 +172,6 @@ const MyFightersPageInner = () => {
                       variant="outline"
                       disabled={isLoadingBattlefields || deletingBattlefieldId !== null}
                       onClick={() => void loadBattlefields()}
-                      type="button"
-                    >
-                      Refresh
-                    </Button>
-                  </>
-                ) : null}
-
-                {activeTab === "my-simulations" ? (
-                  <>
-                    <Button onClick={() => navigate(routes.terminalSimulation())} type="button">
-                      Create Simulation
-                    </Button>
-                    <Button
-                      variant="outline"
-                      disabled={isLoadingSimulations}
-                      onClick={() => void loadSimulations()}
                       type="button"
                     >
                       Refresh
@@ -243,10 +218,6 @@ const MyFightersPageInner = () => {
                 <MyBattlefieldsTab />
               </TabsContent>
 
-              <TabsContent className="space-y-6" value="my-simulations">
-                <MySimulationsTab />
-              </TabsContent>
-
               {(activeTab === "arena" || activeTab === "queue") && (
                 <ArenaPoolsContextController fighters={fighters} onFightersRefresh={loadFighters}>
                   <TabsContent className="space-y-6" value="arena">
@@ -269,9 +240,7 @@ export const MyFightersPage = () => {
   return (
     <MyFightersContextController>
       <MyBattlefieldsContextController>
-        <MySimulationsContextController>
-          <MyFightersPageInner />
-        </MySimulationsContextController>
+        <MyFightersPageInner />
       </MyBattlefieldsContextController>
     </MyFightersContextController>
   );

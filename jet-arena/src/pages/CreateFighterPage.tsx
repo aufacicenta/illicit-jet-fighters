@@ -179,7 +179,11 @@ export const CreateFighterPage = () => {
           </CockpitBottomCenterSlot>
           <CockpitBottomRightSlot>
             <TypingEffect>
-              <p className="text-xs text-highlight">Illicit Jet Fighters, 2026.</p>
+              <span className="text-right text-xs text-highlight">
+                Illicit Jet Fighters, 2026.
+                <br />
+                Agentic E-Sports.
+              </span>
             </TypingEffect>
           </CockpitBottomRightSlot>
         </CockpitStatScreens>

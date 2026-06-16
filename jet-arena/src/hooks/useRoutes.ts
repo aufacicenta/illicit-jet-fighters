@@ -25,7 +25,6 @@ export const TERMINAL_TAB_QUERY_KEY = "tab" as const;
 export const terminalTabValues = [
   "my-fighters",
   "my-battlefields",
-  "my-simulations",
   "arena",
   "queue",
 ] as const;
@@ -49,8 +48,6 @@ export const routes = {
   },
   terminalFighterBalance: (fighterId: string) => `/terminal/fighters/${fighterId}/balance`,
   terminalWallet: () => `/terminal/wallet`,
-  /** Deprecated singular route kept only for backward-compatible redirects. */
-  terminalSimulation: () => `/terminal/simulation`,
   login: () => `/login`,
   signup: () => `/signup`,
 };
