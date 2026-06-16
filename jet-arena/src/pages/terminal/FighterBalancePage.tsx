@@ -1,11 +1,9 @@
 import { formatDateTime, formatNullableCompactId, getWalletCurrencyMetadata } from "@ijf/shared";
 import { Sparkle } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Navigate, useParams } from "react-router-dom";
 
 import {
-  CockpitBottomRightSlot,
-  CockpitError,
   CockpitStatScreens,
   CockpitTopCenterSlot,
   CockpitTopRightSlot,
@@ -15,6 +13,7 @@ import { NavbarWalletPill } from "../../components/Navbar/NavbarWalletPill";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
+import { useCockpitAlert } from "../../context/CockpitAlert/useCockpitAlert";
 import { FighterBalanceContextController } from "../../context/FighterBalance/FighterBalanceContextController";
 import { useFighterBalanceContext } from "../../context/FighterBalance/useFighterBalanceContext";
 import { useWalletContext } from "../../context/Wallet/useWalletContext";
@@ -58,6 +57,8 @@ const FighterBalancePageInner = () => {
     walletBalanceNative,
   } = useFighterBalanceContext();
   const { wallet } = useWalletContext();
+  const { pushAlert } = useCockpitAlert();
+  const lastPushedErrorRef = useRef<string | null>(null);
   const walletCurrency = wallet?.currency ?? getWalletCurrencyMetadata(wallet?.network ?? "sui");
   const { nativeDecimals, symbol } = walletCurrency;
   const isSubmittingTransfer = isSubmittingTopUp || isSubmittingWithdraw || isSubmittingUnlock;
@@ -65,6 +66,16 @@ const FighterBalancePageInner = () => {
   useEffect(() => {
     void refreshLedgerSnapshot();
   }, [refreshLedgerSnapshot]);
+
+  useEffect(() => {
+    if (errorMessage && errorMessage !== lastPushedErrorRef.current) {
+      lastPushedErrorRef.current = errorMessage;
+      pushAlert(errorMessage);
+    }
+    if (!errorMessage) {
+      lastPushedErrorRef.current = null;
+    }
+  }, [errorMessage, pushAlert]);
 
   const renderNativeToken = (nativeValue: string) =>
     `${formatTokenAmountFromNative(nativeValue, nativeDecimals, { fractionDigits: 4 })} ${symbol}`;
@@ -90,11 +101,6 @@ const FighterBalancePageInner = () => {
         <CockpitTopRightSlot>
           <NavbarWalletPill variant="cockpit" />
         </CockpitTopRightSlot>
-        {errorMessage ? (
-          <CockpitBottomRightSlot>
-            <CockpitError message={errorMessage} />
-          </CockpitBottomRightSlot>
-        ) : null}
       </CockpitStatScreens>
 
       <div className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-6">

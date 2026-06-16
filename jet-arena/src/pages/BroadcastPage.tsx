@@ -14,6 +14,7 @@ import {
 } from "../components/Navbar/CockpitStatScreens";
 import { BroadcastContextController } from "../context/Broadcast/BroadcastContextController";
 import { useBroadcastContext } from "../context/Broadcast/useBroadcastContext";
+import { useCockpitAlert } from "../context/CockpitAlert/useCockpitAlert";
 import { GameRenderer } from "../renderer";
 import type { GameState, PickupTally } from "../types";
 import { BroadcastJetCard } from "./BroadcastJetCard";
@@ -79,9 +80,21 @@ const BroadcastPageContent = () => {
     refreshPlayerMeta,
   } = useBroadcastContext();
 
+  const { pushAlert } = useCockpitAlert();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<GameRenderer | null>(null);
   const hasRetriedExpiredSpriteUrlsRef = useRef(false);
+  const lastPushedErrorRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (errorMessage && errorMessage !== lastPushedErrorRef.current) {
+      lastPushedErrorRef.current = errorMessage;
+      pushAlert(errorMessage);
+    }
+    if (!errorMessage) {
+      lastPushedErrorRef.current = null;
+    }
+  }, [errorMessage, pushAlert]);
   const [jetSprites, setJetSprites] = useState<Map<string, HTMLImageElement>>(new Map());
   const scoreboardJets = [...(currentFrame?.jets ?? [])].sort(
     (a, b) => b.enemyHitsLanded - a.enemyHitsLanded,
@@ -197,9 +210,6 @@ const BroadcastPageContent = () => {
               ALIVE {aliveJets}/{currentFrame?.jets.length ?? 0}
             </p>
             <p>Pickups {currentFrame?.pickups.length ?? 0}</p>
-            {errorMessage ? (
-              <p className="truncate text-[9px] text-red-300">ERR {errorMessage}</p>
-            ) : null}
           </section>
         </CockpitTopLeftSlot>
         <CockpitTopCenterSlot>

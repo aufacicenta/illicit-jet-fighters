@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
+import { useCockpitAlert } from "../../context/CockpitAlert/useCockpitAlert";
 import { routes } from "../../hooks/useRoutes";
 import { fetchFighterAgentVersions, fetchMyFighters, simulationStartPost } from "../../lib/api";
 import { cn } from "../../lib/utils";
@@ -66,19 +67,19 @@ const statusClassByCode: Record<MyFighter["status"], string> = {
 
 export const TerminalSimulationPage = () => {
   const navigate = useNavigate();
+  const { pushAlert } = useCockpitAlert();
   const [fighters, setFighters] = useState<MyFighter[]>([]);
   const [fighterVersionsById, setFighterVersionsById] = useState<
     Record<number, FighterAgentVersion[]>
   >({});
   const [lineupSlots, setLineupSlots] = useState<LineupSlot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [launchError, setLaunchError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false);
 
   const loadFighters = useCallback(async () => {
     setIsLoading(true);
-    setErrorMessage(null);
+    setLoadError(false);
     setFighterVersionsById({});
     try {
       const response = await fetchMyFighters();
@@ -96,11 +97,12 @@ export const TerminalSimulationPage = () => {
       );
       setFighterVersionsById(Object.fromEntries(versionEntries));
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to load fighter roster.");
+      setLoadError(true);
+      pushAlert(error instanceof Error ? error.message : "Unable to load fighter roster.");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [pushAlert]);
 
   useEffect(() => {
     void loadFighters();
@@ -151,7 +153,6 @@ export const TerminalSimulationPage = () => {
     }
 
     setIsLaunching(true);
-    setLaunchError(null);
 
     try {
       const response = await simulationStartPost({
@@ -162,7 +163,7 @@ export const TerminalSimulationPage = () => {
       });
       navigate(routes.broadcast(response.broadcastId), { replace: true });
     } catch (error) {
-      setLaunchError(error instanceof Error ? error.message : "Unable to launch simulation.");
+      pushAlert(error instanceof Error ? error.message : "Unable to launch simulation.");
     } finally {
       setIsLaunching(false);
     }
@@ -203,21 +204,13 @@ export const TerminalSimulationPage = () => {
           </div>
         </header>
 
-        {errorMessage ? (
+        {loadError ? (
           <Card>
             <CardContent className="space-y-3 p-5">
-              <p className="text-sm text-destructive">{errorMessage}</p>
+              <p className="text-sm text-destructive">Failed to load fighter roster.</p>
               <Button onClick={() => void loadFighters()} size="sm" type="button" variant="outline">
                 Retry
               </Button>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {launchError ? (
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs tracking-[0.08em] text-destructive uppercase">{launchError}</p>
             </CardContent>
           </Card>
         ) : null}

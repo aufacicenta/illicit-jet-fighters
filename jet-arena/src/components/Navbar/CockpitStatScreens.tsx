@@ -10,6 +10,8 @@ import {
   useState,
 } from "react";
 
+import { useCockpitAlert } from "../../context/CockpitAlert/useCockpitAlert";
+
 type CockpitSlotProps = {
   children: ReactNode;
 };
@@ -254,8 +256,22 @@ const RTLScrollEffectController = ({ children }: { children: ReactNode }) => {
   );
 };
 
+const CockpitAlertDisplay = ({ message, revision }: { message: string; revision: number }) => (
+  <TypingEffect revision={revision}>
+    <p className="cockpit-alert-pulse px-2 text-xs leading-snug normal-case" role="alert">
+      {message}
+    </p>
+  </TypingEffect>
+);
+
 export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
   const customSlots = useMemo(() => resolveCockpitSlots(children), [children]);
+  const { currentAlert } = useCockpitAlert();
+  const bottomRightContent = currentAlert ? (
+    <CockpitAlertDisplay message={currentAlert.message} revision={currentAlert.createdAt} />
+  ) : (
+    customSlots.bottomRight
+  );
   const cockpitBottomCenterMaskStyle: CSSProperties = {
     WebkitMaskImage: "url('/cockpit-bottom-center-box.svg')",
     WebkitMaskPosition: "center",
@@ -356,14 +372,14 @@ export const CockpitStatScreens = ({ children }: CockpitStatScreensProps) => {
         ) : (
           <div aria-hidden className="w-[797px]" />
         )}
-        {customSlots.bottomRight !== undefined ? (
+        {bottomRightContent !== undefined ? (
           <div className="flex flex-col justify-end">
             <div
               aria-hidden
               className="cockpit-panel-slide-up cockpit-panel-slide-start-delay mb-[21px] flex h-[83px] w-[398px] items-center justify-center overflow-hidden bg-[url('/cockpit-bottom-right-box.png')] bg-contain bg-center bg-no-repeat pt-2 pr-6 pb-2 pl-9 text-center"
               id="cockpit-stats-bottom-right-panel"
             >
-              {customSlots.bottomRight}
+              {bottomRightContent}
             </div>
           </div>
         ) : (

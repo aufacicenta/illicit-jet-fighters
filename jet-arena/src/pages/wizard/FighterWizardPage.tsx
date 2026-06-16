@@ -16,6 +16,7 @@ import {
 import { NavbarWalletTray } from "../../components/Navbar/NavbarWalletTray";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
+import { useCockpitAlert } from "../../context/CockpitAlert/useCockpitAlert";
 import { CostsContextController } from "../../context/Costs/CostsContextController";
 import { FighterBalanceContextController } from "../../context/FighterBalance/FighterBalanceContextController";
 import { useFighterBalanceContext } from "../../context/FighterBalance/useFighterBalanceContext";
@@ -148,7 +149,19 @@ const WizardLayout = () => {
   const { isReady: fighterLedgerReady } = useFighterBalanceContext();
   const navigate = useNavigate();
   const { setCurrentSectionLabel, clearCurrentSectionLabel } = useNavbarBreadcrumbContext();
+  const { pushAlert } = useCockpitAlert();
   const contentContainerRef = useRef<HTMLDivElement | null>(null);
+  const lastPushedErrorRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (errorMessage && errorMessage !== lastPushedErrorRef.current) {
+      lastPushedErrorRef.current = errorMessage;
+      pushAlert(errorMessage);
+    }
+    if (!errorMessage) {
+      lastPushedErrorRef.current = null;
+    }
+  }, [errorMessage, pushAlert]);
 
   const showConnectionHint = connectionStatus !== "open";
   const nextPhaseOneSection = getNextSectionForPhase("phase-one", sectionStatuses);
@@ -168,9 +181,15 @@ const WizardLayout = () => {
   const hasErrorSection = Object.values(sectionStatuses).some((status) => status === "error");
   const continueDisabled = hasGeneratingSection || isContinuingPipeline;
   const continueVariant = "cockpit" as const;
+  const phaseOneHasCompletedSection = PHASE_ONE_SECTION_IDS.some(
+    (id) => sectionStatuses[id] === "complete",
+  );
+  const phaseTwoHasCompletedSection = PHASE_TWO_SECTION_IDS.some(
+    (id) => sectionStatuses[id] === "complete",
+  );
   const handleContinue = () => {
     if (!phaseOneComplete) {
-      if (gateMessage || hasErrorSection) {
+      if (gateMessage || hasErrorSection || phaseOneHasCompletedSection) {
         requestContinuePipeline();
         return;
       }
@@ -179,7 +198,7 @@ const WizardLayout = () => {
     }
 
     if (!phaseTwoComplete) {
-      if (gateMessage || hasErrorSection) {
+      if (gateMessage || hasErrorSection || phaseTwoHasCompletedSection) {
         requestContinuePipeline();
         return;
       }
@@ -385,12 +404,6 @@ const WizardLayout = () => {
           <p className="text-xs tracking-wide text-muted-foreground uppercase">
             Sync link {connectionStatus === "connecting" ? "initializing" : "reconnecting"}...
           </p>
-        ) : null}
-
-        {errorMessage ? (
-          <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
-            {errorMessage}
-          </div>
         ) : null}
       </div>
     </>

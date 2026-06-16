@@ -15,6 +15,7 @@ import {
 } from "../components/Navbar/CockpitStatScreens";
 import { NavbarWalletTray } from "../components/Navbar/NavbarWalletTray";
 import { useAuth } from "../context/Auth/useAuth";
+import { useCockpitAlert } from "../context/CockpitAlert/useCockpitAlert";
 import { routes } from "../hooks/useRoutes";
 import { battlefieldCreatePost, startBattlefieldPipeline } from "../lib/api";
 import { PromptBar } from "./wizard/PromptBar";
@@ -25,18 +26,17 @@ export const CreateBattlefieldPage = () => {
   const [briefingPrompt, setBriefingPrompt] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { pushAlert } = useCockpitAlert();
 
   const onStartIntake = useCallback(() => {
     if (!token || isSubmittingRef.current) return;
 
     const prompt = briefingPrompt.trim();
     if (!prompt) {
-      setErrorMessage("Please enter a battlefield briefing before starting intake.");
+      pushAlert("Please enter a battlefield briefing before starting intake.");
       return;
     }
 
-    setErrorMessage(null);
     isSubmittingRef.current = true;
     setIsSubmitting(true);
     void (async () => {
@@ -45,15 +45,13 @@ export const CreateBattlefieldPage = () => {
         await startBattlefieldPipeline(id, prompt);
         navigate(routes.battlefieldWizard(String(id)), { replace: true });
       } catch (error) {
-        setErrorMessage(
-          error instanceof Error ? error.message : "Could not start battlefield intake.",
-        );
+        pushAlert(error instanceof Error ? error.message : "Could not start battlefield intake.");
       } finally {
         isSubmittingRef.current = false;
         setIsSubmitting(false);
       }
     })();
-  }, [briefingPrompt, navigate, token]);
+  }, [briefingPrompt, navigate, pushAlert, token]);
 
   if (!token) {
     return (
@@ -125,13 +123,7 @@ export const CreateBattlefieldPage = () => {
         </CockpitBottomRightSlot>
       </CockpitStatScreens>
 
-      <div className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex min-h-screen w-full max-w-4xl flex-col justify-center gap-6 px-4 md:px-6">
-        {errorMessage ? (
-          <div className="mx-auto w-full max-w-2xl rounded-sm border border-destructive/40 bg-destructive/10 p-3 text-sm normal-case">
-            {errorMessage}
-          </div>
-        ) : null}
-      </div>
+      <div className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex min-h-screen w-full max-w-4xl flex-col justify-center gap-6 px-4 md:px-6" />
     </>
   );
 };

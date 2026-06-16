@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Navigate, useParams } from "react-router-dom";
 
 import {
@@ -24,6 +24,7 @@ import {
 } from "../../context/BattlefieldWizard/BattlefieldWizardContext.types";
 import { BattlefieldWizardContextController } from "../../context/BattlefieldWizard/BattlefieldWizardContextController";
 import { useBattlefieldWizardContext } from "../../context/BattlefieldWizard/useBattlefieldWizardContext";
+import { useCockpitAlert } from "../../context/CockpitAlert/useCockpitAlert";
 import { useNavbarBreadcrumbContext } from "../../context/NavbarBreadcrumb/useNavbarBreadcrumbContext";
 import { routes } from "../../hooks/useRoutes";
 import { BattlefieldProgressHud } from "./BattlefieldProgressHud";
@@ -124,6 +125,18 @@ const BattlefieldWizardLayout = () => {
     activeSectionId,
   } = useBattlefieldWizardContext();
   const { setCurrentSectionLabel, clearCurrentSectionLabel } = useNavbarBreadcrumbContext();
+  const { pushAlert } = useCockpitAlert();
+  const lastPushedErrorRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (errorMessage && errorMessage !== lastPushedErrorRef.current) {
+      lastPushedErrorRef.current = errorMessage;
+      pushAlert(errorMessage);
+    }
+    if (!errorMessage) {
+      lastPushedErrorRef.current = null;
+    }
+  }, [errorMessage, pushAlert]);
 
   const showConnectionHint = connectionStatus !== "open";
   const activeBreadcrumbSectionLabel = useMemo(() => {
@@ -276,12 +289,6 @@ const BattlefieldWizardLayout = () => {
           <p className="text-xs tracking-wide text-muted-foreground uppercase">
             Sync link {connectionStatus === "connecting" ? "initializing" : "reconnecting"}...
           </p>
-        ) : null}
-
-        {errorMessage ? (
-          <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
-            {errorMessage}
-          </div>
         ) : null}
       </div>
     </>

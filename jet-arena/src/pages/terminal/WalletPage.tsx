@@ -6,7 +6,7 @@ import {
   getWalletCurrencyMetadata,
 } from "@ijf/shared";
 import { Sparkle } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   CockpitStatScreens,
@@ -18,6 +18,7 @@ import { NavbarWalletPill } from "../../components/Navbar/NavbarWalletPill";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
+import { useCockpitAlert } from "../../context/CockpitAlert/useCockpitAlert";
 import { useWalletContext } from "../../context/Wallet/useWalletContext";
 import { formatTokenAmountFromNative } from "../../lib/formatTokenAmountFromNative";
 import { parseTokenAmountToNative } from "../../lib/nativeAmount";
@@ -65,11 +66,22 @@ export const WalletPage = () => {
     wallet,
     withdrawals,
   } = useWalletContext();
+  const { pushAlert } = useCockpitAlert();
+  const lastPushedErrorRef = useRef<string | null>(null);
   const [targetAddress, setTargetAddress] = useState("");
   const [amountSui, setAmountSui] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
   const [activeSectionId, setActiveSectionId] = useState<WalletSectionId>("deposit");
   const walletCurrency = wallet?.currency ?? getWalletCurrencyMetadata(wallet?.network ?? "sui");
+
+  useEffect(() => {
+    if (errorMessage && errorMessage !== lastPushedErrorRef.current) {
+      lastPushedErrorRef.current = errorMessage;
+      pushAlert(errorMessage);
+    }
+    if (!errorMessage) {
+      lastPushedErrorRef.current = null;
+    }
+  }, [errorMessage, pushAlert]);
 
   const availableBalanceLabel = useMemo(
     () =>
@@ -98,10 +110,9 @@ export const WalletPage = () => {
     }
 
     try {
-      setFormError(null);
       const amountNative = parseTokenAmountToNative(amountSui, walletCurrency.nativeDecimals);
       if (!amountNative || amountNative <= 0n) {
-        setFormError(`Enter a valid ${walletCurrency.symbol} amount.`);
+        pushAlert(`Enter a valid ${walletCurrency.symbol} amount.`);
         return;
       }
       await submitWithdrawal({
@@ -111,7 +122,7 @@ export const WalletPage = () => {
       setAmountSui("");
       setTargetAddress("");
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Unable to submit withdrawal.");
+      pushAlert(error instanceof Error ? error.message : "Unable to submit withdrawal.");
     }
   };
 
@@ -259,8 +270,6 @@ export const WalletPage = () => {
                       value={amountSui}
                     />
                   </div>
-                  {formError ? <p className="text-xs text-destructive">{formError}</p> : null}
-
                   <div className="space-y-2 border-t border-border/70 pt-3">
                     <p className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
                       Pending &amp; recent withdrawals
@@ -336,12 +345,6 @@ export const WalletPage = () => {
             </Button>
           </aside>
         </div>
-
-        {errorMessage ? (
-          <div className="rounded-sm border border-destructive/70 bg-destructive/10 p-3 text-sm text-foreground">
-            {errorMessage}
-          </div>
-        ) : null}
       </div>
     </>
   );

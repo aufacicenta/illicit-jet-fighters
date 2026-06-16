@@ -423,3 +423,21 @@ body {
     opacity: 1;
   }
 }
+
+@keyframes cockpit-alert-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    text-shadow: 0 0 8px rgba(239, 68, 68, 0.9);
+    color: #ef4444;
+  }
+  50% {
+    opacity: 0.35;
+    text-shadow: 0 0 16px rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+  }
+}
+
+.cockpit-alert-pulse {
+  animation: cockpit-alert-pulse 0.7s ease-in-out infinite;
+}

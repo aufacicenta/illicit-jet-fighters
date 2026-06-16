@@ -8,8 +8,26 @@ export const authHeadersJson = (): HeadersInit => ({
   ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
 });
 
-export const readErrorText = async (response: Response) =>
-  (await response.text()) || response.statusText;
+export const readErrorText = async (response: Response): Promise<string> => {
+  const raw = await response.text();
+  if (!raw) {
+    return response.statusText;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed === "object" && parsed !== null && "message" in parsed) {
+      const { message } = parsed as { message: unknown };
+      if (typeof message === "string" && message.length > 0) {
+        return message;
+      }
+    }
+  } catch {
+    // not JSON — use the raw text
+  }
+
+  return raw;
+};
 
 export const post = async <TResponse>(
   url: string,
