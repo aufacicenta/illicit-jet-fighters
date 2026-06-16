@@ -1,4 +1,3 @@
-import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { Button } from "../../../components/ui/button";
@@ -34,12 +33,6 @@ export const MyFightersTab = () => {
     cancelDelete,
     openWizard,
   } = useMyFightersContext();
-
-  const [expandedFighterId, setExpandedFighterId] = useState<number | null>(null);
-
-  const handleToggleExpand = useCallback((fighterId: number) => {
-    setExpandedFighterId((current) => (current === fighterId ? null : fighterId));
-  }, []);
 
   return (
     <>
@@ -107,10 +100,8 @@ export const MyFightersTab = () => {
               <FighterAccordionRow
                 fighter={fighter}
                 isDeleting={deletingFighterId === fighter.id}
-                isExpanded={expandedFighterId === fighter.id}
                 onDelete={promptDelete}
                 onOpenWizard={openWizard}
-                onToggleExpand={handleToggleExpand}
               />
             </div>
           ))}
