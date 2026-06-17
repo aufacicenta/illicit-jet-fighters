@@ -62,6 +62,8 @@ const mergePlayerMetaById = (current: PlayerMetaById, incoming: PlayerMetaById):
       spritesheetManifest: nextMeta.spritesheetManifest ?? existingMeta.spritesheetManifest,
       strikecraftTopSpriteUrl:
         nextMeta.strikecraftTopSpriteUrl ?? existingMeta.strikecraftTopSpriteUrl,
+      strikecraftTopSpriteThumbnailUrl:
+        nextMeta.strikecraftTopSpriteThumbnailUrl ?? existingMeta.strikecraftTopSpriteThumbnailUrl,
     };
   }
 

@@ -19,6 +19,7 @@ import {
   spritesheetManifestObjectKey,
   strikecraftSpecsheetObjectKey,
   strikecraftSpriteObjectKey,
+  strikecraftSpriteThumbObjectKey,
 } from "./r2";
 import type { FighterSectionId as SectionId, SectionOutput } from "./types";
 
@@ -204,6 +205,16 @@ export const commitImageAsset = async ({
       PFP_THUMBNAIL_SIZES.map(async (size) => {
         const thumbBuffer = await generateThumbnailWebp(normalized.buffer, size);
         const thumbKey = characterPfpThumbObjectKey(tenant.userId, tenant.fighterId, size);
+        await putObject(thumbKey, thumbBuffer, "image/webp");
+      }),
+    );
+  }
+  if (sectionId === "strikecraft-sprite-image") {
+    const SPRITE_THUMBNAIL_SIZES = [640, 128] as const;
+    await Promise.all(
+      SPRITE_THUMBNAIL_SIZES.map(async (size) => {
+        const thumbBuffer = await generateThumbnailWebp(normalized.buffer, size);
+        const thumbKey = strikecraftSpriteThumbObjectKey(tenant.userId, tenant.fighterId, size);
         await putObject(thumbKey, thumbBuffer, "image/webp");
       }),
     );

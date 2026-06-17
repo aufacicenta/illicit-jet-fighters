@@ -49,7 +49,7 @@ export const FighterGridCell = ({ fighter, onSelect }: FighterGridCellProps) => 
             <img
               alt={`${displayName} strikecraft`}
               className="h-full w-1/2 bg-background object-contain p-2"
-              src={fighter.spriteUrl ?? undefined}
+              src={fighter.spriteGridUrl ?? fighter.spriteUrl ?? undefined}
             />
           </div>
         ) : (

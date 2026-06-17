@@ -17,6 +17,7 @@ export type BroadcastInitData = {
       spritesheetManifestUrl: string | null;
       spritesheetManifest: SpritesheetManifest | null;
       strikecraftTopSpriteUrl: string | null;
+      strikecraftTopSpriteThumbnailUrl?: string | null;
     }
   >;
   arenaBounds: { width: number; height: number };

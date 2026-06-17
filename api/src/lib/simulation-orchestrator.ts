@@ -29,9 +29,11 @@ import {
   fighterAgentScriptObjectKey,
   getObjectBuffer,
   getSignedReadUrl,
+  objectExists,
   spritesheetImageObjectKey,
   spritesheetManifestObjectKey,
   strikecraftSpriteObjectKey,
+  strikecraftSpriteThumbObjectKey,
 } from "./r2";
 import {
   readBroadcastInitArtifact,
@@ -305,20 +307,30 @@ const getPlayerSpritesheetMeta = async (
   spritesheetManifestUrl: string | null;
   spritesheetManifest: SpritesheetManifest | null;
   strikecraftTopSpriteUrl: string | null;
+  strikecraftTopSpriteThumbnailUrl: string | null;
 }> => {
   const imageKey = spritesheetImageObjectKey(ownerUserId, fighterId, "png");
   const manifestKey = spritesheetManifestObjectKey(ownerUserId, fighterId);
   const strikecraftTopSpriteKey = strikecraftSpriteObjectKey(ownerUserId, fighterId, "png");
+  const strikecraftTopSpriteThumbnailKey = strikecraftSpriteThumbObjectKey(
+    ownerUserId,
+    fighterId,
+    128,
+  );
   const [
     spritesheetImageUrl,
     spritesheetManifestUrl,
     spritesheetManifestRaw,
     strikecraftTopSpriteUrl,
+    strikecraftTopSpriteThumbnailUrl,
   ] = await Promise.all([
     getSignedReadUrl(imageKey, 3600).catch(() => null),
     getSignedReadUrl(manifestKey, 3600).catch(() => null),
     getObjectBuffer(manifestKey).catch(() => null),
     getSignedReadUrl(strikecraftTopSpriteKey, 3600).catch(() => null),
+    objectExists(strikecraftTopSpriteThumbnailKey)
+      .then((exists) => (exists ? getSignedReadUrl(strikecraftTopSpriteThumbnailKey, 3600) : null))
+      .catch(() => null),
   ]);
   let spritesheetManifest: SpritesheetManifest | null = null;
   if (spritesheetManifestRaw) {
@@ -346,6 +358,7 @@ const getPlayerSpritesheetMeta = async (
     spritesheetManifestUrl,
     spritesheetManifest,
     strikecraftTopSpriteUrl,
+    strikecraftTopSpriteThumbnailUrl,
   };
 };
 

@@ -1,14 +1,16 @@
 /**
- * One-shot script to generate PFP thumbnails for all existing fighters.
+ * One-shot script to generate thumbnails for all existing fighters.
+ *
+ * Covers both PFP (`character-pfp.png`) and strikecraft sprite (`strikecraft-sprite-top.png`).
  *
  * Usage:
  *   bun run api/src/scripts/backfill-pfp-thumbnails.ts
  *
- * For each fighter that has a `character-pfp.png` in R2, this will:
- *   1. Download the original PNG.
- *   2. Generate 640×640 and 128×128 WebP thumbnails.
- *   3. Upload them to `thumbs/character-pfp-{size}.webp`.
- *   4. Skip any fighter that already has both thumbnails.
+ * For each fighter this will:
+ *   1. Check if thumbnails already exist (skip if both sizes present).
+ *   2. Download the original PNG from R2.
+ *   3. Generate 640×640 and 128×128 WebP thumbnails.
+ *   4. Upload them to `thumbs/character-pfp-{size}.webp` / `thumbs/strikecraft-sprite-top-{size}.webp`.
  */
 
 import { db, fighters } from "@ijf/database";
@@ -21,12 +23,68 @@ import {
   getObjectBuffer,
   objectExists,
   putObject,
+  strikecraftSpriteObjectKey,
+  strikecraftSpriteThumbObjectKey,
 } from "../lib/r2";
 
-const PFP_THUMBNAIL_SIZES = [640, 128] as const;
+const THUMBNAIL_SIZES = [640, 128] as const;
+
+type AssetSpec = {
+  label: string;
+  originalKeyBuilder: (userId: string, fighterId: number, ext: string) => string;
+  thumbKeyBuilder: (userId: string, fighterId: number, size: number) => string;
+};
+
+const ASSET_SPECS: AssetSpec[] = [
+  {
+    label: "PFP",
+    originalKeyBuilder: characterPfpObjectKey,
+    thumbKeyBuilder: characterPfpThumbObjectKey,
+  },
+  {
+    label: "Sprite",
+    originalKeyBuilder: strikecraftSpriteObjectKey,
+    thumbKeyBuilder: strikecraftSpriteThumbObjectKey,
+  },
+];
+
+const backfillAsset = async (
+  spec: AssetSpec,
+  fighter: { id: number; userId: string },
+): Promise<"generated" | "skipped" | "no-original"> => {
+  const existChecks = await Promise.all(
+    THUMBNAIL_SIZES.map((size) =>
+      objectExists(spec.thumbKeyBuilder(fighter.userId, fighter.id, size)),
+    ),
+  );
+
+  if (existChecks.every(Boolean)) {
+    return "skipped";
+  }
+
+  const originalKey = spec.originalKeyBuilder(fighter.userId, fighter.id, "png");
+  const originalBuffer = await getObjectBuffer(originalKey);
+
+  if (!originalBuffer) {
+    return "no-original";
+  }
+
+  await Promise.all(
+    THUMBNAIL_SIZES.map(async (size, index) => {
+      if (existChecks[index]) {
+        return;
+      }
+      const thumbBuffer = await generateThumbnailWebp(originalBuffer, size);
+      const thumbKey = spec.thumbKeyBuilder(fighter.userId, fighter.id, size);
+      await putObject(thumbKey, thumbBuffer, "image/webp");
+    }),
+  );
+
+  return "generated";
+};
 
 const main = async () => {
-  console.log("Starting PFP thumbnail backfill…");
+  console.log("Starting thumbnail backfill (PFP + Strikecraft Sprite)…");
 
   const allFighters = await db
     .select({
@@ -38,71 +96,45 @@ const main = async () => {
 
   console.log(`Found ${allFighters.length} fighters to process.`);
 
-  let processed = 0;
-  let skipped = 0;
-  let generated = 0;
-  let failed = 0;
+  const stats: Record<string, { generated: number; skipped: number; failed: number }> = {};
+  for (const spec of ASSET_SPECS) {
+    stats[spec.label] = { generated: 0, skipped: 0, failed: 0 };
+  }
 
-  for (const fighter of allFighters) {
+  for (let i = 0; i < allFighters.length; i += 1) {
+    const fighter = allFighters[i]!;
     const label = `fighter #${fighter.id} (user ${fighter.userId})`;
 
-    try {
-      // Check if thumbnails already exist
-      const existChecks = await Promise.all(
-        PFP_THUMBNAIL_SIZES.map((size) =>
-          objectExists(characterPfpThumbObjectKey(fighter.userId, fighter.id, size)),
-        ),
-      );
-
-      if (existChecks.every(Boolean)) {
-        skipped += 1;
-        processed += 1;
-        continue;
-      }
-
-      // Download original PNG
-      const originalKey = characterPfpObjectKey(fighter.userId, fighter.id, "png");
-      const originalBuffer = await getObjectBuffer(originalKey);
-
-      if (!originalBuffer) {
-        skipped += 1;
-        processed += 1;
-        continue;
-      }
-
-      // Generate and upload missing thumbnails
-      await Promise.all(
-        PFP_THUMBNAIL_SIZES.map(async (size, index) => {
-          if (existChecks[index]) {
-            return; // Already exists
-          }
-
-          const thumbBuffer = await generateThumbnailWebp(originalBuffer, size);
-          const thumbKey = characterPfpThumbObjectKey(fighter.userId, fighter.id, size);
-          await putObject(thumbKey, thumbBuffer, "image/webp");
-        }),
-      );
-
-      generated += 1;
-      processed += 1;
-
-      if (processed % 50 === 0) {
-        console.log(
-          `Progress: ${processed}/${allFighters.length} (generated: ${generated}, skipped: ${skipped}, failed: ${failed})`,
+    for (const spec of ASSET_SPECS) {
+      try {
+        const result = await backfillAsset(spec, fighter);
+        if (result === "generated") {
+          stats[spec.label]!.generated += 1;
+        } else {
+          stats[spec.label]!.skipped += 1;
+        }
+      } catch (error) {
+        stats[spec.label]!.failed += 1;
+        console.error(
+          `[${spec.label}] Failed for ${label}:`,
+          error instanceof Error ? error.message : error,
         );
       }
-    } catch (error) {
-      failed += 1;
-      processed += 1;
-      console.error(`Failed for ${label}:`, error instanceof Error ? error.message : error);
+    }
+
+    if ((i + 1) % 50 === 0) {
+      console.log(`Progress: ${i + 1}/${allFighters.length}`);
     }
   }
 
   console.log("\nBackfill complete:");
-  console.log(`  Total:     ${allFighters.length}`);
-  console.log(`  Generated: ${generated}`);
-  console.log(`  Skipped:   ${skipped}`);
-  console.log(`  Failed:    ${failed}`);
+  console.log(`  Total fighters: ${allFighters.length}`);
+  for (const spec of ASSET_SPECS) {
+    const s = stats[spec.label]!;
+    console.log(
+      `  [${spec.label}] Generated: ${s.generated}, Skipped: ${s.skipped}, Failed: ${s.failed}`,
+    );
+  }
 
   process.exit(0);
 };

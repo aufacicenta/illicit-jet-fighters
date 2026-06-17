@@ -96,6 +96,7 @@ export const simulationPlayerMetaSchema = z.object({
   spritesheetManifestUrl: z.string().url().nullable(),
   spritesheetManifest: z.unknown().nullable(),
   strikecraftTopSpriteUrl: z.string().url().nullable(),
+  strikecraftTopSpriteThumbnailUrl: z.string().url().nullable().optional(),
 });
 
 export const simulationReplaySnapshotSchema = z.object({

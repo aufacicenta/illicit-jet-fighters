@@ -173,11 +173,11 @@ export const FighterDetailDrawer = ({
               </DetailSection>
 
               <DetailSection title="Strikecraft Top Sprite">
-                {detail.spriteUrl ? (
+                {(detail.spriteGridUrl ?? detail.spriteUrl) ? (
                   <img
                     alt={`${displayName} strikecraft sprite`}
                     className="max-h-[360px] w-full rounded-sm border border-border bg-background object-contain"
-                    src={detail.spriteUrl}
+                    src={detail.spriteGridUrl ?? detail.spriteUrl ?? undefined}
                   />
                 ) : (
                   <p className="text-sm text-muted-foreground">No strikecraft sprite available.</p>

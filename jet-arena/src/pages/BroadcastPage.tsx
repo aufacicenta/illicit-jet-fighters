@@ -109,11 +109,13 @@ const BroadcastPageContent = () => {
       let failedLoads = 0;
       const spriteEntries = await Promise.all(
         Object.entries(playerMetaById).map(async ([jetId, playerMeta]) => {
-          if (!playerMeta?.strikecraftTopSpriteUrl) {
+          const spriteUrl =
+            playerMeta?.strikecraftTopSpriteThumbnailUrl ?? playerMeta?.strikecraftTopSpriteUrl;
+          if (!spriteUrl) {
             return null;
           }
           try {
-            const image = await preloadImage(playerMeta.strikecraftTopSpriteUrl);
+            const image = await preloadImage(spriteUrl);
             return [jetId, image] as const;
           } catch (error) {
             failedLoads += 1;

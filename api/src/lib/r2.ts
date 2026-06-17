@@ -66,6 +66,12 @@ export const characterPfpThumbObjectKey = (userId: string, fighterId: number, si
     `thumbs/character-pfp-${size}.webp`,
   );
 
+export const strikecraftSpriteThumbObjectKey = (userId: string, fighterId: number, size: number) =>
+  path.posix.join(
+    `users/${userId}/fighters/${String(fighterId)}`,
+    `thumbs/strikecraft-sprite-top-${size}.webp`,
+  );
+
 export const spritesheetImageObjectKey = (userId: string, fighterId: number, extension: string) =>
   path.posix.join(
     `users/${userId}/fighters/${String(fighterId)}`,

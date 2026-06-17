@@ -154,7 +154,7 @@ export const FighterAccordionRow = ({
                   <img
                     alt={`${displayName} strikecraft`}
                     className="h-full w-1/2 bg-background object-contain p-1"
-                    src={fighter.spriteUrl!}
+                    src={fighter.spriteAvatarUrl ?? fighter.spriteUrl!}
                   />
                 </div>
               ) : hasPfp ? (

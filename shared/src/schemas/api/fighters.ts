@@ -23,6 +23,8 @@ export const myFighterSchema = z.object({
   pfpGridUrl: z.string().url().nullable().optional(),
   pfpAvatarUrl: z.string().url().nullable().optional(),
   spriteUrl: z.string().url().nullable(),
+  spriteGridUrl: z.string().url().nullable().optional(),
+  spriteAvatarUrl: z.string().url().nullable().optional(),
   status: fighterSectionStatusSchema,
 });
 
@@ -68,6 +70,8 @@ export const publicFighterSchema = z.object({
   pfpGridUrl: z.string().url().nullable().optional(),
   pfpAvatarUrl: z.string().url().nullable().optional(),
   spriteUrl: z.string().url().nullable(),
+  spriteGridUrl: z.string().url().nullable().optional(),
+  spriteAvatarUrl: z.string().url().nullable().optional(),
   wins: z.number().int().nonnegative(),
   balanceNative: z.string(),
   createdAt: z.string().datetime(),

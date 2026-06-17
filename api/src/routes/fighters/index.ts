@@ -25,6 +25,7 @@ import {
 import {
   resolveOwnedFighterPfpThumbnailUrls,
   resolveOwnedFighterPfpUrl,
+  resolveOwnedFighterSpriteThumbnailUrls,
   resolveOwnedFighterSpriteUrl,
 } from "../../lib/fighter-assets";
 import { resolveFighterForIntake } from "../../lib/fighter-intake";
@@ -107,6 +108,10 @@ export const fighterSessionRoutes = new Elysia({ prefix: "/fighters" })
             preview.pfpUrl ?? (await resolveOwnedFighterPfpUrl(auth.userId, fighter.id));
           const spriteUrl = await resolveOwnedFighterSpriteUrl(auth.userId, fighter.id);
           const pfpThumbs = await resolveOwnedFighterPfpThumbnailUrls(auth.userId, fighter.id);
+          const spriteThumbs = await resolveOwnedFighterSpriteThumbnailUrls(
+            auth.userId,
+            fighter.id,
+          );
 
           return {
             id: fighter.id,
@@ -123,6 +128,8 @@ export const fighterSessionRoutes = new Elysia({ prefix: "/fighters" })
             pfpGridUrl: pfpThumbs.grid,
             pfpAvatarUrl: pfpThumbs.avatar,
             spriteUrl,
+            spriteGridUrl: spriteThumbs.grid,
+            spriteAvatarUrl: spriteThumbs.avatar,
             status: preview.status,
           };
         }),

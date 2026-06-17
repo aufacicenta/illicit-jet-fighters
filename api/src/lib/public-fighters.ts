@@ -13,6 +13,7 @@ import {
   specsheetObjectKey,
   strikecraftSpecsheetObjectKey,
   strikecraftSpriteObjectKey,
+  strikecraftSpriteThumbObjectKey,
 } from "./r2";
 import type { SectionOutput } from "./types";
 
@@ -109,6 +110,16 @@ const buildPublicFighterBase = async (
     extensionKeys(strikecraftSpriteObjectKey, fighter.userId, fighter.id),
   );
 
+  const [spriteGridUrl, spriteAvatarUrl] = await Promise.all(
+    ([640, 128] as const).map(async (size) => {
+      const thumbKey = strikecraftSpriteThumbObjectKey(fighter.userId, fighter.id, size);
+      if (await objectExists(thumbKey)) {
+        return getSignedReadUrl(thumbKey, PUBLIC_ASSET_URL_TTL_SECONDS);
+      }
+      return null;
+    }),
+  );
+
   return {
     id: fighter.id,
     slug: fighter.slug,
@@ -122,6 +133,8 @@ const buildPublicFighterBase = async (
     pfpGridUrl,
     pfpAvatarUrl,
     spriteUrl,
+    spriteGridUrl,
+    spriteAvatarUrl,
     wins: 0,
     balanceNative: "0",
     createdAt: fighter.createdAt.toISOString(),

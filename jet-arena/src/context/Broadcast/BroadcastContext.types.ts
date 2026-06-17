@@ -30,6 +30,7 @@ export type PlayerMetaById = Record<
     spritesheetManifestUrl: string | null;
     spritesheetManifest: SpritesheetManifest | null;
     strikecraftTopSpriteUrl: string | null;
+    strikecraftTopSpriteThumbnailUrl?: string | null;
   }
 >;
 

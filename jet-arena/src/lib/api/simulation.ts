@@ -38,6 +38,7 @@ export const fetchSimulationReplay = async (
       spritesheetManifestUrl: string | null;
       spritesheetManifest: SpritesheetManifest | null;
       strikecraftTopSpriteUrl: string | null;
+      strikecraftTopSpriteThumbnailUrl?: string | null;
     }
   >;
 }> => {
@@ -67,6 +68,7 @@ export const fetchSimulationReplay = async (
         spritesheetManifestUrl: string | null;
         spritesheetManifest: SpritesheetManifest | null;
         strikecraftTopSpriteUrl: string | null;
+        strikecraftTopSpriteThumbnailUrl?: string | null;
       }
     >;
   };
