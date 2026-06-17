@@ -60,6 +60,12 @@ export const specsheetObjectKey = (userId: string, fighterId: number, extension:
 export const characterPfpObjectKey = (userId: string, fighterId: number, extension: string) =>
   path.posix.join(`users/${userId}/fighters/${String(fighterId)}`, `character-pfp.${extension}`);
 
+export const characterPfpThumbObjectKey = (userId: string, fighterId: number, size: number) =>
+  path.posix.join(
+    `users/${userId}/fighters/${String(fighterId)}`,
+    `thumbs/character-pfp-${size}.webp`,
+  );
+
 export const spritesheetImageObjectKey = (userId: string, fighterId: number, extension: string) =>
   path.posix.join(
     `users/${userId}/fighters/${String(fighterId)}`,

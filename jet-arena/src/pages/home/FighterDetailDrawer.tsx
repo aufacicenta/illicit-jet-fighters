@@ -129,11 +129,11 @@ export const FighterDetailDrawer = ({
               </div>
 
               <DetailSection title="Profile Picture">
-                {detail.pfpUrl ? (
+                {(detail.pfpGridUrl ?? detail.pfpUrl) ? (
                   <img
                     alt={`${displayName} profile`}
                     className="mx-auto aspect-square w-full max-w-[320px] rounded-sm border border-border bg-background object-contain"
-                    src={detail.pfpUrl}
+                    src={detail.pfpGridUrl ?? detail.pfpUrl ?? undefined}
                   />
                 ) : (
                   <p className="text-sm text-muted-foreground">No profile picture available.</p>

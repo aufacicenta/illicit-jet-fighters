@@ -149,7 +149,7 @@ export const FighterAccordionRow = ({
                   <img
                     alt={`${displayName} profile`}
                     className="h-full w-1/2 object-cover"
-                    src={fighter.pfpUrl ?? undefined}
+                    src={fighter.pfpAvatarUrl ?? fighter.pfpUrl ?? undefined}
                   />
                   <img
                     alt={`${displayName} strikecraft`}
@@ -161,7 +161,7 @@ export const FighterAccordionRow = ({
                 <img
                   alt={`${displayName} profile`}
                   className="h-full w-full object-cover"
-                  src={fighter.pfpUrl!}
+                  src={fighter.pfpAvatarUrl ?? fighter.pfpUrl!}
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">

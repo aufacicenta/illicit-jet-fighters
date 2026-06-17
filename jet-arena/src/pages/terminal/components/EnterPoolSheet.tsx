@@ -155,7 +155,8 @@ export const EnterPoolSheet = ({ open, onOpenChange }: EnterPoolSheetProps) => {
                   characterDescription: fighter.characterDescription,
                   slug: fighter.slug,
                 });
-                const avatarUrl = fighter.pfpUrl ?? fighter.specsheetImageUrl;
+                const avatarUrl =
+                  fighter.pfpAvatarUrl ?? fighter.pfpUrl ?? fighter.specsheetImageUrl;
 
                 return (
                   <div
@@ -298,7 +299,8 @@ export const EnterPoolSheet = ({ open, onOpenChange }: EnterPoolSheetProps) => {
                   characterDescription: fighter.characterDescription,
                   slug: fighter.slug,
                 });
-                const avatarUrl = fighter.pfpUrl ?? fighter.specsheetImageUrl;
+                const avatarUrl =
+                  fighter.pfpAvatarUrl ?? fighter.pfpUrl ?? fighter.specsheetImageUrl;
 
                 return (
                   <div

@@ -216,3 +216,14 @@ export const getImageDimensions = async (
   }
   return { width, height };
 };
+
+export const generateThumbnailWebp = async (
+  sourceBuffer: Buffer,
+  size: number,
+  quality?: number,
+): Promise<Buffer> => {
+  return sharp(sourceBuffer, { failOn: "none" })
+    .resize(size, size, { fit: "cover", position: "centre" })
+    .webp({ quality: quality ?? 82 })
+    .toBuffer();
+};

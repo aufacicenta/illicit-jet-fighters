@@ -1,10 +1,15 @@
 import { FIGHTER_PIPELINE_SECTION_ORDER } from "@ijf/shared";
 
 import { decodeImagePayload } from "./image-payload";
-import { getImageDimensions, normalizeForStoragePng } from "./image-processing";
+import {
+  generateThumbnailWebp,
+  getImageDimensions,
+  normalizeForStoragePng,
+} from "./image-processing";
 import type { PipelineTenant } from "./pipeline-state";
 import {
   characterPfpObjectKey,
+  characterPfpThumbObjectKey,
   getObjectBuffer,
   getSignedReadUrl,
   objectExists,
@@ -193,6 +198,16 @@ export const commitImageAsset = async ({
   const extension = "png";
   const objectKey = objectKeyBuilder(tenant.userId, tenant.fighterId, extension);
   await putObject(objectKey, normalized.buffer, normalized.mimeType);
+  if (sectionId === "character-pfp-image") {
+    const PFP_THUMBNAIL_SIZES = [640, 128] as const;
+    await Promise.all(
+      PFP_THUMBNAIL_SIZES.map(async (size) => {
+        const thumbBuffer = await generateThumbnailWebp(normalized.buffer, size);
+        const thumbKey = characterPfpThumbObjectKey(tenant.userId, tenant.fighterId, size);
+        await putObject(thumbKey, thumbBuffer, "image/webp");
+      }),
+    );
+  }
   const signedUrl = await getSignedReadUrl(objectKey);
   const { width, height } = await getImageDimensions(normalized.buffer);
   return { objectKey, signedUrl, width, height };

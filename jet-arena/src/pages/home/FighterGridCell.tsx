@@ -44,7 +44,7 @@ export const FighterGridCell = ({ fighter, onSelect }: FighterGridCellProps) => 
             <img
               alt={`${displayName} profile`}
               className="h-full w-1/2 object-cover"
-              src={fighter.pfpUrl ?? undefined}
+              src={fighter.pfpGridUrl ?? fighter.pfpUrl ?? undefined}
             />
             <img
               alt={`${displayName} strikecraft`}
@@ -56,7 +56,7 @@ export const FighterGridCell = ({ fighter, onSelect }: FighterGridCellProps) => 
           <img
             alt={`${displayName} profile`}
             className="h-full w-full object-cover"
-            src={fighter.pfpUrl ?? undefined}
+            src={fighter.pfpGridUrl ?? fighter.pfpUrl ?? undefined}
           />
         )}
       </div>

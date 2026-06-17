@@ -1,5 +1,6 @@
 import {
   characterPfpObjectKey,
+  characterPfpThumbObjectKey,
   getSignedReadUrl,
   objectExists,
   strikecraftSpriteObjectKey,
@@ -44,3 +45,19 @@ export const resolveOwnedFighterSpriteUrl = async (
   fighterId: number,
 ): Promise<string | null> =>
   resolveSignedAssetUrl(extensionKeys(strikecraftSpriteObjectKey, userId, fighterId));
+
+export const resolveOwnedFighterPfpThumbnailUrls = async (
+  userId: string,
+  fighterId: number,
+): Promise<{ grid: string | null; avatar: string | null }> => {
+  const gridKey = characterPfpThumbObjectKey(userId, fighterId, 640);
+  const avatarKey = characterPfpThumbObjectKey(userId, fighterId, 128);
+  const [gridExists, avatarExists] = await Promise.all([
+    objectExists(gridKey),
+    objectExists(avatarKey),
+  ]);
+  return {
+    grid: gridExists ? await getSignedReadUrl(gridKey, PUBLIC_ASSET_URL_TTL_SECONDS) : null,
+    avatar: avatarExists ? await getSignedReadUrl(avatarKey, PUBLIC_ASSET_URL_TTL_SECONDS) : null,
+  };
+};

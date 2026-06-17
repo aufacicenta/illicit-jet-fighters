@@ -5,6 +5,7 @@ import type { PublicGalleryFighterRecord } from "./fighter-access";
 import { getFighterForPublicGallery, listFightersForPublicGallery } from "./fighter-access";
 import {
   characterPfpObjectKey,
+  characterPfpThumbObjectKey,
   getObjectBuffer,
   getSignedReadUrl,
   objectExists,
@@ -92,6 +93,16 @@ const buildPublicFighterBase = async (
     return null;
   }
 
+  const [pfpGridUrl, pfpAvatarUrl] = await Promise.all(
+    ([640, 128] as const).map(async (size) => {
+      const thumbKey = characterPfpThumbObjectKey(fighter.userId, fighter.id, size);
+      if (await objectExists(thumbKey)) {
+        return getSignedReadUrl(thumbKey, PUBLIC_ASSET_URL_TTL_SECONDS);
+      }
+      return null;
+    }),
+  );
+
   const characterDescription = outputs?.["character-description"]?.content ?? null;
   const parsedIdentity = parseFighterNameAndEpithet(characterDescription);
   const spriteUrl = await resolveSignedAssetUrl(
@@ -108,6 +119,8 @@ const buildPublicFighterBase = async (
     }),
     epithet: parsedIdentity.epithet,
     pfpUrl,
+    pfpGridUrl,
+    pfpAvatarUrl,
     spriteUrl,
     wins: 0,
     balanceNative: "0",

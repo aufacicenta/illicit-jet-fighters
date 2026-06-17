@@ -22,7 +22,11 @@ import {
   listOwnedFighters,
   parseFighterIdParam,
 } from "../../lib/fighter-access";
-import { resolveOwnedFighterPfpUrl, resolveOwnedFighterSpriteUrl } from "../../lib/fighter-assets";
+import {
+  resolveOwnedFighterPfpThumbnailUrls,
+  resolveOwnedFighterPfpUrl,
+  resolveOwnedFighterSpriteUrl,
+} from "../../lib/fighter-assets";
 import { resolveFighterForIntake } from "../../lib/fighter-intake";
 import {
   bindPipelineTenant,
@@ -102,6 +106,7 @@ export const fighterSessionRoutes = new Elysia({ prefix: "/fighters" })
           const pfpUrl =
             preview.pfpUrl ?? (await resolveOwnedFighterPfpUrl(auth.userId, fighter.id));
           const spriteUrl = await resolveOwnedFighterSpriteUrl(auth.userId, fighter.id);
+          const pfpThumbs = await resolveOwnedFighterPfpThumbnailUrls(auth.userId, fighter.id);
 
           return {
             id: fighter.id,
@@ -115,6 +120,8 @@ export const fighterSessionRoutes = new Elysia({ prefix: "/fighters" })
             specsheetPrompt: preview.specsheetPrompt,
             specsheetImageUrl: preview.specsheetImageUrl,
             pfpUrl,
+            pfpGridUrl: pfpThumbs.grid,
+            pfpAvatarUrl: pfpThumbs.avatar,
             spriteUrl,
             status: preview.status,
           };
