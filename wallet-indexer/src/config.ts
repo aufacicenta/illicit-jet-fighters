@@ -22,4 +22,9 @@ export const config = {
   walletMasterMnemonic: process.env.WALLET_MASTER_MNEMONIC?.trim(),
   apiBaseUrl: process.env.API_BASE_URL?.trim() || "http://127.0.0.1:4000",
   walletIndexerSecret: process.env.WALLET_INDEXER_SECRET?.trim(),
+  feesWallet: process.env.FEES_WALLET?.trim(),
+  chargesWallet: process.env.CHARGES_WALLET?.trim(),
+  sweepThresholdNative: BigInt(parseIntStrict(process.env.SWEEP_THRESHOLD_NATIVE, 10_000_000)),
+  sweepGasBudget: parseIntStrict(process.env.SWEEP_GAS_BUDGET, 10_000_000),
+  sponsorDerivationIndex: parseIntStrict(process.env.SPONSOR_DERIVATION_INDEX, 999),
 };

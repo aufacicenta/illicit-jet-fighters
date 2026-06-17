@@ -2,6 +2,8 @@ import { createLogger, serializeUnknownError } from "@ijf/shared/logger";
 
 import { config } from "./config";
 import { pollSuiTopups } from "./poll-sui";
+import { sweepAccumulatedCharges } from "./sweep-charges";
+import { sweepAccumulatedFees } from "./sweep-fees";
 import { processPendingWithdrawals } from "./withdrawals";
 
 const log = createLogger("wallet-indexer");
@@ -15,6 +17,8 @@ const runLoop = async () => {
     suiRpcUrl: config.suiRpcUrl ? "(custom)" : "(default)",
     pollMs: config.walletIndexerPollMs,
     mnemonicConfigured: Boolean(config.walletMasterMnemonic),
+    feesWalletConfigured: Boolean(config.feesWallet),
+    chargesWalletConfigured: Boolean(config.chargesWallet),
     pid: typeof process !== "undefined" ? process.pid : undefined,
   });
 
@@ -29,6 +33,8 @@ const runLoop = async () => {
     try {
       await pollSuiTopups();
       await processPendingWithdrawals();
+      await sweepAccumulatedFees();
+      await sweepAccumulatedCharges();
     } catch (error) {
       const details = serializeUnknownError(error);
       log.error("poll iteration failed", {

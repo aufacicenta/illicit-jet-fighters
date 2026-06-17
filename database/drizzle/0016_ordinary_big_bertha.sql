@@ -1,0 +1,3 @@
+ALTER TYPE "public"."wallet_ledger_kind" ADD VALUE 'fee_sweep' BEFORE 'fighter_transfer_in';--> statement-breakpoint
+ALTER TYPE "public"."wallet_ledger_kind" ADD VALUE 'charge_sweep' BEFORE 'fighter_transfer_in';--> statement-breakpoint
+ALTER TABLE "wallet_ledger_entries" ADD CONSTRAINT "wallet_ledger_entries_sweep_requires_tx_hash_check" CHECK (("wallet_ledger_entries"."kind" NOT IN ('fee_sweep', 'charge_sweep')) OR ("wallet_ledger_entries"."tx_hash" IS NOT NULL));

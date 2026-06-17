@@ -1,7 +1,15 @@
-import { and, db, desc, eq, inArray, walletLedgerEntries, userWallets } from "@ijf/database";
+import {
+  and,
+  db,
+  deriveSuiKeypair,
+  desc,
+  eq,
+  inArray,
+  userWallets,
+  walletLedgerEntries,
+} from "@ijf/database";
 import { createLogger, serializeUnknownError } from "@ijf/shared/logger";
 import { SuiJsonRpcClient, getJsonRpcFullnodeUrl } from "@mysten/sui/jsonRpc";
-import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { Transaction } from "@mysten/sui/transactions";
 
 import { config } from "./config";
@@ -19,16 +27,6 @@ type PendingWithdrawal = {
   derivationIndex: number;
   targetAddress: string;
   amountNative: bigint;
-};
-
-const getDerivationPath = (index: number) => `m/44'/784'/${index}'/0'/0'`;
-
-const getWalletKeypair = (derivationIndex: number) => {
-  const mnemonic = config.walletMasterMnemonic;
-  if (!mnemonic) {
-    throw new Error("WALLET_MASTER_MNEMONIC is required.");
-  }
-  return Ed25519Keypair.deriveKeypair(mnemonic, getDerivationPath(derivationIndex));
 };
 
 const appendLifecycleRow = async ({
@@ -151,7 +149,7 @@ export const processPendingWithdrawals = async () => {
     });
 
     try {
-      const keypair = getWalletKeypair(withdrawal.derivationIndex);
+      const keypair = deriveSuiKeypair(withdrawal.derivationIndex);
       const tx = new Transaction();
       const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(withdrawal.amountNative)]);
       tx.transferObjects([coin], tx.pure.address(withdrawal.targetAddress));

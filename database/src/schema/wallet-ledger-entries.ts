@@ -21,6 +21,8 @@ export const walletLedgerKindEnum = pgEnum("wallet_ledger_kind", [
   "topup",
   "charge",
   "fee",
+  "fee_sweep",
+  "charge_sweep",
   "fighter_transfer_in",
   "fighter_transfer_out",
   "withdrawal_request",
@@ -84,6 +86,10 @@ export const walletLedgerEntries = pgTable(
     check(
       "wallet_ledger_entries_adjustment_requires_parent_check",
       sql`(${table.kind} <> 'adjustment') OR (${table.parentId} IS NOT NULL)`,
+    ),
+    check(
+      "wallet_ledger_entries_sweep_requires_tx_hash_check",
+      sql`(${table.kind} NOT IN ('fee_sweep', 'charge_sweep')) OR (${table.txHash} IS NOT NULL)`,
     ),
     uniqueIndex("wallet_ledger_entries_group_kind_terminal_key")
       .on(table.groupId, table.kind)
