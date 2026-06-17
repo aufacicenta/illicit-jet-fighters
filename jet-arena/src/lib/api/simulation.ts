@@ -2,7 +2,12 @@ import { type BroadcastInitData, type ReplayFrame, type SpritesheetManifest } fr
 
 import { apiRoutes } from "../../hooks/useRoutes";
 import { authHeadersJson, readErrorText } from "./client";
-import { type SimulationStatusResponse } from "./types";
+import {
+  type SimulationListResponse,
+  type SimulationStartRequest,
+  type SimulationStartResponse,
+  type SimulationStatusResponse,
+} from "./types";
 
 export const fetchSimulationStatus = async (
   broadcastId: string,
@@ -72,4 +77,40 @@ export const fetchSimulationReplay = async (
       }
     >;
   };
+};
+
+export const fetchMySimulations = async (): Promise<SimulationListResponse> => {
+  const response = await fetch(apiRoutes.simulations, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      ...authHeadersJson(),
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorText(response));
+  }
+
+  return (await response.json()) as SimulationListResponse;
+};
+
+export const simulationStartPost = async (
+  body: SimulationStartRequest,
+): Promise<SimulationStartResponse> => {
+  const response = await fetch(apiRoutes.simulations, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...authHeadersJson(),
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorText(response));
+  }
+
+  return (await response.json()) as SimulationStartResponse;
 };

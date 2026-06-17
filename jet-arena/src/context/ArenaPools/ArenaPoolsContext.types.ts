@@ -18,6 +18,13 @@ export type FighterEnterState = {
 
 export type BalanceSufficiency = "sufficient" | "top-up" | "insufficient";
 
+export type QueueOpponentView = {
+  fighterId: number;
+  slug: string;
+  name: string | null;
+  versionNumber: number | null;
+};
+
 export type QueueEntryView = {
   id: string;
   poolId: string;
@@ -34,6 +41,7 @@ export type QueueEntryView = {
   simulationStatus: "queued" | "running" | "ended" | "error" | null;
   fighterSlug: string;
   fighterName: string | null;
+  opponents: QueueOpponentView[];
 };
 
 export type ArenaPoolsContextControllerProps = {

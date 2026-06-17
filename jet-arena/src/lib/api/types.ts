@@ -87,3 +87,36 @@ export type SimulationStatusResponse = {
 };
 
 export type BroadcastSocketMessage = BroadcastMessage;
+
+export type SimulationListItem = {
+  simulationId: string;
+  broadcastId: string;
+  status: "queued" | "running" | "ended" | "error";
+  createdAt: string;
+  startedAt: string | null;
+  endedAt: string | null;
+  winnerId: string | null;
+  winnerFighterId: number | null;
+  replayFrameCount: number;
+  errorMessage: string | null;
+};
+
+export type SimulationListResponse = {
+  simulations: SimulationListItem[];
+};
+
+export type SimulationStartRequest = {
+  participants?: Array<{
+    fighterId: number;
+    agentVersionId?: string | null;
+  }>;
+  fighterId?: number;
+  fighterIds?: number[];
+  seed?: number;
+};
+
+export type SimulationStartResponse = {
+  simulationId: string;
+  broadcastId: string;
+  status: "queued" | "running" | "ended" | "error";
+};

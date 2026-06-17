@@ -20,6 +20,7 @@ import {
   getPoolById,
   getQueuedEntriesForPool,
   listActivePools,
+  listOpponentsBySimulationIds,
   listUserActiveArenaFighters,
   listUserQueueEntries,
 } from "../../lib/arena/pool-repository";
@@ -175,20 +176,34 @@ export const arenaRoutes = new Elysia({ prefix: "/arena" })
     async ({ request, headers }) => {
       const auth = await requireBearerAuth(request, headers);
       const entries = await listUserQueueEntries(auth.userId);
+
+      const simulationIds = entries
+        .map((e) => e.simulationId)
+        .filter((id): id is string => id !== null);
+      const opponentsBySimId = await listOpponentsBySimulationIds(simulationIds);
+
       return {
-        entries: entries.map((entry) => ({
-          ...serializeQueueEntry(entry),
-          network: entry.network as "sui",
-          battleMode: entry.battleMode,
-          stakeAmountNative: entry.stakeAmountNative,
-          minFighters: entry.minFighters,
-          maxFighters: entry.maxFighters,
-          broadcastId: entry.broadcastId ?? null,
-          winnerFighterId: entry.winnerFighterId ?? null,
-          simulationStatus: entry.simulationStatus ?? null,
-          fighterSlug: entry.fighterSlug,
-          fighterName: entry.fighterName,
-        })),
+        entries: entries.map((entry) => {
+          const allParticipants = entry.simulationId
+            ? (opponentsBySimId.get(entry.simulationId) ?? [])
+            : [];
+          const opponents = allParticipants.filter((p) => p.fighterId !== entry.fighterId);
+
+          return {
+            ...serializeQueueEntry(entry),
+            network: entry.network as "sui",
+            battleMode: entry.battleMode,
+            stakeAmountNative: entry.stakeAmountNative,
+            minFighters: entry.minFighters,
+            maxFighters: entry.maxFighters,
+            broadcastId: entry.broadcastId ?? null,
+            winnerFighterId: entry.winnerFighterId ?? null,
+            simulationStatus: entry.simulationStatus ?? null,
+            fighterSlug: entry.fighterSlug,
+            fighterName: entry.fighterName,
+            opponents,
+          };
+        }),
       };
     },
     {

@@ -142,6 +142,7 @@ export const ArenaPoolsContextController = ({
           broadcastId: entry.broadcastId ?? null,
           winnerFighterId: entry.winnerFighterId ?? null,
           simulationStatus: entry.simulationStatus ?? null,
+          opponents: entry.opponents ?? [],
         })),
       );
     } catch (error) {

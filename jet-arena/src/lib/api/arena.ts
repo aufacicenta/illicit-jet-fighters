@@ -62,6 +62,13 @@ export const postArenaPoolEnter = async (
 export const postArenaPoolLeave = async (poolId: string, fighterId: number) =>
   post<{ cancelled: boolean }>(apiRoutes.arenaPoolLeave(poolId), { fighterId });
 
+export type ArenaQueueOpponent = {
+  fighterId: number;
+  slug: string;
+  name: string | null;
+  versionNumber: number | null;
+};
+
 export type ArenaMyQueueEntry = ArenaQueueEntry & {
   network: WalletNetworkName;
   battleMode: ArenaPool["battleMode"];
@@ -73,6 +80,7 @@ export type ArenaMyQueueEntry = ArenaQueueEntry & {
   simulationStatus: "queued" | "running" | "ended" | "error" | null;
   fighterSlug: string;
   fighterName: string | null;
+  opponents: ArenaQueueOpponent[];
 };
 
 export const fetchArenaMyQueue = async () =>

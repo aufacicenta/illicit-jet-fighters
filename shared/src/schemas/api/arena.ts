@@ -67,6 +67,13 @@ export const arenaLeavePoolResponseSchema = z.object({
 
 export const simulationStatusSchema = z.enum(["queued", "running", "ended", "error"]);
 
+export const arenaQueueOpponentSchema = z.object({
+  fighterId: z.number().int().positive(),
+  slug: z.string().min(1),
+  name: z.string().nullable(),
+  versionNumber: z.number().int().positive().nullable(),
+});
+
 export const arenaMyQueueEntrySchema = arenaQueueEntrySchema.extend({
   network: z.enum(WALLET_NETWORK_NAMES),
   battleMode: arenaBattleModeSchema,
@@ -78,6 +85,7 @@ export const arenaMyQueueEntrySchema = arenaQueueEntrySchema.extend({
   simulationStatus: simulationStatusSchema.nullable(),
   fighterSlug: z.string().min(1),
   fighterName: z.string().nullable(),
+  opponents: z.array(arenaQueueOpponentSchema),
 });
 
 export const arenaMyQueueResponseSchema = z.object({
@@ -127,3 +135,4 @@ export type ArenaLeavePoolRequest = z.infer<typeof arenaLeavePoolRequestSchema>;
 export type ArenaFighterEligibilityRequest = z.infer<typeof arenaFighterEligibilityRequestSchema>;
 export type ArenaFighterEligibilityResponse = z.infer<typeof arenaFighterEligibilityResponseSchema>;
 export type ArenaFighterEligibilityItem = z.infer<typeof arenaFighterEligibilityItemSchema>;
+export type ArenaQueueOpponent = z.infer<typeof arenaQueueOpponentSchema>;

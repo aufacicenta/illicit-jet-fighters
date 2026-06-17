@@ -15,6 +15,7 @@ export {
   arenaPoolListResponseSchema,
   arenaPoolSchema,
   arenaQueueEntrySchema,
+  arenaQueueOpponentSchema,
   arenaQueueStatusSchema,
   fighterArenaStatusSchema,
 } from "./arena";

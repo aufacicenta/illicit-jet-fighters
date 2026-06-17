@@ -7,8 +7,10 @@ import {
   broadcasts,
   db,
   eq,
+  fighterAgentVersions,
   fighters,
   inArray,
+  simulationParticipants,
   simulations,
   sql,
 } from "@ijf/database";
@@ -326,6 +328,54 @@ export const listUserQueueEntries = async (userId: string) =>
       ),
     )
     .orderBy(asc(arenaQueueEntries.queuedAt));
+
+export const listOpponentsBySimulationIds = async (
+  simulationIds: string[],
+): Promise<
+  Map<
+    string,
+    Array<{ fighterId: number; slug: string; name: string | null; versionNumber: number | null }>
+  >
+> => {
+  if (simulationIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = await db
+    .select({
+      simulationId: simulationParticipants.simulationId,
+      fighterId: simulationParticipants.fighterId,
+      slug: fighters.slug,
+      name: fighters.name,
+      versionNumber: fighterAgentVersions.versionNumber,
+    })
+    .from(simulationParticipants)
+    .innerJoin(fighters, eq(simulationParticipants.fighterId, fighters.id))
+    .leftJoin(
+      fighterAgentVersions,
+      eq(simulationParticipants.agentVersionId, fighterAgentVersions.id),
+    )
+    .where(inArray(simulationParticipants.simulationId, simulationIds));
+
+  const map = new Map<
+    string,
+    Array<{ fighterId: number; slug: string; name: string | null; versionNumber: number | null }>
+  >();
+  for (const row of rows) {
+    let arr = map.get(row.simulationId);
+    if (!arr) {
+      arr = [];
+      map.set(row.simulationId, arr);
+    }
+    arr.push({
+      fighterId: row.fighterId,
+      slug: row.slug,
+      name: row.name,
+      versionNumber: row.versionNumber,
+    });
+  }
+  return map;
+};
 
 export const listUserActiveArenaFighters = async (userId: string) =>
   db
