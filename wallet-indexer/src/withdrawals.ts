@@ -1,14 +1,6 @@
-import {
-  and,
-  db,
-  deriveSuiKeypair,
-  desc,
-  eq,
-  inArray,
-  userWallets,
-  walletLedgerEntries,
-} from "@ijf/database";
+import { and, db, desc, eq, inArray, userWallets, walletLedgerEntries } from "@ijf/database";
 import { createLogger, serializeUnknownError } from "@ijf/shared/logger";
+import { deriveSuiKeypair, getMasterMnemonic } from "@ijf/shared/wallet";
 import { SuiJsonRpcClient, getJsonRpcFullnodeUrl } from "@mysten/sui/jsonRpc";
 import { Transaction } from "@mysten/sui/transactions";
 
@@ -152,7 +144,7 @@ export const processPendingWithdrawals = async () => {
     });
 
     try {
-      const keypair = deriveSuiKeypair(withdrawal.derivationIndex);
+      const keypair = deriveSuiKeypair(getMasterMnemonic(), withdrawal.derivationIndex);
       const tx = new Transaction();
       const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(withdrawal.amountNative)]);
       tx.transferObjects([coin], tx.pure.address(withdrawal.targetAddress));

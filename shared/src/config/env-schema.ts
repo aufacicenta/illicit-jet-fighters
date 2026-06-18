@@ -1,42 +1,8 @@
-import fs from "node:fs";
-import path from "node:path";
-
-import { parse as parseDotenv } from "dotenv";
 import { z } from "zod";
-
-const stripExportPrefixes = (raw: string) => raw.replace(/^\s*export\s+/gm, "");
-
-const loadEnvFile = (filePath: string): void => {
-  if (!fs.existsSync(filePath)) {
-    return;
-  }
-
-  const parsed = parseDotenv(stripExportPrefixes(fs.readFileSync(filePath, "utf8")));
-  if (!parsed || typeof parsed !== "object") {
-    return;
-  }
-  for (const [key, value] of Object.entries(parsed)) {
-    if (value === undefined) continue;
-    if (process.env[key] === undefined) {
-      process.env[key] = value;
-    }
-  }
-};
-
-export const loadEnvFiles = (paths: string[]): void => {
-  for (const filePath of paths) {
-    loadEnvFile(filePath);
-  }
-};
-
-// `<shared>/src/config/env.ts` -> `<workspace>`
-// shared is at <workspace>/shared, so go up three levels from this file.
-const workspaceRoot = path.resolve(import.meta.dir, "..", "..", "..");
-
-loadEnvFiles([path.join(workspaceRoot, ".env.local"), path.join(workspaceRoot, ".env")]);
 
 export const walletEnvSchema = z.object({
   WALLET_MASTER_MNEMONIC: z.string().min(1).optional(),
+  WALLET_SPONSOR_MNEMONIC: z.string().min(1).optional(),
   WALLET_NETWORK: z.enum(["sui"]).default("sui"),
   WALLET_NETWORK_ENV: z.enum(["testnet", "devnet", "mainnet"]).default("testnet"),
   SUI_RPC_URL: z.string().url().optional(),

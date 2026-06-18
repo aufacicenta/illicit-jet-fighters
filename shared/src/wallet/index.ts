@@ -1,2 +1,8 @@
-export { deriveSuiAddress, deriveSuiKeypair, getSuiDerivationPath } from "./wallet-derive";
-export { getMasterMnemonic } from "./wallet-mnemonic";
+export {
+  deriveSponsorSuiAddress,
+  deriveSponsorSuiKeypair,
+  deriveSuiAddress,
+  deriveSuiKeypair,
+  getSuiDerivationPath,
+} from "./wallet-derive";
+export { getMasterMnemonic, getSponsorMnemonic } from "./wallet-mnemonic";

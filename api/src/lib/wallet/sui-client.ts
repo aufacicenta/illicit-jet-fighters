@@ -1,3 +1,4 @@
+import { getMasterMnemonic } from "@ijf/shared/wallet";
 import { SuiJsonRpcClient } from "@mysten/sui/jsonRpc";
 import { Transaction } from "@mysten/sui/transactions";
 
@@ -40,7 +41,7 @@ export const signAndExecuteTransfer = async ({
   targetAddress: string;
   amountNative: bigint;
 }) => {
-  const keypair = deriveSuiKeypair(derivationIndex);
+  const keypair = deriveSuiKeypair(getMasterMnemonic(), derivationIndex);
   const tx = new Transaction();
   const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(amountNative)]);
   tx.transferObjects([coin], tx.pure.address(targetAddress));
