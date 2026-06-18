@@ -183,7 +183,7 @@ export const leaveArenaPool = async ({
     throw new Error("Arena pool was not found.");
   }
 
-  const cancelled = await dequeueFighter({ fighterId, userId });
+  const cancelled = await dequeueFighter({ poolId, fighterId, userId });
   const stakeAmountNative = BigInt(pool.stakeAmountNative);
 
   if (cancelled.lockCorrelationId) {

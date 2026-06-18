@@ -61,6 +61,7 @@ export const EnterPoolSheet = ({ open, onOpenChange }: EnterPoolSheetProps) => {
     eligibleFighters,
     ineligibleFighters,
     fighterIneligibilityById,
+    queueEntries,
     isLoadingDetails,
     loadError,
     submitError,
@@ -144,9 +145,22 @@ export const EnterPoolSheet = ({ open, onOpenChange }: EnterPoolSheetProps) => {
                   walletBalanceNative,
                   stakeAmountNative,
                 });
-                const isArenaBusy = fighter.arenaStatus !== "idle";
+                const isInActiveMatch =
+                  fighter.arenaStatus === "in_simulation" || fighter.arenaStatus === "settling";
+                const isQueuedInThisPool =
+                  selectedPool !== null &&
+                  queueEntries.some(
+                    (entry) =>
+                      entry.fighterId === fighter.id &&
+                      entry.poolId === selectedPool.id &&
+                      entry.status === "queued",
+                  );
                 const hasVersions = (fighterState?.versions.length ?? 0) > 0;
-                const isSelectable = !isArenaBusy && hasVersions && sufficiency !== "insufficient";
+                const isSelectable =
+                  !isInActiveMatch &&
+                  !isQueuedInThisPool &&
+                  hasVersions &&
+                  sufficiency !== "insufficient";
                 const isSelected = selectedFighterIds.has(fighter.id);
                 const deficitNative =
                   sufficiency === "top-up" ? stakeAmountNative - fighterBalanceNative : 0n;
@@ -237,9 +251,14 @@ export const EnterPoolSheet = ({ open, onOpenChange }: EnterPoolSheetProps) => {
                             Insufficient funds
                           </Badge>
                         ) : null}
-                        {isArenaBusy ? (
+                        {isInActiveMatch ? (
                           <Badge className="text-[10px]" variant="outline">
-                            Already in arena
+                            In arena match
+                          </Badge>
+                        ) : null}
+                        {isQueuedInThisPool ? (
+                          <Badge className="text-[10px]" variant="outline">
+                            Already in this pool
                           </Badge>
                         ) : null}
                         {!hasVersions && fighterState ? (

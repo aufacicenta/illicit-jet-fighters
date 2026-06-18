@@ -1,7 +1,7 @@
 "use client";
 
 import { getWalletCurrencyMetadata } from "@ijf/shared";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   type ArenaPool,
@@ -82,6 +82,8 @@ export const ArenaPoolsContextController = ({
     null,
   );
   const [matchBroadcastIds, setMatchBroadcastIds] = useState<string[]>([]);
+  const [isEnterSheetBootstrapping, setIsEnterSheetBootstrapping] = useState(false);
+  const enterBootstrapGenerationRef = useRef(0);
 
   const stakeAmountNative = selectedPool ? safeNativeBigInt(selectedPool.stakeAmountNative) : 0n;
   const walletBalanceNative = wallet?.balanceNative ?? 0n;
@@ -161,7 +163,14 @@ export const ArenaPoolsContextController = ({
     setSelectedPool(pool);
     setIsEnterSheetOpen(true);
     setActionError(null);
-    void onFightersRefresh();
+    const generation = enterBootstrapGenerationRef.current + 1;
+    enterBootstrapGenerationRef.current = generation;
+    setIsEnterSheetBootstrapping(true);
+    void Promise.all([loadQueue(), onFightersRefresh()]).finally(() => {
+      if (enterBootstrapGenerationRef.current === generation) {
+        setIsEnterSheetBootstrapping(false);
+      }
+    });
   };
 
   const handleLeaveQueue = async (entry: QueueEntryView) => {
@@ -180,6 +189,21 @@ export const ArenaPoolsContextController = ({
     }
   };
 
+  const enterSheetFighterKey = useMemo(
+    () =>
+      fighters
+        .map((fighter) => `${fighter.id}:${fighter.status}`)
+        .sort()
+        .join("|"),
+    [fighters],
+  );
+
+  useEffect(() => {
+    if (!isEnterSheetOpen) {
+      setIsEnterSheetBootstrapping(false);
+    }
+  }, [isEnterSheetOpen]);
+
   useEffect(() => {
     if (!isEnterSheetOpen || !selectedPool) {
       return;
@@ -193,20 +217,32 @@ export const ArenaPoolsContextController = ({
     setFullyCompleteFighterIds(new Set());
     setFighterIneligibilityById({});
     setSubmitProgress(null);
+    setIsLoadingDetails(true);
+  }, [isEnterSheetOpen, selectedPool?.id]);
+
+  useEffect(() => {
+    if (!isEnterSheetOpen || !selectedPool || isEnterSheetBootstrapping) {
+      return;
+    }
 
     const initialIneligibility: Record<number, FighterIneligibilityReason> = {};
-    for (const fighter of fighters) {
-      if (fighter.status !== "complete") {
-        initialIneligibility[fighter.id] = {
+    const candidateFighterIds: number[] = [];
+    for (const entry of enterSheetFighterKey.split("|").filter(Boolean)) {
+      const [idValue, status] = entry.split(":");
+      const fighterId = Number(idValue);
+      if (status !== "complete") {
+        initialIneligibility[fighterId] = {
           kind: "wizard-incomplete",
-          status: fighter.status,
+          status: status ?? "locked",
         };
+      } else {
+        candidateFighterIds.push(fighterId);
       }
     }
     setFighterIneligibilityById(initialIneligibility);
 
-    const candidateFighters = fighters.filter((fighter) => fighter.status === "complete");
-    if (candidateFighters.length === 0) {
+    if (candidateFighterIds.length === 0) {
+      setIsLoadingDetails(false);
       return;
     }
 
@@ -216,7 +252,7 @@ export const ArenaPoolsContextController = ({
       setLoadError(null);
 
       try {
-        const response = await fetchArenaFighterEligibility(candidateFighters.map((f) => f.id));
+        const response = await fetchArenaFighterEligibility(candidateFighterIds);
 
         if (cancelled) return;
 
@@ -268,7 +304,7 @@ export const ArenaPoolsContextController = ({
     return () => {
       cancelled = true;
     };
-  }, [fighters, isEnterSheetOpen, selectedPool]);
+  }, [enterSheetFighterKey, isEnterSheetBootstrapping, isEnterSheetOpen, selectedPool?.id]);
 
   const toggleFighterSelection = (fighterId: number) => {
     setSelectedFighterIds((current) => {

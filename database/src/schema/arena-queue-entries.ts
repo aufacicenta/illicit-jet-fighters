@@ -42,8 +42,8 @@ export const arenaQueueEntries = pgTable(
     matchedAt: timestamp("matched_at", { withTimezone: true, mode: "date" }),
   },
   (table) => [
-    uniqueIndex("arena_queue_entries_fighter_queued_key")
-      .on(table.fighterId)
+    uniqueIndex("arena_queue_entries_fighter_pool_queued_key")
+      .on(table.fighterId, table.poolId)
       .where(sql`${table.status} = 'queued'`),
     index("arena_queue_entries_pool_status_idx").on(table.poolId, table.status),
     index("arena_queue_entries_fighter_id_idx").on(table.fighterId),

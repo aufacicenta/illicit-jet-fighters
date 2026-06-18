@@ -126,9 +126,50 @@ export const getQueuedEntriesForPool = async (poolId: string): Promise<ArenaQueu
     .where(and(eq(arenaQueueEntries.poolId, poolId), eq(arenaQueueEntries.status, "queued")))
     .orderBy(asc(arenaQueueEntries.queuedAt));
 
+export const syncFighterArenaStatus = async (
+  fighterId: number,
+  executor?: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  options?: { force?: boolean },
+) => {
+  const run = executor ?? db;
+
+  const fighterRows = await run
+    .select({ arenaStatus: fighters.arenaStatus })
+    .from(fighters)
+    .where(eq(fighters.id, fighterId))
+    .limit(1);
+  const currentStatus = fighterRows[0]?.arenaStatus;
+  if (!options?.force && (currentStatus === "in_simulation" || currentStatus === "settling")) {
+    return;
+  }
+
+  const queuedRows = await run
+    .select({ id: arenaQueueEntries.id })
+    .from(arenaQueueEntries)
+    .where(and(eq(arenaQueueEntries.fighterId, fighterId), eq(arenaQueueEntries.status, "queued")))
+    .limit(1);
+
+  const nextStatus = queuedRows[0] ? "queued" : "idle";
+  if (currentStatus !== nextStatus) {
+    await run
+      .update(fighters)
+      .set({ arenaStatus: nextStatus, updatedAt: new Date() })
+      .where(eq(fighters.id, fighterId));
+  }
+};
+
 export const getActiveFighterQueueEntry = async (
   fighterId: number,
+  poolId?: string,
 ): Promise<ArenaQueueEntryRecord | null> => {
+  const conditions = [
+    eq(arenaQueueEntries.fighterId, fighterId),
+    inArray(arenaQueueEntries.status, ["queued", "matched"]),
+  ];
+  if (poolId) {
+    conditions.push(eq(arenaQueueEntries.poolId, poolId));
+  }
+
   const rows = await db
     .select({
       id: arenaQueueEntries.id,
@@ -143,12 +184,7 @@ export const getActiveFighterQueueEntry = async (
       matchedAt: arenaQueueEntries.matchedAt,
     })
     .from(arenaQueueEntries)
-    .where(
-      and(
-        eq(arenaQueueEntries.fighterId, fighterId),
-        inArray(arenaQueueEntries.status, ["queued", "matched"]),
-      ),
-    )
+    .where(and(...conditions))
     .orderBy(asc(arenaQueueEntries.queuedAt))
     .limit(1);
 
@@ -187,8 +223,24 @@ export const enqueueFighter = async ({
     if (!fighterRows[0]) {
       throw new Error("Fighter not found for this user.");
     }
-    if (fighterRows[0].arenaStatus !== "idle") {
-      throw new Error("Fighter is not available for arena queue.");
+    const arenaStatus = fighterRows[0].arenaStatus;
+    if (arenaStatus === "in_simulation" || arenaStatus === "settling") {
+      throw new Error("Fighter is currently in an arena match.");
+    }
+
+    const existingInPool = await tx
+      .select({ id: arenaQueueEntries.id })
+      .from(arenaQueueEntries)
+      .where(
+        and(
+          eq(arenaQueueEntries.fighterId, fighterId),
+          eq(arenaQueueEntries.poolId, poolId),
+          eq(arenaQueueEntries.status, "queued"),
+        ),
+      )
+      .limit(1);
+    if (existingInPool[0]) {
+      throw new Error("Fighter is already queued in this pool.");
     }
 
     const inserted = await tx
@@ -228,9 +280,11 @@ export const enqueueFighter = async ({
   });
 
 export const dequeueFighter = async ({
+  poolId,
   fighterId,
   userId,
 }: {
+  poolId: string;
   fighterId: number;
   userId: string;
 }) =>
@@ -245,6 +299,7 @@ export const dequeueFighter = async ({
       .from(arenaQueueEntries)
       .where(
         and(
+          eq(arenaQueueEntries.poolId, poolId),
           eq(arenaQueueEntries.fighterId, fighterId),
           eq(arenaQueueEntries.userId, userId),
           eq(arenaQueueEntries.status, "queued"),
@@ -254,7 +309,7 @@ export const dequeueFighter = async ({
 
     const entry = rows[0];
     if (!entry) {
-      throw new Error("No queued arena entry found for this fighter.");
+      throw new Error("No queued arena entry found for this fighter in this pool.");
     }
 
     const now = new Date();
@@ -263,10 +318,7 @@ export const dequeueFighter = async ({
       .set({ status: "cancelled", matchedAt: now })
       .where(eq(arenaQueueEntries.id, entry.id));
 
-    await tx
-      .update(fighters)
-      .set({ arenaStatus: "idle", updatedAt: now })
-      .where(eq(fighters.id, fighterId));
+    await syncFighterArenaStatus(fighterId, tx);
 
     return entry;
   });

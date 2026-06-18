@@ -11,6 +11,7 @@ import {
   getQueueEntriesBySimulationId,
   getSimulationArenaPoolId,
   setFighterArenaStatus,
+  syncFighterArenaStatus,
 } from "./pool-repository";
 
 export const settleArenaSimulation = async ({
@@ -108,7 +109,9 @@ export const settleArenaSimulation = async ({
       error: error instanceof Error ? error.message : String(error),
     });
   } finally {
-    await Promise.all(participants.map((p) => setFighterArenaStatus(p.fighterId, "idle")));
+    await Promise.all(
+      participants.map((p) => syncFighterArenaStatus(p.fighterId, undefined, { force: true })),
+    );
   }
 };
 
@@ -147,6 +150,8 @@ export const releaseArenaSimulationOnError = async (simulationId: string) => {
       error: error instanceof Error ? error.message : String(error),
     });
   } finally {
-    await Promise.all(participants.map((p) => setFighterArenaStatus(p.fighterId, "idle")));
+    await Promise.all(
+      participants.map((p) => syncFighterArenaStatus(p.fighterId, undefined, { force: true })),
+    );
   }
 };

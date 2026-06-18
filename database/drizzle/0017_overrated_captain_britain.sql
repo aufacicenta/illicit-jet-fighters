@@ -1,0 +1,2 @@
+DROP INDEX "arena_queue_entries_fighter_queued_key";--> statement-breakpoint
+CREATE UNIQUE INDEX "arena_queue_entries_fighter_pool_queued_key" ON "arena_queue_entries" USING btree ("fighter_id","pool_id") WHERE "arena_queue_entries"."status" = 'queued';
