@@ -1,1 +1,1 @@
-export { deriveSuiAddress, deriveSuiKeypair, getSuiDerivationPath } from "@ijf/database";
+export { deriveSuiAddress, deriveSuiKeypair, getSuiDerivationPath } from "@ijf/shared/wallet";

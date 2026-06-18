@@ -18,6 +18,12 @@ export {
   WALLET_NETWORK_NAMES,
 } from "./wallet-currency";
 export { computeAvailableBalanceNative } from "./wallet/fighter-balance";
+export {
+  deriveSuiAddress,
+  deriveSuiKeypair,
+  getMasterMnemonic,
+  getSuiDerivationPath,
+} from "./wallet";
 export type { NetworkEnvName } from "./sui-network";
 export type { WalletCurrencyMetadata, WalletNetworkName } from "./wallet-currency";
 export {

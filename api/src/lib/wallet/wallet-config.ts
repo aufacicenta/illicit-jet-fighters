@@ -1,8 +1,6 @@
-import {
-  getMasterMnemonic as getMasterMnemonicFromDatabase,
-  type WalletNetwork,
-} from "@ijf/database";
+import type { WalletNetwork } from "@ijf/database";
 import { type NetworkEnvName, parseNetworkEnvName } from "@ijf/shared";
+import { getMasterMnemonic as getMasterMnemonicFromShared } from "@ijf/shared/wallet";
 import { getJsonRpcFullnodeUrl } from "@mysten/sui/jsonRpc";
 
 const parseInteger = (value: string | undefined, fallback: number) => {
@@ -21,7 +19,7 @@ const parseFloatValue = (value: string | undefined, fallback: number) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-export const getMasterMnemonic = getMasterMnemonicFromDatabase;
+export const getMasterMnemonic = getMasterMnemonicFromShared;
 
 export const getWalletNetwork = (): WalletNetwork => {
   const network = process.env.WALLET_NETWORK?.trim();
