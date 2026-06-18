@@ -1,4 +1,18 @@
+import { getWalletCurrencyMetadata } from "@ijf/shared";
+
 import type { ArenaPool, ArenaQueueEntry } from "../../../lib/api/arena";
+import { formatTokenAmountFromNative } from "../../../lib/formatTokenAmountFromNative";
+import { safeNativeBigInt } from "../../../lib/nativeAmount";
+
+const arenaCurrency = getWalletCurrencyMetadata("sui");
+
+export const formatArenaStakeNative = (amountNative: string | bigint) =>
+  `${formatTokenAmountFromNative(amountNative, arenaCurrency.nativeDecimals, {
+    fractionDigits: 4,
+  })} ${arenaCurrency.symbol}`;
+
+export const computeArenaPotNative = (stakeAmountNative: string, participantCount: number) =>
+  safeNativeBigInt(stakeAmountNative) * BigInt(Math.max(0, participantCount));
 
 export const arenaBattleModeLabels: Record<ArenaPool["battleMode"], string> = {
   "1v1": "1v1",
@@ -20,6 +34,17 @@ const arenaQueueStatusClassNames: Record<ArenaQueueEntry["status"], string> = {
 
 export const getArenaQueueStatusClassName = (status: string): string =>
   arenaQueueStatusClassNames[status as ArenaQueueEntry["status"]] ?? "text-muted-foreground";
+
+const simulationStatusClassNames: Record<"queued" | "running" | "ended" | "error", string> = {
+  queued: "text-amber-300",
+  running: "text-emerald-400",
+  ended: "text-muted-foreground",
+  error: "text-red-400",
+};
+
+export const getSimulationStatusClassName = (status: string): string =>
+  simulationStatusClassNames[status as keyof typeof simulationStatusClassNames] ??
+  "text-muted-foreground";
 
 export type ArenaPoolsByStake = {
   stakeAmountNative: string;

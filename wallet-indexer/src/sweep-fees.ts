@@ -1,9 +1,5 @@
 import { config } from "./config";
-import {
-  sweepAccumulated,
-  type AccumulatedSweepConfig,
-  type SweepResult,
-} from "./sweep-common";
+import { sweepAccumulated, type AccumulatedSweepConfig, type SweepResult } from "./sweep-common";
 
 export type { SweepResult };
 
@@ -20,5 +16,4 @@ const FEE_SWEEP_CONFIG = {
  * configured FEES_WALLET address using SUI sponsored transactions.
  * The wallet-indexer pays for gas via a dedicated sponsor keypair.
  */
-export const sweepAccumulatedFees = (): Promise<SweepResult> =>
-  sweepAccumulated(FEE_SWEEP_CONFIG);
+export const sweepAccumulatedFees = (): Promise<SweepResult> => sweepAccumulated(FEE_SWEEP_CONFIG);

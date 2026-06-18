@@ -13,6 +13,7 @@ import { fighterSessionRoutes } from "./routes/fighters";
 import { generateRoutes } from "./routes/generate";
 import { internalWalletRoutes } from "./routes/internal/wallet";
 import { pipelineRoutes } from "./routes/pipeline";
+import { publicArenaMatchesRoutes } from "./routes/public/arena-matches";
 import { publicFighterRoutes } from "./routes/public/fighters";
 import { simulationRoutes } from "./routes/simulations";
 import { agentRoutes, assetRoutes } from "./routes/storage";
@@ -54,6 +55,7 @@ const app = withLogging(new Elysia())
   )
   .get("/health", () => ({ ok: true }))
   .use(publicFighterRoutes)
+  .use(publicArenaMatchesRoutes)
   .use(internalWalletRoutes)
   .use(broadcastWsHandler)
   .use(wsHandler)

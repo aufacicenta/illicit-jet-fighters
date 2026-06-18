@@ -1,4 +1,14 @@
 export {
+  publicArenaMatchSchema,
+  publicArenaMatchesQuerySchema,
+  publicArenaMatchesResponseSchema,
+} from "./public-arena-matches";
+export type {
+  PublicArenaMatch,
+  PublicArenaMatchesQuery,
+  PublicArenaMatchesResponse,
+} from "./public-arena-matches";
+export {
   arenaBattleModeSchema,
   arenaEnterPoolRequestSchema,
   arenaEnterPoolResponseSchema,

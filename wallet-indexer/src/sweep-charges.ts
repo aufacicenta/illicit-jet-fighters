@@ -1,9 +1,5 @@
 import { config } from "./config";
-import {
-  sweepAccumulated,
-  type AccumulatedSweepConfig,
-  type SweepResult,
-} from "./sweep-common";
+import { sweepAccumulated, type AccumulatedSweepConfig, type SweepResult } from "./sweep-common";
 
 export type { SweepResult };
 

@@ -348,6 +348,7 @@ export const listOpponentsBySimulationIds = async (
       slug: fighters.slug,
       name: fighters.name,
       versionNumber: fighterAgentVersions.versionNumber,
+      playerSlot: simulationParticipants.playerSlot,
     })
     .from(simulationParticipants)
     .innerJoin(fighters, eq(simulationParticipants.fighterId, fighters.id))
@@ -355,7 +356,8 @@ export const listOpponentsBySimulationIds = async (
       fighterAgentVersions,
       eq(simulationParticipants.agentVersionId, fighterAgentVersions.id),
     )
-    .where(inArray(simulationParticipants.simulationId, simulationIds));
+    .where(inArray(simulationParticipants.simulationId, simulationIds))
+    .orderBy(asc(simulationParticipants.playerSlot));
 
   const map = new Map<
     string,

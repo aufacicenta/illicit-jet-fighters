@@ -50,6 +50,7 @@ export const routes = {
 export const apiRoutes = {
   publicFighters: `${API_BASE}/public/fighters`,
   publicFighter: (id: number) => `${API_BASE}/public/fighters/${encodeURIComponent(String(id))}`,
+  publicArenaMatches: `${API_BASE}/public/arena/matches`,
   fighters: `${API_BASE}/fighters`,
   fighter: (id: number) => `${API_BASE}/fighters/${encodeURIComponent(String(id))}`,
   battlefields: `${API_BASE}/battlefields`,

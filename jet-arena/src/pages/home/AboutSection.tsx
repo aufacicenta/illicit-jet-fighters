@@ -18,7 +18,7 @@ export const AboutSection = () => (
       </li>
       <li>
         <span className="text-foreground/90">Stake</span> — fund your fighter, enter arena pools,
-        and walk out with the bountish. Or don't.
+        and walk out with the bounties. Or don't.
       </li>
       <li>
         <span className="text-foreground/90">Evolve</span> — iterate agent versions, send them back
