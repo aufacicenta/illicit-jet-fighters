@@ -1,7 +1,19 @@
 import { config } from "./config";
-import { sweepAccumulated, type SweepResult } from "./sweep-common";
+import {
+  sweepAccumulated,
+  type AccumulatedSweepConfig,
+  type SweepResult,
+} from "./sweep-common";
 
 export type { SweepResult };
+
+const CHARGE_SWEEP_CONFIG = {
+  entryKind: "charge",
+  sweepKind: "charge_sweep",
+  logName: "sweep-charges",
+  label: "charge",
+  targetWallet: config.chargesWallet,
+} as const satisfies AccumulatedSweepConfig<"charge">;
 
 /**
  * Sweeps accumulated charge ledger entries from user custodial wallets to the
@@ -9,10 +21,4 @@ export type { SweepResult };
  * The wallet-indexer pays for gas via a dedicated sponsor keypair.
  */
 export const sweepAccumulatedCharges = (): Promise<SweepResult> =>
-  sweepAccumulated({
-    entryKind: "charge",
-    sweepKind: "charge_sweep",
-    logName: "sweep-charges",
-    label: "charge",
-    targetWallet: config.chargesWallet,
-  });
+  sweepAccumulated(CHARGE_SWEEP_CONFIG);

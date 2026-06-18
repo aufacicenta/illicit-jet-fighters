@@ -2,20 +2,41 @@ import {
   and,
   db,
   eq,
-  isNull,
   sql,
   userWallets,
   walletLedgerEntries,
   walletLedgerKindEnum,
 } from "@ijf/database";
-
-type WalletLedgerKind = (typeof walletLedgerKindEnum.enumValues)[number];
 import { createLogger, serializeUnknownError } from "@ijf/shared/logger";
 import { deriveSuiKeypair, getMasterMnemonic, getSponsorMnemonic } from "@ijf/shared/wallet";
+import type { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { Transaction } from "@mysten/sui/transactions";
 
 import { config } from "./config";
 import { prepareSponsoredTransfer, selectSenderCoins, suiClient } from "./sui-coins";
+
+export type WalletLedgerKind = (typeof walletLedgerKindEnum.enumValues)[number];
+export type AccumulatedEntryKind = "fee" | "charge";
+
+type AccumulatedSweepKindMap = {
+  fee: "fee_sweep";
+  charge: "charge_sweep";
+};
+
+export type AccumulatedSweepConfig<K extends AccumulatedEntryKind = AccumulatedEntryKind> = {
+  entryKind: K;
+  sweepKind: AccumulatedSweepKindMap[K];
+  logName: string;
+  label: string;
+  targetWallet: string | undefined;
+};
+
+/** @deprecated Use {@link AccumulatedSweepConfig} */
+export type SweepKindConfig = AccumulatedSweepConfig;
+
+type SweepEntryMetadata = {
+  sweptEntryIds?: string[];
+};
 
 export type WalletAggregate = {
   walletId: string;
@@ -31,30 +52,17 @@ export type SweepResult = {
   errors: number;
 };
 
-export type SweepKindConfig = {
-  /** Ledger entry kind to sweep (e.g. "fee", "charge") */
-  entryKind: WalletLedgerKind;
-  /** Ledger entry kind for the sweep record (e.g. "fee_sweep", "charge_sweep") */
-  sweepKind: WalletLedgerKind;
-  /** Logger name */
-  logName: string;
-  /** Human-readable label for log messages */
-  label: string;
-  /** Target wallet address from config */
-  targetWallet: string | undefined;
+const toSweepKind = <K extends AccumulatedEntryKind>(kind: K): AccumulatedSweepKindMap[K] =>
+  `${kind}_sweep` as AccumulatedSweepKindMap[K];
+
+const absNativeAmount = (amountNative: string): bigint => {
+  const amount = BigInt(amountNative);
+  return amount < 0n ? -amount : amount;
 };
 
-/**
- * Finds all ledger entries of the given kind that have not yet been swept.
- * An entry is considered swept when a corresponding sweep entry with a
- * `tx_hash` exists for the same wallet. Only wallets whose aggregate meets
- * the sweep threshold are returned.
- */
-export const findSweepableWallets = async (kind: WalletLedgerKind): Promise<WalletAggregate[]> => {
-  const sweepKind = `${kind}_sweep` as WalletLedgerKind;
-
-  const swept = db
-    .select({ walletId: walletLedgerEntries.walletId })
+const loadSweptEntryIds = async (sweepKind: WalletLedgerKind): Promise<Set<string>> => {
+  const sweepRows = await db
+    .select({ metadata: walletLedgerEntries.metadata })
     .from(walletLedgerEntries)
     .where(
       and(
@@ -62,8 +70,30 @@ export const findSweepableWallets = async (kind: WalletLedgerKind): Promise<Wall
         eq(walletLedgerEntries.networkEnv, config.networkEnv),
         sql`${walletLedgerEntries.txHash} IS NOT NULL`,
       ),
-    )
-    .as("swept");
+    );
+
+  const sweptEntryIds = new Set<string>();
+  for (const row of sweepRows) {
+    const metadata = row.metadata as SweepEntryMetadata | null;
+    for (const entryId of metadata?.sweptEntryIds ?? []) {
+      sweptEntryIds.add(entryId);
+    }
+  }
+
+  return sweptEntryIds;
+};
+
+/**
+ * Finds all ledger entries of the given kind that have not yet been swept.
+ * An entry is considered swept when its id appears in `metadata.sweptEntryIds`
+ * on a confirmed sweep ledger row. Only wallets whose aggregate meets the
+ * sweep threshold are returned.
+ */
+export const findSweepableWallets = async (
+  kind: AccumulatedEntryKind,
+): Promise<WalletAggregate[]> => {
+  const sweepKind = toSweepKind(kind);
+  const sweptEntryIds = await loadSweptEntryIds(sweepKind);
 
   const rows = await db
     .select({
@@ -75,12 +105,10 @@ export const findSweepableWallets = async (kind: WalletLedgerKind): Promise<Wall
     })
     .from(walletLedgerEntries)
     .innerJoin(userWallets, eq(walletLedgerEntries.walletId, userWallets.id))
-    .leftJoin(swept, eq(walletLedgerEntries.walletId, swept.walletId))
     .where(
       and(
         eq(walletLedgerEntries.kind, kind),
         eq(walletLedgerEntries.networkEnv, config.networkEnv),
-        isNull(swept.walletId),
       ),
     );
 
@@ -99,6 +127,10 @@ export const findSweepableWallets = async (kind: WalletLedgerKind): Promise<Wall
   >();
 
   for (const row of rows) {
+    if (sweptEntryIds.has(row.entryId)) {
+      continue;
+    }
+
     let group = byWallet.get(row.walletId);
     if (!group) {
       group = {
@@ -109,8 +141,7 @@ export const findSweepableWallets = async (kind: WalletLedgerKind): Promise<Wall
       };
       byWallet.set(row.walletId, group);
     }
-    const absAmount = BigInt(row.amountNative.replace("-", ""));
-    group.totalNative += absAmount;
+    group.totalNative += absNativeAmount(row.amountNative);
     group.entryIds.push(row.entryId);
   }
 
@@ -132,6 +163,15 @@ export const findSweepableWallets = async (kind: WalletLedgerKind): Promise<Wall
   return results;
 };
 
+export type InsertSweepEntryParams = {
+  walletId: string;
+  amountNative: bigint;
+  txHash: string;
+  targetAddress: string;
+  sweptEntryIds: string[];
+  kind: "fee_sweep" | "charge_sweep";
+};
+
 /**
  * Records a sweep ledger entry for the wallet with the on-chain tx hash.
  */
@@ -142,14 +182,7 @@ export const insertSweepEntry = async ({
   targetAddress,
   sweptEntryIds,
   kind,
-}: {
-  walletId: string;
-  amountNative: bigint;
-  txHash: string;
-  targetAddress: string;
-  sweptEntryIds: string[];
-  kind: WalletLedgerKind;
-}) => {
+}: InsertSweepEntryParams): Promise<void> => {
   await db.insert(walletLedgerEntries).values({
     walletId,
     networkEnv: config.networkEnv,
@@ -163,6 +196,15 @@ export const insertSweepEntry = async ({
   });
 };
 
+export type ExecuteSponsoredTransferParams = {
+  senderKeypair: Ed25519Keypair;
+  senderAddress: string;
+  sponsorKeypair: Ed25519Keypair;
+  sponsorAddress: string;
+  targetAddress: string;
+  amount: bigint;
+};
+
 /**
  * Builds and executes a sponsored SUI transfer from a user wallet to a
  * target wallet. The sponsor (wallet-indexer) pays for gas.
@@ -174,14 +216,7 @@ export const executeSponsoredTransfer = async ({
   sponsorAddress,
   targetAddress,
   amount,
-}: {
-  senderKeypair: ReturnType<typeof deriveSuiKeypair>;
-  senderAddress: string;
-  sponsorKeypair: ReturnType<typeof deriveSuiKeypair>;
-  sponsorAddress: string;
-  targetAddress: string;
-  amount: bigint;
-}): Promise<string> => {
+}: ExecuteSponsoredTransferParams): Promise<string> => {
   const log = createLogger("executeSponsoredTransfer", {
     walletNetwork: config.walletNetwork,
     networkEnv: config.networkEnv,
@@ -236,7 +271,9 @@ export const executeSponsoredTransfer = async ({
  * Generic sweep loop: finds sweepable wallets, executes sponsored transfers,
  * and records sweep entries.
  */
-export const sweepAccumulated = async (kindConfig: SweepKindConfig): Promise<SweepResult> => {
+export const sweepAccumulated = async <K extends AccumulatedEntryKind>(
+  kindConfig: AccumulatedSweepConfig<K>,
+): Promise<SweepResult> => {
   const { entryKind, sweepKind, logName, label, targetWallet } = kindConfig;
   const startedAt = performance.now();
 
@@ -251,7 +288,7 @@ export const sweepAccumulated = async (kindConfig: SweepKindConfig): Promise<Swe
   }
 
   const sponsorKeypair = deriveSuiKeypair(getSponsorMnemonic(), 0);
-  const sponsorAddress = sponsorKeypair.getPublicKey().toSuiAddress();
+  const sponsorAddress = sponsorKeypair.toSuiAddress();
 
   log.info(`${label} sweep started`, {
     targetWallet,
@@ -291,10 +328,6 @@ export const sweepAccumulated = async (kindConfig: SweepKindConfig): Promise<Swe
     const senderKeypair = deriveSuiKeypair(getMasterMnemonic(), wallet.derivationIndex);
     const senderAddress = senderKeypair.toSuiAddress();
 
-    if (senderAddress !== wallet.senderAddress) {
-      throw new Error(`Sender does not equal derived address`);
-    }
-
     const walletLogCtx = {
       walletId: wallet.walletId,
       senderAddress,
@@ -302,6 +335,15 @@ export const sweepAccumulated = async (kindConfig: SweepKindConfig): Promise<Swe
       amountNative: wallet.totalNative.toString(),
       entryCount: wallet.entryIds.length,
     };
+
+    if (senderAddress !== wallet.senderAddress) {
+      errors += 1;
+      log.error(`${label} sweep skipped: derived sender address mismatch`, {
+        ...walletLogCtx,
+        storedSenderAddress: wallet.senderAddress,
+      });
+      continue;
+    }
 
     log.info(`sweeping wallet ${label}s`, { ...walletLogCtx, sponsorAddress });
 
