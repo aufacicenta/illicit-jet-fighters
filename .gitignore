@@ -3,6 +3,7 @@ node_modules
 .DS_Store
 
 .env.local
+.env.prod
 
 # Local secrets (database package)
 database/.env.local

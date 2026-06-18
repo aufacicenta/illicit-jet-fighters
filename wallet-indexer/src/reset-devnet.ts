@@ -1,4 +1,12 @@
-import { db, eq, userWallets, walletLedgerEntries } from "@ijf/database";
+import {
+  db,
+  eq,
+  fighterLedgerEntries,
+  inArray,
+  isNull,
+  userWallets,
+  walletLedgerEntries,
+} from "@ijf/database";
 import { createLogger } from "@ijf/shared/logger";
 
 import { config } from "./config";
@@ -11,8 +19,8 @@ const log = createLogger("reset-devnet", {
 /**
  * Devnet wipes its on-chain state periodically, which leaves the persistent
  * Postgres ledger holding balances for addresses whose coins no longer exist.
- * This clears the ledger + topup cursors for the configured network env so the
- * indexer re-scans the fresh chain from scratch. Guarded so it can never nuke
+ * This clears the wallet + fighter ledgers and topup cursors for the configured
+ * network env so the indexer re-scans the fresh chain from scratch. Guarded so it can never nuke
  * testnet/mainnet ledger data by accident.
  */
 const main = async () => {
@@ -24,7 +32,25 @@ const main = async () => {
     process.exit(1);
   }
 
-  log.warn("resetting wallet ledger state", { networkEnv, force });
+  log.warn("resetting wallet and fighter ledger state", { networkEnv, force });
+
+  const walletEntryIdsForEnv = db
+    .select({ id: walletLedgerEntries.id })
+    .from(walletLedgerEntries)
+    .where(eq(walletLedgerEntries.networkEnv, networkEnv));
+
+  const deletedFighterLinked = await db
+    .delete(fighterLedgerEntries)
+    .where(inArray(fighterLedgerEntries.walletLedgerEntryId, walletEntryIdsForEnv))
+    .returning({ id: fighterLedgerEntries.id });
+
+  const deletedFighterOrphans =
+    networkEnv === "devnet"
+      ? await db
+          .delete(fighterLedgerEntries)
+          .where(isNull(fighterLedgerEntries.walletLedgerEntryId))
+          .returning({ id: fighterLedgerEntries.id })
+      : [];
 
   const deleted = await db
     .delete(walletLedgerEntries)
@@ -37,9 +63,10 @@ const main = async () => {
     .where(eq(userWallets.network, "sui"))
     .returning({ id: userWallets.id });
 
-  log.info("wallet ledger reset complete", {
+  log.info("wallet and fighter ledger reset complete", {
     networkEnv,
-    ledgerEntriesDeleted: deleted.length,
+    walletLedgerEntriesDeleted: deleted.length,
+    fighterLedgerEntriesDeleted: deletedFighterLinked.length + deletedFighterOrphans.length,
     walletsCursorReset: cursorReset.length,
   });
 
@@ -47,6 +74,6 @@ const main = async () => {
 };
 
 main().catch((error) => {
-  log.error("wallet ledger reset failed", { error });
+  log.error("wallet and fighter ledger reset failed", { error });
   process.exit(1);
 });
