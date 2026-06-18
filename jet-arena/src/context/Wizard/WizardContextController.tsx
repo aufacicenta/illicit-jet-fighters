@@ -24,6 +24,11 @@ import {
   startPipeline,
 } from "../../lib/api";
 import { fetchWalletSectionPreflight } from "../../lib/api/wallet";
+import {
+  isPhaseComplete,
+  PHASE_ONE_SECTION_IDS,
+  PHASE_TWO_SECTION_IDS,
+} from "../../lib/fighter-sections";
 import { useAuth } from "../Auth/useAuth";
 import { getWizardCostUpdateEventName } from "../Costs/CostsContext.types";
 import { getFighterBalanceUpdateEventName } from "../FighterBalance/FighterBalanceContext.types";
@@ -72,6 +77,25 @@ type WizardBookmark = {
 };
 
 const bookmarkKeyForFighter = (fighterId: string) => `wizard:fighter:${fighterId}:bookmark`;
+
+const PHASE_TWO_GATE_MESSAGE = "Happy with the result? Continue generating remaining assets";
+
+const deriveGateMessage = (
+  snapshotGateMessage: string | null | undefined,
+  sectionStatuses: WizardContextType["sectionStatuses"],
+): string | null => {
+  if (snapshotGateMessage) {
+    return snapshotGateMessage;
+  }
+
+  const phaseOneComplete = isPhaseComplete(PHASE_ONE_SECTION_IDS, sectionStatuses);
+  const phaseTwoComplete = isPhaseComplete(PHASE_TWO_SECTION_IDS, sectionStatuses);
+  if (phaseOneComplete && !phaseTwoComplete) {
+    return PHASE_TWO_GATE_MESSAGE;
+  }
+
+  return null;
+};
 
 const sanitizeStatuses = (
   statuses: WizardContextType["sectionStatuses"],
@@ -295,7 +319,12 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
           setOutputs(inferredOutputs);
           setSectionHistories(snapshot.histories ?? {});
           setOriginalBriefing(snapshot.briefing ?? null);
-          setGateMessage(snapshot.gateMessage ?? null);
+          setGateMessage(
+            deriveGateMessage(
+              snapshot.gateMessage,
+              snapshot.sectionStatuses as WizardContextType["sectionStatuses"],
+            ),
+          );
           window.dispatchEvent(
             new CustomEvent(getFighterBalanceUpdateEventName(fighterId), {
               detail: {
@@ -691,13 +720,14 @@ export const WizardContextController = ({ fighterId, children }: WizardContextCo
   }, []);
 
   const requestContinuePipeline = useCallback(() => {
-    if (!send({ type: "pipeline:continue" })) {
+    const queued = !send({ type: "pipeline:continue" });
+    if (queued) {
       setErrorMessage("Connection not ready. Retrying when connected...");
-      return;
+    } else {
+      setErrorMessage(null);
     }
     setIsContinuingPipeline(true);
     setGateMessage(null);
-    setErrorMessage(null);
   }, [send]);
 
   const requestRegenerateSpecsheet = useCallback(async () => {

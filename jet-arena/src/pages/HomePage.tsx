@@ -4,8 +4,12 @@ import { Navbar } from "../components/Navbar";
 import {
   CockpitStatScreens,
   CockpitTopCenterSlot,
+  CockpitTopRightSlot,
   RTLScrollEffect,
 } from "../components/Navbar/CockpitStatScreens";
+import { NavbarWalletPill } from "../components/Navbar/NavbarWalletPill";
+import { useAuth } from "../context/Auth/useAuth";
+import { WalletContextController } from "../context/Wallet/WalletContextController";
 import { AboutSection } from "./home/AboutSection";
 import { BroadcastsSection } from "./home/BroadcastsSection";
 import { FightersSection } from "./home/FightersSection";
@@ -14,6 +18,7 @@ import { StorySection } from "./home/StorySection";
 import type { HomeAsideSection } from "./home/types";
 
 export const HomePage = () => {
+  const { isAuthenticated, isBootstrapping } = useAuth();
   const [activeAsideSection, setActiveAsideSection] = useState<HomeAsideSection>("fighters");
 
   const renderSection = () => {
@@ -42,6 +47,13 @@ export const HomePage = () => {
             <p className="font-pixel text-2xl">Choose Your Fighter</p>
           </RTLScrollEffect>
         </CockpitTopCenterSlot>
+        {!isBootstrapping && isAuthenticated ? (
+          <CockpitTopRightSlot>
+            <WalletContextController>
+              <NavbarWalletPill variant="cockpit" />
+            </WalletContextController>
+          </CockpitTopRightSlot>
+        ) : null}
       </CockpitStatScreens>
 
       <main className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 pb-10 md:px-6">

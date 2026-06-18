@@ -19,6 +19,7 @@ import {
   formatArenaStakeNative,
   getSimulationStatusClassName,
 } from "../terminal/components/arena-utils";
+import { WizardCardTitle } from "../wizard/sections/WizardCardTitle";
 
 type MatchOutcome = "won" | "lost" | "draw" | null;
 
@@ -224,9 +225,9 @@ export const BroadcastsSection = () => {
   };
 
   return (
-    <Card className="border-border/70 bg-background/80">
+    <Card>
       <CardHeader className="space-y-1">
-        <p className="font-pixel text-lg text-highlight">Live Matches</p>
+        <WizardCardTitle>Live Matches</WizardCardTitle>
         <p className="text-xs text-muted-foreground">
           Arena pool matches as they happen. Pot is total stake locked across all fighters.
         </p>

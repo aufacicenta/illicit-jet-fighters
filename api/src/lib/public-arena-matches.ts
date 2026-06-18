@@ -84,10 +84,7 @@ export const listRecentPublicArenaMatches = async ({
     const stakeNative = BigInt(row.stakeAmountNative);
     const totalStakeAmountNative = (stakeNative * BigInt(participants.length)).toString();
     const matchedAt = (row.matchedAt ?? row.createdAt).toISOString();
-    const orderedParticipants = orderParticipantsWithWinnerFirst(
-      participants,
-      row.winnerFighterId,
-    );
+    const orderedParticipants = orderParticipantsWithWinnerFirst(participants, row.winnerFighterId);
 
     return [
       {

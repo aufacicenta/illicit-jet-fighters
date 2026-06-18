@@ -150,7 +150,6 @@ const WizardLayout = () => {
 
   const showConnectionHint = connectionStatus !== "open";
   const nextPhaseOneSection = getNextSectionForPhase("phase-one", sectionStatuses);
-  const nextPhaseTwoSection = getNextSectionForPhase("phase-two", sectionStatuses);
   const phaseOneComplete = isPhaseComplete(PHASE_ONE_SECTION_IDS, sectionStatuses);
   const phaseTwoComplete = isPhaseComplete(PHASE_TWO_SECTION_IDS, sectionStatuses);
   const continueLabel = isContinuingPipeline
@@ -169,9 +168,6 @@ const WizardLayout = () => {
   const phaseOneHasCompletedSection = PHASE_ONE_SECTION_IDS.some(
     (id) => sectionStatuses[id] === "complete",
   );
-  const phaseTwoHasCompletedSection = PHASE_TWO_SECTION_IDS.some(
-    (id) => sectionStatuses[id] === "complete",
-  );
   const handleContinue = () => {
     if (!phaseOneComplete) {
       if (gateMessage || hasErrorSection || phaseOneHasCompletedSection) {
@@ -183,11 +179,7 @@ const WizardLayout = () => {
     }
 
     if (!phaseTwoComplete) {
-      if (gateMessage || hasErrorSection || phaseTwoHasCompletedSection) {
-        requestContinuePipeline();
-        return;
-      }
-      setActiveSection(nextPhaseTwoSection);
+      requestContinuePipeline();
       return;
     }
 
