@@ -1,5 +1,4 @@
-import "./load-env";
-
+import { env } from "../config/env";
 import { db } from "../db";
 import { ARENA_BATTLE_MODE_LIMITS, type ArenaBattleMode, arenaPools } from "../schema/arena-pools";
 
@@ -64,7 +63,7 @@ export const seedArenaPools = async () => {
 };
 
 const main = async () => {
-  if (!process.env.DATABASE_URL?.trim()) {
+  if (!env.DATABASE_URL?.trim()) {
     throw new Error("DATABASE_URL is required to seed arena pools.");
   }
 

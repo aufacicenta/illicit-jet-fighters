@@ -1,7 +1,6 @@
-import "./load-env";
-
 import { sql } from "drizzle-orm";
 
+import { env } from "../config/env";
 import { db } from "../db";
 import { ensureUserWallet } from "../lib/wallet/wallet-provision";
 
@@ -10,11 +9,11 @@ type UserWithoutWalletRow = {
 };
 
 const main = async () => {
-  if (!process.env.DATABASE_URL?.trim()) {
+  if (!env.DATABASE_URL?.trim()) {
     throw new Error("DATABASE_URL is required to run the wallet provision seed.");
   }
 
-  if (!process.env.WALLET_MASTER_MNEMONIC?.trim()) {
+  if (!env.WALLET_MASTER_MNEMONIC?.trim()) {
     throw new Error("WALLET_MASTER_MNEMONIC is required to run the wallet provision seed.");
   }
 

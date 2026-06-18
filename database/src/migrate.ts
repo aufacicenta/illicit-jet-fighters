@@ -2,13 +2,9 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { migrate } from "drizzle-orm/neon-http/migrator";
 
-const databaseUrl = process.env.DATABASE_URL;
+import { env } from "./config/env";
 
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is required to run migrations.");
-}
-
-const sql = neon(databaseUrl);
+const sql = neon(env.DATABASE_URL);
 const db = drizzle({ client: sql });
 
 await migrate(db, { migrationsFolder: "./drizzle" });
