@@ -6,7 +6,10 @@ import { sweepAccumulatedCharges } from "./sweep-charges";
 import { sweepAccumulatedFees } from "./sweep-fees";
 import { processPendingWithdrawals } from "./withdrawals";
 
-const log = createLogger("wallet-indexer");
+const log = createLogger("wallet-indexer", {
+  walletNetwork: config.walletNetwork,
+  networkEnv: config.networkEnv,
+});
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

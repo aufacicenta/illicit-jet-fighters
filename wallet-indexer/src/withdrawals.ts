@@ -14,7 +14,10 @@ import { Transaction } from "@mysten/sui/transactions";
 
 import { config } from "./config";
 
-const log = createLogger("withdrawals");
+const log = createLogger("withdrawals", {
+  walletNetwork: config.walletNetwork,
+  networkEnv: config.networkEnv,
+});
 
 const suiClient = new SuiJsonRpcClient({
   network: config.networkEnv,

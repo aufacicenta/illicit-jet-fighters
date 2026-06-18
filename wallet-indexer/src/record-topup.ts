@@ -2,9 +2,13 @@ import { db, sql } from "@ijf/database";
 import type { NetworkEnvName } from "@ijf/shared";
 import { createLogger } from "@ijf/shared/logger";
 
+import { config } from "./config";
 import { getSuiUsdPrice } from "./fx-snapshot";
 
-const log = createLogger("record-topup");
+const log = createLogger("record-topup", {
+  walletNetwork: config.walletNetwork,
+  networkEnv: config.networkEnv,
+});
 
 const NATIVE_BASE_UNITS_PER_SUI = 1_000_000_000;
 

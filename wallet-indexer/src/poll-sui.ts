@@ -6,7 +6,10 @@ import { config } from "./config";
 import { notifyTopupRecorded } from "./notify-topup";
 import { recordTopup } from "./record-topup";
 
-const log = createLogger("poll-sui");
+const log = createLogger("poll-sui", {
+  walletNetwork: config.walletNetwork,
+  networkEnv: config.networkEnv,
+});
 
 const suiClient = new SuiJsonRpcClient({
   network: config.networkEnv,

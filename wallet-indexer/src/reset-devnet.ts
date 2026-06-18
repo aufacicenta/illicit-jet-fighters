@@ -3,7 +3,10 @@ import { createLogger } from "@ijf/shared/logger";
 
 import { config } from "./config";
 
-const log = createLogger("reset-devnet");
+const log = createLogger("reset-devnet", {
+  walletNetwork: config.walletNetwork,
+  networkEnv: config.networkEnv,
+});
 
 /**
  * Devnet wipes its on-chain state periodically, which leaves the persistent

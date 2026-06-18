@@ -8,16 +8,17 @@ export type ScopedLogger = {
   error: (message: string, meta?: LogMeta) => void;
 };
 
-const withScope = (scope: string, meta?: LogMeta): LogMeta => ({
+const withScope = (scope: string, baseMeta: LogMeta | undefined, meta?: LogMeta): LogMeta => ({
   scope,
+  ...baseMeta,
   ...meta,
 });
 
-export const createLogger = (scope: string): ScopedLogger => ({
-  debug: (message, meta) => logger.debug(message, withScope(scope, meta)),
-  info: (message, meta) => logger.info(message, withScope(scope, meta)),
-  warn: (message, meta) => logger.warn(message, withScope(scope, meta)),
-  error: (message, meta) => logger.error(message, withScope(scope, meta)),
+export const createLogger = (scope: string, baseMeta?: LogMeta): ScopedLogger => ({
+  debug: (message, meta) => logger.debug(message, withScope(scope, baseMeta, meta)),
+  info: (message, meta) => logger.info(message, withScope(scope, baseMeta, meta)),
+  warn: (message, meta) => logger.warn(message, withScope(scope, baseMeta, meta)),
+  error: (message, meta) => logger.error(message, withScope(scope, baseMeta, meta)),
 });
 
 export const truncateAddress = (address: string): string =>

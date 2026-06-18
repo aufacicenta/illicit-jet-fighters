@@ -2,7 +2,10 @@ import { createLogger } from "@ijf/shared/logger";
 
 import { config } from "./config";
 
-const log = createLogger("notify-topup");
+const log = createLogger("notify-topup", {
+  walletNetwork: config.walletNetwork,
+  networkEnv: config.networkEnv,
+});
 
 export const notifyTopupRecorded = async ({
   walletId,
