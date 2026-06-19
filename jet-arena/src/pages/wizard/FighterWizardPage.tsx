@@ -270,8 +270,8 @@ const WizardLayout = () => {
         </CockpitBottomCenterSlot>
         <CockpitBottomRightSlot>
           <Button
-            fullWidth
             disabled={continueDisabled}
+            fullWidth
             onClick={handleContinue}
             type="button"
             variant={continueVariant}

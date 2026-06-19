@@ -16,7 +16,7 @@ const buttonVariants = cva(
         gradient:
           "group relative rounded-md bg-[length:200%] bg-[linear-gradient(45deg,var(--color-1),var(--color-5),var(--color-3),var(--color-4),var(--color-2))] animate-rainbow active:scale-[0.95] overflow-hidden",
         cockpit:
-          "group relative overflow-hidden border-0 bg-transparent font-bold tracking-wide text-foreground active:scale-[0.98]",
+          "group absolute overflow-hidden border-0 bg-transparent font-bold tracking-wide text-foreground active:scale-[0.98]",
       },
       color: {
         primary: "",
@@ -139,6 +139,10 @@ const buttonVariants = cva(
         color: "muted",
         className: "text-foreground hover:bg-muted/50",
       },
+      {
+        variant: "cockpit",
+        className: "flex h-full w-full px-4 py-2",
+      },
     ],
     defaultVariants: {
       variant: "default",
@@ -156,32 +160,83 @@ export interface ButtonProps
   fullWidth?: boolean;
 }
 
+const cockpitMaskStyle: React.CSSProperties = {
+  WebkitMaskImage: "url('/cockpit-bottom-right-button.svg')",
+  WebkitMaskPosition: "center",
+  WebkitMaskRepeat: "no-repeat",
+  WebkitMaskSize: "100% 100%",
+  maskImage: "url('/cockpit-bottom-right-button.svg')",
+  maskPosition: "center",
+  maskRepeat: "no-repeat",
+  maskSize: "100% 100%",
+};
+
+const CockpitButtonLayers = () => (
+  <>
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-0 bg-[#a9480e]"
+      style={cockpitMaskStyle}
+    />
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-1 opacity-80 blur-[1.5px] group-hover:opacity-100"
+      style={{
+        ...cockpitMaskStyle,
+        background: "conic-gradient(from var(--border-angle), #ffd47a, #ff7a18, #ff4500, #ffd47a)",
+        animation: "cockpit-border-rotate 3s linear infinite",
+      }}
+    />
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-[2px] z-2 bg-[#2a070d]"
+      style={cockpitMaskStyle}
+    />
+    <img
+      aria-hidden
+      alt=""
+      src="/cockpit-bottom-right-button.svg"
+      className="pointer-events-none absolute inset-0 z-3 h-full w-full object-fill opacity-55 mix-blend-screen"
+    />
+  </>
+);
+
+const CockpitButtonContent = ({ children }: { children: React.ReactNode }) => (
+  <>
+    <CockpitButtonLayers />
+    <div className="absolute inset-0 z-10 flex items-center justify-center">
+      <span className="px-4">{children}</span>
+    </div>
+  </>
+);
+
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, color, size, asChild = false, fullWidth, children, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
     const isGradient = variant === "gradient";
     const isCockpit = variant === "cockpit";
-    const cockpitMaskStyle: React.CSSProperties = {
-      WebkitMaskImage: "url('/cockpit-bottom-right-button.svg')",
-      WebkitMaskPosition: "center",
-      WebkitMaskRepeat: "no-repeat",
-      WebkitMaskSize: "100% 100%",
-      maskImage: "url('/cockpit-bottom-right-button.svg')",
-      maskPosition: "center",
-      maskRepeat: "no-repeat",
-      maskSize: "100% 100%",
-    };
+    const sharedClassName = cn(
+      buttonVariants({ variant, color, size }),
+      fullWidth && "flex w-full",
+      className,
+    );
+
+    if (isCockpit && asChild && React.isValidElement(children)) {
+      const child = children as React.ReactElement<{
+        className?: string;
+        children?: React.ReactNode;
+      }>;
+
+      return React.cloneElement(child, {
+        ...props,
+        className: cn(sharedClassName, child.props.className),
+        children: <CockpitButtonContent>{child.props.children}</CockpitButtonContent>,
+      });
+    }
+
+    const Comp = asChild && !isCockpit ? Slot : "button";
 
     return (
-      <Comp
-        className={cn(
-          buttonVariants({ variant, color, size }),
-          fullWidth && "flex w-full",
-          className,
-        )}
-        ref={ref}
-        {...props}
-      >
+      <Comp className={sharedClassName} ref={ref} {...props}>
         {isGradient ? (
           <>
             <div className="absolute inset-[1.5px] z-0 rounded-sm bg-background/95 saturate-200 backdrop-blur-3xl transition-all group-hover:bg-background/40" />
@@ -190,35 +245,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             </span>
           </>
         ) : isCockpit ? (
-          <>
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 z-0 bg-[#a9480e]"
-              style={cockpitMaskStyle}
-            />
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 z-1 opacity-80 blur-[1.5px] group-hover:opacity-100"
-              style={{
-                ...cockpitMaskStyle,
-                background:
-                  "conic-gradient(from var(--border-angle), #ffd47a, #ff7a18, #ff4500, #ffd47a)",
-                animation: "cockpit-border-rotate 3s linear infinite",
-              }}
-            />
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-[2px] z-2 bg-[#2a070d]"
-              style={cockpitMaskStyle}
-            />
-            <img
-              aria-hidden
-              alt=""
-              src="/cockpit-bottom-right-button.svg"
-              className="pointer-events-none absolute inset-0 z-3 h-full w-full object-fill opacity-55 mix-blend-screen"
-            />
-            <span className="pointer-events-none relative z-10 px-4">{children}</span>
-          </>
+          <CockpitButtonContent>{children}</CockpitButtonContent>
         ) : (
           children
         )}

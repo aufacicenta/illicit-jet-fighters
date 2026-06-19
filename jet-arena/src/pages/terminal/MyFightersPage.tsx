@@ -139,13 +139,19 @@ const MyFightersPageInner = () => {
           </TypingEffect>
         </CockpitBottomLeftSlot>
         <CockpitBottomRightSlot>
-          <TypingEffect>
-            <span className="text-right text-xs text-highlight">
-              Illicit Jet Fighters, 2026.
-              <br />
-              Agentic E-Sports.
-            </span>
-          </TypingEffect>
+          {activeTab === "my-fighters" ? (
+            <Button asChild type="button" variant="cockpit" fullWidth>
+              <Link to={routes.createFighter()}>Create Fighter</Link>
+            </Button>
+          ) : (
+            <TypingEffect>
+              <span className="text-right text-xs text-highlight">
+                Illicit Jet Fighters, 2026.
+                <br />
+                Agentic E-Sports.
+              </span>
+            </TypingEffect>
+          )}
         </CockpitBottomRightSlot>
       </CockpitStatScreens>
 
@@ -153,24 +159,6 @@ const MyFightersPageInner = () => {
         <Tabs onValueChange={handleTabChange} value={activeTab}>
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start lg:gap-8">
             <aside className="w-full lg:sticky lg:top-6 lg:order-2">
-              <div className="pt-2">
-                {activeTab === "my-fighters" ? (
-                  <div className="mb-4 flex flex-col gap-2">
-                    <Button asChild className="tracking-[0.12em]" type="button">
-                      <Link to={routes.createFighter()}>Create Fighter</Link>
-                    </Button>
-                  </div>
-                ) : null}
-
-                {activeTab === "my-battlefields" ? (
-                  <div className="mb-4 flex flex-col gap-2">
-                    <Button asChild type="button">
-                      <Link to={routes.createBattlefield()}>Create Battlefield</Link>
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-
               <div className="border-border/80 bg-card/70">
                 <TabsList className="flex h-auto w-full flex-col gap-0 bg-transparent p-0">
                   <TabsTrigger className={terminalAsideTabTriggerClassName} value="my-fighters">
@@ -202,40 +190,6 @@ const MyFightersPageInner = () => {
                       tabIndex={0}
                     >
                       <RefreshCw className={cn("size-3.5", isLoadingFighters && "animate-spin")} />
-                    </span>
-                  </TabsTrigger>
-
-                  <TabsTrigger className={terminalAsideTabTriggerClassName} value="my-battlefields">
-                    <span className="size-1.5 shrink-0 rounded-full bg-muted group-data-[state=active]:bg-secondary" />
-                    <span className="min-w-0 flex-1 truncate">Battlefields</span>
-                    <span
-                      aria-disabled={isLoadingBattlefields || deletingBattlefieldId !== null}
-                      aria-label="Refresh battlefields"
-                      className={terminalAsideTabRefreshClassName}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        if (isLoadingBattlefields || deletingBattlefieldId !== null) {
-                          return;
-                        }
-                        void loadBattlefields();
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key !== "Enter" && event.key !== " ") {
-                          return;
-                        }
-                        event.preventDefault();
-                        event.stopPropagation();
-                        if (isLoadingBattlefields || deletingBattlefieldId !== null) {
-                          return;
-                        }
-                        void loadBattlefields();
-                      }}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <RefreshCw
-                        className={cn("size-3.5", isLoadingBattlefields && "animate-spin")}
-                      />
                     </span>
                   </TabsTrigger>
 
