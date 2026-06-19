@@ -80,6 +80,7 @@ export type ArenaMyQueueEntry = ArenaQueueEntry & {
   simulationStatus: "queued" | "running" | "ended" | "error" | null;
   fighterSlug: string;
   fighterName: string | null;
+  versionNumber: number | null;
   opponents: ArenaQueueOpponent[];
 };
 

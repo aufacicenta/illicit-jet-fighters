@@ -1,3 +1,5 @@
+import type { ArenaBattleMode } from "@ijf/database";
+
 import {
   getFighterAgentVersionByIdForOwnerAndFighter,
   getLatestFighterAgentVersion,
@@ -19,18 +21,25 @@ import {
   setFighterArenaStatus,
 } from "./pool-repository";
 
+const isSquadBattleMode = (battleMode: ArenaBattleMode) =>
+  battleMode === "squad_4" || battleMode === "squad_8";
+
 const selectEntriesForMatch = (
   queued: ArenaQueueEntryRecord[],
   minFighters: number,
+  battleMode: ArenaBattleMode,
 ): ArenaQueueEntryRecord[] => {
   const selected: ArenaQueueEntryRecord[] = [];
+  const enforceOneFighterPerUser = !isSquadBattleMode(battleMode);
   const seenUserIds = new Set<string>();
 
   for (const entry of queued) {
-    if (seenUserIds.has(entry.userId)) {
+    if (enforceOneFighterPerUser && seenUserIds.has(entry.userId)) {
       continue;
     }
-    seenUserIds.add(entry.userId);
+    if (enforceOneFighterPerUser) {
+      seenUserIds.add(entry.userId);
+    }
     selected.push(entry);
     if (selected.length >= minFighters) {
       break;
@@ -47,7 +56,7 @@ export const tryMatchPool = async (poolId: string) => {
   }
 
   const queued = await getQueuedEntriesForPool(poolId);
-  const selected = selectEntriesForMatch(queued, pool.minFighters);
+  const selected = selectEntriesForMatch(queued, pool.minFighters, pool.battleMode);
   if (selected.length < pool.minFighters) {
     return null;
   }

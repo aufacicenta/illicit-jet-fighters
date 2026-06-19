@@ -332,9 +332,25 @@ const MyFightersPageInner = () => {
 
 const MyFightersPageWithArena = () => {
   const { fighters, load: loadFighters } = useMyFightersContext();
+  const [, setSearchParams] = useSearchParams();
+
+  const handleEnterPoolSuccess = () => {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.set(TERMINAL_TAB_QUERY_KEY, "queue");
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   return (
-    <ArenaPoolsContextController fighters={fighters} onFightersRefresh={loadFighters}>
+    <ArenaPoolsContextController
+      fighters={fighters}
+      onEnterPoolSuccess={handleEnterPoolSuccess}
+      onFightersRefresh={loadFighters}
+    >
       <MyFightersPageInner />
     </ArenaPoolsContextController>
   );

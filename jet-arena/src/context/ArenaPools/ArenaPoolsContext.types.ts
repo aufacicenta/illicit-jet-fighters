@@ -47,6 +47,7 @@ export type QueueEntryView = {
 export type ArenaPoolsContextControllerProps = {
   fighters: MyFighter[];
   onFightersRefresh: () => Promise<void>;
+  onEnterPoolSuccess?: () => void;
   children: ReactNode;
 };
 
@@ -79,7 +80,7 @@ export type ArenaPoolsContextType = {
   stakeLabel: string;
 
   loadPools: () => Promise<void>;
-  loadQueue: () => Promise<void>;
+  loadQueue: (options?: { silent?: boolean }) => Promise<void>;
   refreshAll: () => Promise<void>;
   openEnterSheet: (pool: ArenaPool) => void;
   handleLeaveQueue: (entry: QueueEntryView) => Promise<void>;

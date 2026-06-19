@@ -367,10 +367,12 @@ export const listUserQueueEntries = async (userId: string) =>
       simulationStatus: simulations.status,
       fighterSlug: fighters.slug,
       fighterName: fighters.name,
+      versionNumber: fighterAgentVersions.versionNumber,
     })
     .from(arenaQueueEntries)
     .innerJoin(arenaPools, eq(arenaQueueEntries.poolId, arenaPools.id))
     .innerJoin(fighters, eq(arenaQueueEntries.fighterId, fighters.id))
+    .leftJoin(fighterAgentVersions, eq(arenaQueueEntries.agentVersionId, fighterAgentVersions.id))
     .leftJoin(simulations, eq(arenaQueueEntries.simulationId, simulations.id))
     .leftJoin(broadcasts, eq(simulations.id, broadcasts.simulationId))
     .where(

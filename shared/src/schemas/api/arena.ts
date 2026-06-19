@@ -85,6 +85,7 @@ export const arenaMyQueueEntrySchema = arenaQueueEntrySchema.extend({
   simulationStatus: simulationStatusSchema.nullable(),
   fighterSlug: z.string().min(1),
   fighterName: z.string().nullable(),
+  versionNumber: z.number().int().positive().nullable(),
   opponents: z.array(arenaQueueOpponentSchema),
 });
 

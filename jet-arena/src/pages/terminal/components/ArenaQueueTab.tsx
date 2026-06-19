@@ -1,6 +1,6 @@
 import { formatCompactDateTime, resolveFighterName } from "@ijf/shared";
 import { ChevronRight, Play } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { Button } from "../../../components/ui/button";
@@ -39,6 +39,8 @@ const outcomeClassNames: Record<"won" | "lost" | "draw", string> = {
   lost: "text-red-400",
   draw: "text-amber-300",
 };
+
+const POLL_INTERVAL_MS = 3000;
 
 const getQueueEntryUpdatedAt = (entry: QueueEntryView) => entry.matchedAt ?? entry.queuedAt;
 
@@ -239,6 +241,11 @@ export const ArenaQueueTab = () => {
   } = useArenaPoolsContext();
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const loadQueueRef = useRef(loadQueue);
+
+  useEffect(() => {
+    loadQueueRef.current = loadQueue;
+  });
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((prev) => {
@@ -251,6 +258,18 @@ export const ArenaQueueTab = () => {
       return next;
     });
   };
+
+  useEffect(() => {
+    void loadQueueRef.current();
+
+    const timer = window.setInterval(() => {
+      void loadQueueRef.current({ silent: true });
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -279,17 +298,17 @@ export const ArenaQueueTab = () => {
             </div>
           ) : null}
 
-          {isLoadingQueue ? (
+          {isLoadingQueue && queueEntries.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">Loading queue…</p>
           ) : null}
 
-          {!isLoadingQueue && queueEntries.length === 0 ? (
+          {!isLoadingQueue && queueEntries.length === 0 && !queueError ? (
             <p className="m-4 rounded-sm border border-dashed border-border/70 px-3 py-6 text-center text-xs tracking-wide text-muted-foreground uppercase">
               No queued fighters
             </p>
           ) : null}
 
-          {!isLoadingQueue && queueEntries.length > 0 ? (
+          {queueEntries.length > 0 ? (
             <div role="table" className="w-full text-xs">
               {/* Header */}
               <div

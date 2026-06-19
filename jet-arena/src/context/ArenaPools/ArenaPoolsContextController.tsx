@@ -11,8 +11,7 @@ import {
   postArenaPoolEnter,
   postArenaPoolLeave,
 } from "../../lib/api/arena";
-import { postFighterTransferIn } from "../../lib/api/fighter-ledger";
-import { fetchFighterAgentVersions } from "../../lib/api/fighters";
+import { postFighterTransferIn, postFighterTransferOut } from "../../lib/api/fighter-ledger";
 import {
   ALL_REQUIRED_SECTION_IDS,
   countCompletedRequiredSections,
@@ -52,6 +51,7 @@ const getBalanceSufficiency = ({
 export const ArenaPoolsContextController = ({
   fighters,
   onFightersRefresh,
+  onEnterPoolSuccess,
   children,
 }: ArenaPoolsContextControllerProps) => {
   const { wallet, refresh: refreshWallet } = useWalletContext();
@@ -117,30 +117,17 @@ export const ArenaPoolsContextController = ({
     }
   };
 
-  const loadQueue = async () => {
-    setIsLoadingQueue(true);
-    setQueueError(null);
+  const loadQueue = async (options?: { silent?: boolean }) => {
+    if (!options?.silent) {
+      setIsLoadingQueue(true);
+      setQueueError(null);
+    }
     try {
       const response = await fetchArenaMyQueue();
-      const versionEntries = await Promise.all(
-        response.entries.map(async (entry) => {
-          if (!entry.agentVersionId) {
-            return [entry.id, null] as const;
-          }
-          try {
-            const versions = await fetchFighterAgentVersions(entry.fighterId);
-            const version = versions.versions.find((item) => item.id === entry.agentVersionId);
-            return [entry.id, version?.versionNumber ?? null] as const;
-          } catch {
-            return [entry.id, null] as const;
-          }
-        }),
-      );
-      const versionByEntryId = new Map(versionEntries);
       setQueueEntries(
         response.entries.map((entry) => ({
           ...entry,
-          versionNumber: versionByEntryId.get(entry.id) ?? null,
+          versionNumber: entry.versionNumber ?? null,
           broadcastId: entry.broadcastId ?? null,
           winnerFighterId: entry.winnerFighterId ?? null,
           simulationStatus: entry.simulationStatus ?? null,
@@ -148,10 +135,14 @@ export const ArenaPoolsContextController = ({
         })),
       );
     } catch (error) {
-      setQueueError(error instanceof Error ? error.message : "Unable to load arena queue.");
-      setQueueEntries([]);
+      if (!options?.silent) {
+        setQueueError(error instanceof Error ? error.message : "Unable to load arena queue.");
+        setQueueEntries([]);
+      }
     } finally {
-      setIsLoadingQueue(false);
+      if (!options?.silent) {
+        setIsLoadingQueue(false);
+      }
     }
   };
 
@@ -354,6 +345,7 @@ export const ArenaPoolsContextController = ({
     setSubmitProgress({ current: 0, total: fighterIdsToEnter.length });
 
     const broadcastIds: string[] = [];
+    let successCount = 0;
 
     try {
       for (let i = 0; i < fighterIdsToEnter.length; i++) {
@@ -375,23 +367,54 @@ export const ArenaPoolsContextController = ({
 
         setSubmitProgress({ current: i + 1, total: fighterIdsToEnter.length });
 
-        if (sufficiency === "top-up") {
-          const deficit = stakeAmountNative - fighterBalanceNative;
-          await postFighterTransferIn({
-            fighterId: String(fighterId),
-            amountNative: deficit.toString(),
-          });
-          await refreshWallet();
-        }
+        let topUpAmountNative = 0n;
 
-        const result = await postArenaPoolEnter(
-          selectedPool.id,
-          fighterId,
-          fighterState.selectedVersionId!,
-        );
+        try {
+          if (sufficiency === "top-up") {
+            topUpAmountNative = stakeAmountNative - fighterBalanceNative;
+            await postFighterTransferIn({
+              fighterId: String(fighterId),
+              amountNative: topUpAmountNative.toString(),
+            });
+            await refreshWallet();
+          }
 
-        if (result.match) {
-          broadcastIds.push(result.match.broadcastId);
+          const result = await postArenaPoolEnter(
+            selectedPool.id,
+            fighterId,
+            fighterState.selectedVersionId!,
+          );
+
+          successCount += 1;
+
+          if (result.match) {
+            broadcastIds.push(result.match.broadcastId);
+          }
+        } catch (error) {
+          const enterErrorMessage =
+            error instanceof Error ? error.message : "Unable to enter arena pool.";
+
+          if (topUpAmountNative > 0n) {
+            try {
+              await postFighterTransferOut({
+                fighterId: String(fighterId),
+                amountNative: topUpAmountNative.toString(),
+              });
+              await refreshWallet();
+              setSubmitError(`${enterErrorMessage} Your wallet top-up was refunded.`);
+            } catch (rollbackError) {
+              const rollbackMessage =
+                rollbackError instanceof Error
+                  ? rollbackError.message
+                  : "Unable to refund wallet top-up.";
+              setSubmitError(
+                `${enterErrorMessage} Failed to refund wallet top-up: ${rollbackMessage}`,
+              );
+            }
+          } else {
+            setSubmitError(enterErrorMessage);
+          }
+          break;
         }
       }
 
@@ -399,6 +422,9 @@ export const ArenaPoolsContextController = ({
         setMatchBroadcastIds(broadcastIds);
       } else {
         setIsEnterSheetOpen(false);
+        if (successCount > 0) {
+          onEnterPoolSuccess?.();
+        }
       }
 
       await refreshAll();

@@ -201,6 +201,7 @@ export const arenaRoutes = new Elysia({ prefix: "/arena" })
             simulationStatus: entry.simulationStatus ?? null,
             fighterSlug: entry.fighterSlug,
             fighterName: entry.fighterName,
+            versionNumber: entry.versionNumber ?? null,
             opponents,
           };
         }),
