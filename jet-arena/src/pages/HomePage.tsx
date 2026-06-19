@@ -17,6 +17,13 @@ import { HomeAside } from "./home/HomeAside";
 import { StorySection } from "./home/StorySection";
 import type { HomeAsideSection } from "./home/types";
 
+const sectionTitles: Record<HomeAsideSection, string> = {
+  fighters: "Choose Your Fighter",
+  broadcasts: "Arena Broadcasts",
+  story: "Setting Story",
+  about: "Welcome to the IJF",
+};
+
 export const HomePage = () => {
   const { isAuthenticated, isBootstrapping } = useAuth();
   const [activeAsideSection, setActiveAsideSection] = useState<HomeAsideSection>("fighters");
@@ -44,7 +51,7 @@ export const HomePage = () => {
       <CockpitStatScreens>
         <CockpitTopCenterSlot>
           <RTLScrollEffect>
-            <p className="font-pixel text-2xl">Choose Your Fighter</p>
+            <p className="font-pixel text-2xl">{sectionTitles[activeAsideSection]}</p>
           </RTLScrollEffect>
         </CockpitTopCenterSlot>
         {!isBootstrapping && isAuthenticated ? (

@@ -68,11 +68,7 @@ const MyFightersPageInner = () => {
     load: loadFighters,
   } = useMyFightersContext();
 
-  const {
-    isLoading: isLoadingBattlefields,
-    deletingBattlefieldId,
-    load: loadBattlefields,
-  } = useMyBattlefieldsContext();
+  const { load: loadBattlefields } = useMyBattlefieldsContext();
 
   const { isLoadingPools, isLoadingQueue, leavingEntryId, loadPools, loadQueue } =
     useArenaPoolsContext();

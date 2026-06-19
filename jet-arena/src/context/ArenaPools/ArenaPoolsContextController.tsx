@@ -209,7 +209,7 @@ export const ArenaPoolsContextController = ({
     setFighterIneligibilityById({});
     setSubmitProgress(null);
     setIsLoadingDetails(true);
-  }, [isEnterSheetOpen, selectedPool?.id]);
+  }, [isEnterSheetOpen, selectedPool]);
 
   useEffect(() => {
     if (!isEnterSheetOpen || !selectedPool || isEnterSheetBootstrapping) {
@@ -295,7 +295,7 @@ export const ArenaPoolsContextController = ({
     return () => {
       cancelled = true;
     };
-  }, [enterSheetFighterKey, isEnterSheetBootstrapping, isEnterSheetOpen, selectedPool?.id]);
+  }, [enterSheetFighterKey, isEnterSheetBootstrapping, isEnterSheetOpen, selectedPool]);
 
   const toggleFighterSelection = (fighterId: number) => {
     setSelectedFighterIds((current) => {

@@ -321,14 +321,30 @@ body {
 
 .cockpit-stat-scroll {
   width: 100%;
-  white-space: nowrap;
   overflow: hidden;
 }
 
-.cockpit-stat-scroll-content {
-  display: inline-block;
-  min-width: max-content;
+.cockpit-stat-scroll-track {
+  display: flex;
+  width: max-content;
   will-change: transform;
+  animation: cockpit-stat-marquee var(--cockpit-marquee-duration, 8000ms) linear infinite;
+}
+
+.cockpit-stat-scroll-item {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding-right: var(--cockpit-marquee-gap, 4rem);
+}
+
+@keyframes cockpit-stat-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(var(--cockpit-marquee-distance, -100%));
+  }
 }
 
 .cockpit-stat-typing-cursor {

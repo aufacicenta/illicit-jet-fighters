@@ -197,60 +197,84 @@ export const RTLScrollEffect = ({ children }: { children: ReactNode }) => (
   <RTLScrollEffectController>{children}</RTLScrollEffectController>
 );
 
+// Pixels the marquee travels per second. Kept constant so every panel scrolls
+// at the same visual speed regardless of how wide its content is.
+const MARQUEE_PIXELS_PER_SECOND = 80;
+// Trailing space between each repeat of the content, in pixels. Must match the
+// `--cockpit-marquee-gap` fallback used in styles.css.
+const MARQUEE_GAP_PX = 64;
+
 const RTLScrollEffectController = ({ children }: { children: ReactNode }) => {
   const viewportRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const itemRef = useRef<HTMLDivElement>(null);
+  // Number of identical copies rendered in a row. Enough copies to overflow the
+  // viewport plus one extra makes the loop boundary seamless.
+  const [copies, setCopies] = useState(2);
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
-    const content = contentRef.current;
-    if (!viewport || !content) {
+    const track = trackRef.current;
+    const item = itemRef.current;
+    if (!viewport || !track || !item) {
       return;
     }
 
-    const pixelsPerSecond = 80;
-    const minDurationMs = 2000;
-    const resetBufferPx = 4;
-    let activeAnimation: Animation | null = null;
+    const measure = () => {
+      // Width of a single copy, including its trailing gap. Translating the
+      // track left by exactly this amount lands copy N+1 where copy N began,
+      // so the animation can loop forever with no visible jump or blank gap.
+      const itemWidth = item.getBoundingClientRect().width;
+      const viewportWidth = viewport.getBoundingClientRect().width;
+      if (itemWidth <= 0 || viewportWidth <= 0) {
+        return;
+      }
 
-    const startAnimation = () => {
-      activeAnimation?.cancel();
+      const neededCopies = Math.max(2, Math.ceil(viewportWidth / itemWidth) + 1);
+      setCopies((current) => (current === neededCopies ? current : neededCopies));
 
-      const viewportRect = viewport.getBoundingClientRect();
-      const contentRect = content.getBoundingClientRect();
-      const contentOffsetLeft = contentRect.left - viewportRect.left;
-      const contentWidth = contentRect.width;
-      const viewportWidth = viewportRect.width;
-
-      const startX = viewportWidth - contentOffsetLeft;
-      const endX = -(contentOffsetLeft + contentWidth + resetBufferPx);
-      const distance = startX - endX;
-      const durationMs = Math.max(minDurationMs, (distance / pixelsPerSecond) * 1000);
-
-      activeAnimation = content.animate(
-        [{ transform: `translateX(${startX}px)` }, { transform: `translateX(${endX}px)` }],
-        { duration: durationMs, iterations: Infinity, easing: "linear" },
-      );
+      const durationMs = (itemWidth / MARQUEE_PIXELS_PER_SECOND) * 1000;
+      track.style.setProperty("--cockpit-marquee-distance", `${-itemWidth}px`);
+      track.style.setProperty("--cockpit-marquee-duration", `${durationMs}ms`);
     };
 
-    startAnimation();
-    const resizeObserver = new ResizeObserver(startAnimation);
+    measure();
+
+    const resizeObserver = new ResizeObserver(measure);
     resizeObserver.observe(viewport);
-    resizeObserver.observe(content);
+    resizeObserver.observe(item);
+
+    // Re-measure once web fonts finish loading, since the pixel font changes
+    // the content width after the initial layout pass.
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(measure).catch(() => {});
+    }
 
     return () => {
       resizeObserver.disconnect();
-      activeAnimation?.cancel();
     };
-  }, [children]);
+  }, [children, copies]);
 
   return (
     <div
       className="cockpit-stat-scroll leading-none tracking-[0.08em] text-highlight uppercase"
       ref={viewportRef}
     >
-      <div className="cockpit-stat-scroll-content" ref={contentRef}>
-        {children}
+      <div
+        className="cockpit-stat-scroll-track"
+        ref={trackRef}
+        style={{ "--cockpit-marquee-gap": `${MARQUEE_GAP_PX}px` } as CSSProperties}
+      >
+        {Array.from({ length: copies }, (_, index) => (
+          <div
+            aria-hidden={index > 0}
+            className="cockpit-stat-scroll-item"
+            key={index}
+            ref={index === 0 ? itemRef : undefined}
+          >
+            {children}
+          </div>
+        ))}
       </div>
     </div>
   );
