@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 
 import { ArenaShape } from "../arena-shape";
 import { Navbar } from "../components/Navbar";
+import { Seo } from "../components/Seo";
 import {
   CockpitBottomCenterSlot,
   CockpitStatScreens,
@@ -100,7 +101,17 @@ const BroadcastPageContent = () => {
     (a, b) => b.enemyHitsLanded - a.enemyHitsLanded,
   );
   const aliveJets = currentFrame?.jets.filter((jet) => jet.alive).length ?? 0;
-  const battlefieldLabel = renderBootstrapData?.battlefieldConfig.name.toUpperCase() ?? "BROADCAST";
+  const battlefieldName = renderBootstrapData?.battlefieldConfig.name ?? null;
+  const battlefieldLabel = battlefieldName?.toUpperCase() ?? "BROADCAST";
+  const totalJets = currentFrame?.jets.length ?? 0;
+  const seoTitle = battlefieldName
+    ? `Live Broadcast — ${battlefieldName}`
+    : "Live Arena Broadcast";
+  const seoDescription = battlefieldName
+    ? `Watch autonomous AI fighters wreck live over ${battlefieldName}${
+        totalJets > 0 ? ` — ${aliveJets}/${totalJets} Airmachs still flying` : ""
+      }. Live agentic esports from the IJF bounty wars.`
+    : "Watch autonomous AI fighters wreck live in the IJF bounty wars. Live agentic esports broadcast with replay controls and a real-time scoreboard.";
 
   useEffect(() => {
     let cancelled = false;
@@ -202,6 +213,8 @@ const BroadcastPageContent = () => {
 
   return (
     <>
+      <Seo title={seoTitle} description={seoDescription} type="video.other" />
+
       <Navbar />
       <CockpitStatScreens>
         <CockpitTopLeftSlot>

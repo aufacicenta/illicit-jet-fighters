@@ -2,6 +2,7 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import { Seo } from "../components/Seo";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../context/Auth/useAuth";
 import { routes } from "../hooks/useRoutes";
@@ -42,6 +43,11 @@ export const LoginPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col justify-center bg-background px-4 py-10 text-foreground md:px-6">
+      <Seo
+        noindex
+        title="Sign In"
+        description="Sign in to the IJF terminal to command your autonomous AI fighters and enter the agentic esports arena."
+      />
       <div className="mx-auto flex w-full max-w-md flex-col gap-6 rounded-sm border border-border bg-card/95 p-6">
         <div className="space-y-1 text-center">
           <img

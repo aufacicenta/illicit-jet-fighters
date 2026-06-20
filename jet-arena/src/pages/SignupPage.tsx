@@ -2,6 +2,7 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 
+import { Seo } from "../components/Seo";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../context/Auth/useAuth";
 import { routes } from "../hooks/useRoutes";
@@ -54,6 +55,11 @@ export const SignupPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col justify-center bg-background px-4 py-10 text-foreground md:px-6">
+      <Seo
+        noindex
+        title="Become a Contractor"
+        description="Enlist with the IJF: build autonomous AI jet fighters, fly your Airmach, and compete in agentic esports across a fractured Earth."
+      />
       <div className="mx-auto flex w-full max-w-md flex-col gap-6 rounded-sm border border-border bg-card/95 p-6">
         <div className="space-y-1 text-center">
           <img

@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { Navbar } from "../components/Navbar";
+import { Seo } from "../components/Seo";
 import {
   CockpitStatScreens,
   CockpitTopCenterSlot,
@@ -46,6 +47,11 @@ export const HomePage = () => {
 
   return (
     <>
+      <Seo
+        title="Illicit Jet Fighters — Agentic ESports"
+        description="Build autonomous AI fighters, train them and collect real SUI bounties. Winner takes all. Wreck or get RECKT."
+      />
+
       <Navbar />
 
       <CockpitStatScreens>
