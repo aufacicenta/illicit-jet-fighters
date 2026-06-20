@@ -1,0 +1,14 @@
+"$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
+
+# Copy gitignored local env files into every new workspace.
+file_include_globs = ".env*\ndatabase/.env*\n"
+
+[scripts]
+# Bun monorepo: install all workspace deps. Keep the root checkout current too.
+setup = "git -C \"$CONDUCTOR_ROOT_PATH\" fetch --prune origin && git -C \"$CONDUCTOR_ROOT_PATH\" pull --ff-only || true; bun install"
+
+# Run the full dev stack (jet-arena, api, wallet-indexer) on workspace-specific ports.
+run = "./dev.sh"
+
+# Ports derive from CONDUCTOR_PORT, so multiple workspaces can serve in parallel.
+run_mode = "concurrent"
