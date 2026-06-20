@@ -37,21 +37,36 @@ function extraImgSrcOrigins(env: Record<string, string>): string {
   return [cloudflareWildcard, ...uniqueOrigins].join(" ");
 }
 
-function apiConnectSrcOrigins(env: Record<string, string>, mode: string): string {
-  if (mode === "development") {
-    return "http://localhost:4000 ws://localhost:4000 http://127.0.0.1:4000 ws://127.0.0.1:4000";
-  }
-  const raw = env.VITE_API_URL?.trim();
-  if (!raw?.length) {
-    return "";
+function originWithWs(raw: string | undefined): string[] {
+  const value = raw?.trim();
+  if (!value?.length) {
+    return [];
   }
   try {
-    const httpOrigin = new URL(raw).origin;
+    const httpOrigin = new URL(value).origin;
     const wsOrigin = httpOrigin.replace(/^http/, "ws");
-    return `${httpOrigin} ${wsOrigin}`;
+    return [httpOrigin, wsOrigin];
   } catch {
-    return "";
+    return [];
   }
+}
+
+function apiConnectSrcOrigins(env: Record<string, string>, mode: string): string {
+  if (mode === "development") {
+    // Default local ports plus any custom API URL (e.g. Conductor's CONDUCTOR_PORT + 1).
+    const defaults = [
+      "http://localhost:4000",
+      "ws://localhost:4000",
+      "http://127.0.0.1:4000",
+      "ws://127.0.0.1:4000",
+    ];
+    const custom = [
+      ...originWithWs(env.VITE_API_URL),
+      ...originWithWs(env.VITE_API_PROXY_TARGET),
+    ];
+    return Array.from(new Set([...defaults, ...custom])).join(" ");
+  }
+  return originWithWs(env.VITE_API_URL).join(" ");
 }
 
 function extraConnectSrcOrigins(env: Record<string, string>): string {

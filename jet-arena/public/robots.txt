@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /$
+Allow: /broadcast/
+Disallow: /login
+Disallow: /signup
+Disallow: /fighters/new
+Disallow: /battlefields/new
+Disallow: /terminal/
+Disallow: /wizard/
+
+Sitemap: https://illicitjetfighters.com/sitemap.xml
