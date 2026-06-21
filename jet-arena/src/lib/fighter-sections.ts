@@ -3,6 +3,7 @@ import {
   FIGHTER_INTAKE_REQUIRED_SECTION_IDS,
   FIGHTER_PHASE_ONE_SECTION_IDS,
   FIGHTER_PHASE_TWO_SECTION_IDS,
+  FIGHTER_PIPELINE_SECTION_ORDER,
   isFighterPipelineFullyComplete,
 } from "@ijf/shared";
 
@@ -33,10 +34,35 @@ export const PHASE_TWO_SECTION_IDS: SectionId[] = FIGHTER_PHASE_TWO_SECTION_IDS;
 
 export const ALL_REQUIRED_SECTION_IDS: SectionId[] = FIGHTER_INTAKE_REQUIRED_SECTION_IDS;
 
+// A section can settle into "ready" rather than "complete" even though it is
+// effectively finished — e.g. when its output is rehydrated from storage without
+// a fresh "section:complete" event. Because the pipeline always runs in
+// FIGHTER_PIPELINE_SECTION_ORDER, any later section reaching "complete" proves
+// every earlier section already produced its output, so we treat the earlier
+// section as complete too. (The final section has no successor, so it must
+// genuinely report "complete".)
+const isSectionEffectivelyComplete = (
+  sectionId: SectionId,
+  sectionStatuses: Partial<Record<SectionId, SectionStatus>> | Record<string, string>,
+) => {
+  if (sectionStatuses[sectionId] === "complete") {
+    return true;
+  }
+
+  const index = FIGHTER_PIPELINE_SECTION_ORDER.indexOf(sectionId);
+  if (index === -1) {
+    return false;
+  }
+
+  return FIGHTER_PIPELINE_SECTION_ORDER.slice(index + 1).some(
+    (laterSectionId) => sectionStatuses[laterSectionId] === "complete",
+  );
+};
+
 export const isPhaseComplete = (
   phaseSectionIds: SectionId[],
   sectionStatuses: Partial<Record<SectionId, SectionStatus>> | Record<string, string>,
-) => phaseSectionIds.every((id) => sectionStatuses[id] === "complete");
+) => phaseSectionIds.every((id) => isSectionEffectivelyComplete(id, sectionStatuses));
 
 export const isFighterFullyComplete = isFighterPipelineFullyComplete;
 

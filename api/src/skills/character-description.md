@@ -76,6 +76,19 @@ Produce:
 
 > "<one-line epithet>"
 
+## Identity
+
+> Canonical, single-source-of-truth facts. Downstream image skills (PFP, spec sheet)
+> MUST copy these verbatim and treat them as hard constraints — never re-infer them.
+
+- **Name:** <full name exactly as it should appear>
+- **Sex/Gender:** <e.g. female / male / non-binary — required, never omit>
+- **Pronouns:** <she/her, he/him, they/them>
+- **Species/Form:** <e.g. human; OR "literal armadillo — quadruped, armored carapace, non-human anatomy"; OR "anthropomorphic armadillo">
+
+> If the name reads as a different gender than the stated Sex/Gender, the Sex/Gender field wins.
+> If the source is a non-human animal, render the literal creature — do not humanize unless Species/Form explicitly says "anthropomorphic".
+
 ## Personality Stack
 
 - **Core (40%):**

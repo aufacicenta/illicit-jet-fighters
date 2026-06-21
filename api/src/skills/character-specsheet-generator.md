@@ -49,7 +49,10 @@ PERSONAL SYMBOL ...
 
 ## Mapping Rules
 
-1. Extract identity anchors from source description.
+1. **Copy the `## Identity` block (`Name`, `Sex/Gender`, `Pronouns`, `Species/Form`) verbatim from the source.** These are hard constraints — never infer or override them.
+   - **Never** guess gender from the name. If the name reads as a different gender than the stated `Sex/Gender`, the `Sex/Gender` field wins.
+   - If `Species/Form` is a non-human animal, render the literal creature with its real anatomy and silhouette across the hero pose, turnaround, and expressions. Do **not** humanize unless `Species/Form` says "anthropomorphic".
+   - Begin the prompt with an explicit `SUBJECT: <species/form>, <sex/gender>` line so every panel stays consistent.
 2. Derive missing sections while staying lore-consistent.
 3. Use concrete visual language (no vague descriptions).
 4. Include weathering/lived-in details.
