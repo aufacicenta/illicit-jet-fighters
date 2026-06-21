@@ -46,11 +46,14 @@ Produce a single continuous prompt. Follow this structure exactly, filling in ch
 
 ```
 [GLOBAL PREFIX], single square 256x256 pixel-art portrait of "<CHARACTER_NAME>",
-head-and-shoulders composition cropped at mid-chest,
 
-FACE AND HEAD: <facial structure>, <skin tone>, <distinctive facial features — scars, markings, beard, etc.>,
-<eye description with color and expression>, <eyebrow style and position>,
-<hair style, color, and how it frames the face>,
+SUBJECT: <species/form copied verbatim from Identity>, <sex/gender copied verbatim from Identity>,
+<crop appropriate to the species: "head-and-shoulders cropped at mid-chest" for humanoids, or a head/upper-body crop matching the creature's real anatomy for non-humans>,
+
+FACE AND HEAD: <facial/head structure for this species>, <skin / fur / scale / carapace texture and color>,
+<distinctive features — scars, markings; facial hair ONLY if consistent with the stated sex/gender and species>,
+<eye description with color and expression>, <brow/expression detail appropriate to the species>,
+<hair / fur / quills / feathers / none — style, color, and how it frames the face>,
 
 HEADGEAR / ACCESSORIES: <helmet, visor, headset, goggles, earpiece, or other head-adjacent gear>,
 
@@ -69,6 +72,11 @@ COLOR PALETTE: <color_1 name> <#hex>, <color_2 name> <#hex>, <color_3 name> <#he
 ```
 
 ## Mapping Rules
+
+0. **Copy the `## Identity` block first** (`Name`, `Sex/Gender`, `Pronouns`, `Species/Form`) verbatim from the source. These are hard constraints — never infer or override them:
+   - **Never** guess gender from the name. If the name reads as a different gender than the stated `Sex/Gender`, the `Sex/Gender` field wins.
+   - If `Species/Form` is a non-human animal, render the literal creature with its real anatomy and silhouette — fur/scales/carapace instead of skin, no human hair/beard/eyebrows unless the species has them. Do **not** humanize unless `Species/Form` says "anthropomorphic".
+   - The human-anatomy anchors below (skin tone, hair, facial hair, mid-chest bust crop) apply only when they fit the stated species; otherwise substitute the species-appropriate equivalent.
 
 1. **Extract portrait-relevant anchors** from the source:
    - Face shape, skin tone, distinguishing facial features (scars, tattoos, piercings, facial hair)
