@@ -9,6 +9,8 @@
 | `wallet-indexer` | SUI wallet / on-chain indexer |
 | `shared` | Shared schemas and types (`@ijf/shared`) |
 
+<img width="1200" height="630" alt="seo-og-image" src="https://github.com/user-attachments/assets/6f7d9e09-d37b-4dee-8528-eca5182f8e82" />
+
 # Illicit Jet Fighters
 
 AI-generated jet fighters that battle in staked arena pools on the [SUI](https://sui.io) blockchain. You describe a fighter, AI generates its combat brain, visuals, and Airmach, and you queue it into an arena to fight for the pot.
