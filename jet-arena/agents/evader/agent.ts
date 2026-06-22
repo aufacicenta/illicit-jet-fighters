@@ -1,0 +1,98 @@
+globalThis.__agentExport = (() => {
+  const clamp = (value) => {
+    if (value > 1) return 1;
+    if (value < -1) return -1;
+    return value;
+  };
+
+  const nearestUsefulPickup = (observation) =>
+    observation.nearbyPickups
+      .filter((pickup) => {
+        if (pickup.kind === "fuel") return observation.self.fuel < 700;
+        if (pickup.kind === "health") return observation.self.health < 80;
+        if (pickup.kind === "ammo") return observation.self.ammo < 30;
+        return true;
+      })
+      .sort((left, right) => {
+        const leftBias = left.kind === "fuel" ? -25 : 0;
+        const rightBias = right.kind === "fuel" ? -25 : 0;
+        return left.distance + leftBias - (right.distance + rightBias);
+      })[0];
+
+  return {
+    init() {},
+    learn() {},
+    act(observation) {
+      const nearestBullet = observation.nearbyBullets
+        .filter((bullet) => !bullet.isMine)
+        .sort(
+          (left, right) =>
+            left.relX * left.relX +
+            left.relY * left.relY -
+            (right.relX * right.relX + right.relY * right.relY),
+        )[0];
+
+      const nearestEnemy = observation.enemies
+        .filter((enemy) => enemy.alive)
+        .sort((left, right) => left.distance - right.distance)[0];
+
+      if (nearestBullet) {
+        const dodgeAngle = Math.atan2(nearestBullet.relY, nearestBullet.relX) + Math.PI / 2;
+        const turn = clamp((dodgeAngle - observation.self.angle) / Math.PI);
+        // Vertical dodge: climb away from bullet altitude
+        const climb = nearestBullet.relAltitude < 0 ? 1 : -1;
+        return { thrust: 1, turn, climb, shoot: false };
+      }
+
+      const pickup = nearestUsefulPickup(observation);
+      if (pickup) {
+        const pickupBearing = Math.atan2(pickup.relY, pickup.relX) - observation.self.angle;
+        const normalizedPickupBearing = Math.atan2(
+          Math.sin(pickupBearing),
+          Math.cos(pickupBearing),
+        );
+        return {
+          thrust: 0.9,
+          turn: clamp((normalizedPickupBearing / Math.PI) * 0.95),
+          climb: clamp(-pickup.relAltitude * 2.8),
+          shoot: false,
+        };
+      }
+
+      if (!nearestEnemy) {
+        return { thrust: 0.5, turn: 0.25, climb: 0, shoot: false };
+      }
+
+      if (observation.distanceToWall < 65) {
+        const wallTurn = clamp(observation.self.angle > 0 ? -0.95 : 0.95);
+        return { thrust: 1, turn: wallTurn, climb: 0, shoot: false };
+      }
+
+      if (nearestEnemy.distance < 80) {
+        const separationTurn = clamp(nearestEnemy.bearingAngle >= 0 ? -1 : 1);
+        const separationClimb = nearestEnemy.relAltitude >= 0 ? -1 : 1;
+        return { thrust: 0.95, turn: separationTurn, climb: separationClimb, shoot: false };
+      }
+
+      const turn = clamp((nearestEnemy.bearingAngle / Math.PI) * 0.8);
+      // Stay at a different altitude from the nearest enemy to be harder to hit
+      const altDiff = nearestEnemy.relAltitude;
+      const climb =
+        Math.abs(altDiff) < 0.15 ? clamp((observation.self.altitude < 0.5 ? 1 : -1) * 0.7) : 0;
+      const altitudeAligned = Math.abs(altDiff) < 0.2;
+      const shouldShoot =
+        nearestEnemy.distance < 150 &&
+        altitudeAligned &&
+        Math.abs(nearestEnemy.bearingAngle) < 0.12 &&
+        observation.self.cooldown <= 0 &&
+        observation.self.ammo > 5;
+
+      return {
+        thrust: 0.55,
+        turn,
+        climb,
+        shoot: shouldShoot,
+      };
+    },
+  };
+})();

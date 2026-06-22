@@ -1,0 +1,133 @@
+import { Crosshair } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+
+import {
+  CockpitBottomCenterSlot,
+  CockpitBottomLeftSlot,
+  CockpitBottomRightSlot,
+  CockpitStatScreens,
+  CockpitTopCenterSlot,
+  CockpitTopLeftSlot,
+  CockpitTopRightSlot,
+  RTLScrollEffect,
+  TypingEffect,
+} from "../components/Navbar/CockpitStatScreens";
+import { NavbarWalletTray } from "../components/Navbar/NavbarWalletTray";
+import { useAuth } from "../context/Auth/useAuth";
+import { useCockpitAlert } from "../context/CockpitAlert/useCockpitAlert";
+import { routes } from "../hooks/useRoutes";
+import { battlefieldCreatePost, startBattlefieldPipeline } from "../lib/api";
+import { PromptBar } from "./wizard/PromptBar";
+
+export const CreateBattlefieldPage = () => {
+  const navigate = useNavigate();
+  const { token } = useAuth();
+  const [briefingPrompt, setBriefingPrompt] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
+  const { pushAlert } = useCockpitAlert();
+
+  const onStartIntake = useCallback(() => {
+    if (!token || isSubmittingRef.current) return;
+
+    const prompt = briefingPrompt.trim();
+    if (!prompt) {
+      pushAlert("Please enter a battlefield briefing before starting intake.");
+      return;
+    }
+
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+    void (async () => {
+      try {
+        const { id } = await battlefieldCreatePost();
+        await startBattlefieldPipeline(id, prompt);
+        navigate(routes.battlefieldWizard(String(id)), { replace: true });
+      } catch (error) {
+        pushAlert(error instanceof Error ? error.message : "Could not start battlefield intake.");
+      } finally {
+        isSubmittingRef.current = false;
+        setIsSubmitting(false);
+      }
+    })();
+  }, [briefingPrompt, navigate, pushAlert, token]);
+
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-background px-4 py-10 text-foreground md:px-6">
+        <div className="mx-auto flex w-full max-w-md flex-col gap-6 rounded-sm border border-border bg-card/95 p-6">
+          <div className="space-y-2 text-center">
+            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">
+              Battlefield intake
+            </p>
+            <p className="text-sm text-muted-foreground normal-case">
+              Sign in to start a new battlefield briefing.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Link
+              className="block rounded-sm border border-border px-4 py-2 text-center text-xs tracking-[0.12em] text-foreground uppercase hover:bg-muted/40"
+              to={routes.login()}
+            >
+              Back to sign in
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <CockpitStatScreens>
+        <CockpitTopLeftSlot>
+          <TypingEffect>
+            <p className="text-xs text-highlight">Greetings, Commander.</p>
+          </TypingEffect>
+        </CockpitTopLeftSlot>
+        <CockpitTopCenterSlot>
+          <RTLScrollEffect>
+            <p className="font-pixel flex items-center gap-4 text-2xl">
+              <Crosshair />
+              Battlefield Intake Terminal
+              <Crosshair />
+            </p>
+          </RTLScrollEffect>
+        </CockpitTopCenterSlot>
+        <CockpitTopRightSlot>
+          <NavbarWalletTray variant="cockpit" />
+        </CockpitTopRightSlot>
+
+        <CockpitBottomLeftSlot>
+          <TypingEffect>
+            <p className="text-xs text-emerald-400">
+              {isSubmitting ? "Submitting intake..." : "Systems Operational"}
+            </p>
+          </TypingEffect>
+        </CockpitBottomLeftSlot>
+        <CockpitBottomCenterSlot>
+          <PromptBar
+            autoFocus
+            disabled={isSubmitting}
+            onChange={setBriefingPrompt}
+            onSubmit={onStartIntake}
+            placeholder="Describe your battlefield. Terrain, hazards, tactical mood..."
+            value={briefingPrompt}
+          />
+        </CockpitBottomCenterSlot>
+        <CockpitBottomRightSlot>
+          <TypingEffect>
+            <span className="text-right text-xs text-highlight">
+              Illicit Jet Fighters, 2026.
+              <br />
+              Agentic E-Sports.
+            </span>
+          </TypingEffect>
+        </CockpitBottomRightSlot>
+      </CockpitStatScreens>
+
+      <div className="page-with-navbar-offset page-with-screen-bottom-offset mx-auto flex min-h-screen w-full max-w-4xl flex-col justify-center gap-6 px-4 md:px-6" />
+    </>
+  );
+};

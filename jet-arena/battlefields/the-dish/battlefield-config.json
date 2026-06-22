@@ -1,0 +1,136 @@
+{
+  "name": "The Dish",
+  "shape": {
+    "type": "polygon",
+    "vertices": [
+      [0, -620],
+      [430, -500],
+      [620, -120],
+      [560, 300],
+      [220, 590],
+      [-260, 610],
+      [-560, 320],
+      [-620, -140],
+      [-420, -500]
+    ]
+  },
+  "walls": [
+    {
+      "segments": [
+        [480, -60],
+        [520, 80],
+        [500, 230]
+      ],
+      "altitudeMin": 0,
+      "altitudeMax": 1
+    },
+    {
+      "segments": [
+        [-500, -80],
+        [-520, 120],
+        [-470, 260]
+      ],
+      "altitudeMin": 0,
+      "altitudeMax": 1
+    },
+    {
+      "segments": [
+        [-260, -360],
+        [-40, -390],
+        [180, -350]
+      ],
+      "altitudeMin": 0,
+      "altitudeMax": 1
+    },
+    {
+      "segments": [
+        [-300, 340],
+        [-60, 380],
+        [220, 330]
+      ],
+      "altitudeMin": 0,
+      "altitudeMax": 1
+    },
+    {
+      "segments": [
+        [-330, 120],
+        [-210, 40],
+        [-120, -80]
+      ],
+      "altitudeMin": 0,
+      "altitudeMax": 1
+    },
+    {
+      "segments": [
+        [160, 300],
+        [250, 170],
+        [320, 40]
+      ],
+      "altitudeMin": 0,
+      "altitudeMax": 1
+    },
+    {
+      "segments": [
+        [-140, -70],
+        [-250, -170],
+        [-330, -280]
+      ],
+      "altitudeMin": 0,
+      "altitudeMax": 1
+    },
+    {
+      "segments": [
+        [120, -120],
+        [240, -30],
+        [340, 60]
+      ],
+      "altitudeMin": 0,
+      "altitudeMax": 1
+    },
+    {
+      "segments": [
+        [-120, 40],
+        [-60, 120],
+        [40, 140],
+        [120, 80]
+      ],
+      "altitudeMin": 0,
+      "altitudeMax": 0.62
+    },
+    {
+      "segments": [
+        [-140, -40],
+        [-60, -120],
+        [40, -140],
+        [130, -90]
+      ],
+      "altitudeMin": 0,
+      "altitudeMax": 1
+    },
+    {
+      "segments": [
+        [380, -250],
+        [470, -170],
+        [500, -70]
+      ],
+      "altitudeMin": 0,
+      "altitudeMax": 1
+    },
+    {
+      "segments": [
+        [-390, 250],
+        [-470, 170],
+        [-500, 40]
+      ],
+      "altitudeMin": 0,
+      "altitudeMax": 1
+    }
+  ],
+  "spawnPoints": [
+    [-420, -220],
+    [240, -220],
+    [-260, 300],
+    [360, 260]
+  ],
+  "canvasAspect": [4, 3]
+}

@@ -1,0 +1,9 @@
+node_modules
+.eslintcache
+.DS_Store
+
+.env.local
+.env.prod
+
+# Local secrets (database package)
+database/.env.local
