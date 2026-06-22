@@ -4,7 +4,6 @@ import { useParams } from "react-router-dom";
 
 import { ArenaShape } from "../arena-shape";
 import { Navbar } from "../components/Navbar";
-import { Seo } from "../components/Seo";
 import {
   CockpitBottomCenterSlot,
   CockpitStatScreens,
@@ -13,6 +12,7 @@ import {
   CockpitTopRightSlot,
   RTLScrollEffect,
 } from "../components/Navbar/CockpitStatScreens";
+import { Seo } from "../components/Seo";
 import { BroadcastContextController } from "../context/Broadcast/BroadcastContextController";
 import { useBroadcastContext } from "../context/Broadcast/useBroadcastContext";
 import { useCockpitAlert } from "../context/CockpitAlert/useCockpitAlert";
@@ -104,9 +104,7 @@ const BroadcastPageContent = () => {
   const battlefieldName = renderBootstrapData?.battlefieldConfig.name ?? null;
   const battlefieldLabel = battlefieldName?.toUpperCase() ?? "BROADCAST";
   const totalJets = currentFrame?.jets.length ?? 0;
-  const seoTitle = battlefieldName
-    ? `Live Broadcast — ${battlefieldName}`
-    : "Live Arena Broadcast";
+  const seoTitle = battlefieldName ? `Live Broadcast — ${battlefieldName}` : "Live Arena Broadcast";
   const seoDescription = battlefieldName
     ? `Watch autonomous AI fighters wreck live over ${battlefieldName}${
         totalJets > 0 ? ` — ${aliveJets}/${totalJets} Airmachs still flying` : ""

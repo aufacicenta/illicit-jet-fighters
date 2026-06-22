@@ -67,7 +67,11 @@ export const AgentCodeSection = ({ showRegenerateButton = false }: AgentCodeSect
         <CardHeader
           className={`flex flex-row items-center justify-between gap-2 ${wizardCardHeaderClassName}`}
         >
-          <WizardCardTitle>Agent Source</WizardCardTitle>
+          <WizardCardTitle>Agent Source (Combat Brain)</WizardCardTitle>
+          <p className="text-xs text-muted-foreground">
+            Each new generation creates a new Combat Brain version. You can alwazys go back to a
+            better one in battles.
+          </p>
           <div className="flex items-center gap-2">
             {showRegenerateButton ? (
               <Button
