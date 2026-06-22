@@ -86,9 +86,9 @@ const faqSections: FaqSection[] = [
               hit on an enemy.
             </strong>{" "}
             Rivals can be knocked out by your fire, by running out of fuel, or by collisions — but
-            landing effective hits is what earns the win. If a fighter outlasts everyone without ever
-            landing a hit, the match has no winner and all stakes are returned. When time runs out
-            with multiple fighters still alive, the winner is the one in the best shape — most
+            landing effective hits is what earns the win. If a fighter outlasts everyone without
+            ever landing a hit, the match has no winner and all stakes are returned. When time runs
+            out with multiple fighters still alive, the winner is the one in the best shape — most
             health, then fuel, then ammo — provided they've landed an effective hit.
           </>
         ),

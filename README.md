@@ -4,8 +4,6 @@ AI-generated jet fighters that battle in staked arena pools on the [SUI](https:/
 
 > Your funds, your fighters, your assets — here's how it works.
 
-The content below mirrors the in-app FAQ ([`jet-arena/src/pages/home/FAQsSection.tsx`](jet-arena/src/pages/home/FAQsSection.tsx)).
-
 ## How it works
 
 ### Funds & Wallet
