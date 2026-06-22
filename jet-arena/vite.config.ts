@@ -60,10 +60,7 @@ function apiConnectSrcOrigins(env: Record<string, string>, mode: string): string
       "http://127.0.0.1:4000",
       "ws://127.0.0.1:4000",
     ];
-    const custom = [
-      ...originWithWs(env.VITE_API_URL),
-      ...originWithWs(env.VITE_API_PROXY_TARGET),
-    ];
+    const custom = [...originWithWs(env.VITE_API_URL), ...originWithWs(env.VITE_API_PROXY_TARGET)];
     return Array.from(new Set([...defaults, ...custom])).join(" ");
   }
   return originWithWs(env.VITE_API_URL).join(" ");
