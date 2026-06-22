@@ -13,6 +13,7 @@ import { useAuth } from "../context/Auth/useAuth";
 import { WalletContextController } from "../context/Wallet/WalletContextController";
 import { AboutSection } from "./home/AboutSection";
 import { BroadcastsSection } from "./home/BroadcastsSection";
+import { FAQsSection } from "./home/FAQsSection";
 import { FightersSection } from "./home/FightersSection";
 import { HomeAside } from "./home/HomeAside";
 import { StorySection } from "./home/StorySection";
@@ -23,6 +24,7 @@ const sectionTitles: Record<HomeAsideSection, string> = {
   broadcasts: "Arena Broadcasts",
   story: "Setting Story",
   about: "Welcome to the IJF",
+  faqs: "Frequently Asked",
 };
 
 export const HomePage = () => {
@@ -40,6 +42,10 @@ export const HomePage = () => {
 
     if (activeAsideSection === "story") {
       return <StorySection />;
+    }
+
+    if (activeAsideSection === "faqs") {
+      return <FAQsSection />;
     }
 
     return <AboutSection />;
