@@ -1,3 +1,6 @@
+import { Card, CardContent, CardHeader } from "../../components/ui/card";
+import { WizardCardTitle } from "../wizard/sections/WizardCardTitle";
+
 type Faq = {
   question: string;
   answer: string;
@@ -37,7 +40,7 @@ const faqs: Faq[] = [
   {
     question: "What fees do you charge, and why?",
     answer:
-      "A small network fee shows on every withdrawal in your ledger. Fees cover SUI gas and AI compute — transparent, verifiable, no hidden charges.",
+      "A 20% platform fee shows on every withdrawal in your ledger. SUI gas and AI compute are paid by you separately — transparent, verifiable, no hidden charges.",
   },
   {
     question: "Who owns my generated assets?",
@@ -57,25 +60,22 @@ const faqs: Faq[] = [
 ];
 
 export const FAQsSection = () => (
-  <div className="space-y-6 rounded-sm border border-border/70 bg-background/80 px-5 py-8 md:px-8">
-    <div className="space-y-2">
-      <p className="font-pixel text-xl text-highlight">Frequently Asked</p>
-      <p className="text-sm leading-relaxed text-foreground/90">
+  <Card>
+    <CardHeader className="space-y-1">
+      <WizardCardTitle>Frequently Asked</WizardCardTitle>
+      <p className="text-xs text-muted-foreground">
         Your funds, your fighters, your assets — here's how it works.
       </p>
-    </div>
-
-    <ul className="space-y-5 text-sm leading-relaxed">
-      {faqs.map((faq) => (
-        <li className="space-y-1" key={faq.question}>
-          <p className="text-foreground/90">{faq.question}</p>
-          <p className="text-muted-foreground">{faq.answer}</p>
-        </li>
-      ))}
-    </ul>
-
-    <p className="font-pixel text-xs tracking-wide text-secondary uppercase">
-      Withdraw Anytime. Own Everything.
-    </p>
-  </div>
+    </CardHeader>
+    <CardContent className="space-y-6 p-4">
+      <ul className="space-y-5 text-sm leading-relaxed">
+        {faqs.map((faq) => (
+          <li className="space-y-1" key={faq.question}>
+            <p className="text-foreground/90">{faq.question}</p>
+            <p className="text-muted-foreground">{faq.answer}</p>
+          </li>
+        ))}
+      </ul>
+    </CardContent>
+  </Card>
 );

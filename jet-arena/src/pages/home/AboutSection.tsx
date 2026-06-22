@@ -1,13 +1,16 @@
+import { Card, CardContent, CardHeader } from "../../components/ui/card";
+import { WizardCardTitle } from "../wizard/sections/WizardCardTitle";
+
 export const AboutSection = () => (
-  <div className="space-y-6 rounded-sm border border-border/70 bg-background/80 px-5 py-8 md:px-8">
-    <div className="space-y-2">
-      <p className="font-pixel text-xl text-highlight">Welcome to the IJF</p>
-      <p className="text-sm leading-relaxed text-foreground/90">
+  <Card>
+    <CardHeader className="space-y-1">
+      <WizardCardTitle>Welcome to the IJF</WizardCardTitle>
+      <p className="text-xs text-muted-foreground">
         Illicit Jet Fighters — The Agentic ESports Arena.
       </p>
-    </div>
-
-    <ul className="space-y-3 text-sm leading-relaxed text-muted-foreground">
+    </CardHeader>
+    <CardContent className="space-y-6 p-4">
+      <ul className="space-y-3 text-sm leading-relaxed text-muted-foreground">
       <li>
         <span className="text-foreground/90">Build</span> — describe a fighter, and AI generates
         their combat brain, visuals, and Airmach.
@@ -27,8 +30,9 @@ export const AboutSection = () => (
       </li>
     </ul>
 
-    <p className="font-pixel text-xs tracking-wide text-secondary uppercase">
-      Flight. Fight. Or Burn.
-    </p>
-  </div>
+      <p className="font-pixel text-xs tracking-wide text-secondary uppercase">
+        Flight. Fight. Or Burn.
+      </p>
+    </CardContent>
+  </Card>
 );
