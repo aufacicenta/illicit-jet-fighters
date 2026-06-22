@@ -19,7 +19,7 @@ const runLoop = async () => {
     networkEnv: config.networkEnv,
     suiRpcUrl: config.suiRpcUrl ? "(custom)" : "(default)",
     pollMs: config.walletIndexerPollMs,
-    mnemonicConfigured: Boolean(config.walletMasterMnemonic),
+    mnemonicConfigured: config.hasMasterMnemonic,
     feesWalletConfigured: Boolean(config.feesWallet),
     chargesWalletConfigured: Boolean(config.chargesWallet),
     pid: typeof process !== "undefined" ? process.pid : undefined,

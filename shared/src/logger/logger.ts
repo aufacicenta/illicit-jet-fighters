@@ -1,3 +1,5 @@
+import { isSecretKey, redactSecretsFromText } from "./redact";
+
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
 export type LogMeta = Record<string, unknown>;
@@ -67,6 +69,10 @@ const formatMeta = (meta?: LogMeta): string => {
   const parts = Object.entries(meta)
     .filter(([, value]) => value !== undefined)
     .map(([key, value]) => {
+      if (isSecretKey(key)) {
+        return `${key}="[REDACTED]"`;
+      }
+
       if (typeof value === "string") {
         return `${key}=${JSON.stringify(value)}`;
       }
@@ -87,7 +93,11 @@ const log = (level: LogLevel, message: string, meta?: LogMeta): void => {
   }
 
   const timestamp = new Date().toISOString();
-  const line = `[${timestamp}] [${LEVEL_LABELS[level]}] ${message}${formatMeta(meta)}`;
+  // Value-based scrub of the fully assembled line: catches any registered secret
+  // that slipped through via message, meta, or a serialized error/stack/cause.
+  const line = redactSecretsFromText(
+    `[${timestamp}] [${LEVEL_LABELS[level]}] ${message}${formatMeta(meta)}`,
+  );
 
   if (level === "error") {
     console.error(line);

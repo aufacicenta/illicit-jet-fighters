@@ -1,4 +1,5 @@
 import { walletEnv } from "../config/env-schema";
+import { registerSecret } from "../logger/redact";
 
 let cachedMnemonic: string | null = null;
 let cachedSponsorMnemonic: string | null = null;
@@ -27,6 +28,7 @@ export const getMasterMnemonic = (): string => {
     return cachedMnemonic;
   }
   cachedMnemonic = resolveMasterMnemonic();
+  registerSecret(cachedMnemonic);
   return cachedMnemonic;
 };
 
@@ -35,5 +37,6 @@ export const getSponsorMnemonic = (): string => {
     return cachedSponsorMnemonic;
   }
   cachedSponsorMnemonic = resolveSponsorMnemonic();
+  registerSecret(cachedSponsorMnemonic);
   return cachedSponsorMnemonic;
 };

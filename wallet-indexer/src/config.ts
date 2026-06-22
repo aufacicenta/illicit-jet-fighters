@@ -2,6 +2,7 @@ import path from "node:path";
 
 import { parseNetworkEnvName } from "@ijf/shared";
 import { loadEnvFiles, walletEnv, walletEnvSchema } from "@ijf/shared/config";
+import { registerSecrets } from "@ijf/shared/logger";
 import { z } from "zod";
 
 const walletIndexerDir = path.resolve(import.meta.dir, "..");
@@ -28,14 +29,27 @@ if (!parsed.success) {
 }
 const indexerEnv = parsed.data;
 
+// Register every secret value for log redaction before anything runs, so the
+// logger scrubs them even if they ever surface in an error message or stack.
+// Secrets are intentionally NOT exposed on the exported `config` object below —
+// signing code reads them via getMasterMnemonic()/getSponsorMnemonic() instead,
+// which keeps raw key material out of any object that might be logged wholesale.
+registerSecrets([
+  walletEnv.WALLET_MASTER_MNEMONIC,
+  indexerEnv.WALLET_SPONSOR_MNEMONIC,
+  indexerEnv.WALLET_INDEXER_SECRET,
+]);
+
 export const config = {
   walletNetwork: walletEnv.WALLET_NETWORK,
   networkEnv: parseNetworkEnvName(walletEnv.WALLET_NETWORK_ENV),
   suiRpcUrl: walletEnv.SUI_RPC_URL,
   walletIndexerPollMs: indexerEnv.WALLET_INDEXER_POLL_MS,
-  walletMasterMnemonic: walletEnv.WALLET_MASTER_MNEMONIC,
-  walletSponsorMnemonic: indexerEnv.WALLET_SPONSOR_MNEMONIC,
+  hasMasterMnemonic: Boolean(walletEnv.WALLET_MASTER_MNEMONIC),
+  hasSponsorMnemonic: Boolean(indexerEnv.WALLET_SPONSOR_MNEMONIC),
   apiBaseUrl: indexerEnv.API_BASE_URL,
+  // Bearer secret for authenticating indexer -> API calls (see notify-topup.ts).
+  // Registered for log redaction above; never log the `config` object wholesale.
   walletIndexerSecret: indexerEnv.WALLET_INDEXER_SECRET,
   feesWallet: indexerEnv.FEES_WALLET,
   chargesWallet: indexerEnv.CHARGES_WALLET,
